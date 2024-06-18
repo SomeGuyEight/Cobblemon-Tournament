@@ -1,0 +1,14 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="Dev Client (:fabric)" type="Application" factoryName="Application" singleton="false">
+    <option name="ALTERNATIVE_JRE_PATH" value="17" />
+    <option name="ALTERNATIVE_JRE_PATH_ENABLED" value="true" />
+    <option name="MAIN_CLASS_NAME" value="dev.architectury.transformer.TransformerRuntime" />
+    <module name="AddonTemplate.fabric.main" />
+    <option name="PROGRAM_PARAMETERS" value="--username=Dev --uuid=93e4e551-589a-41cb-ab2d-435266c8e035" />
+    <option name="VM_PARAMETERS" value="-Dfabric.dli.config=C:\Users\David\Git\Eight\AddonTemplate\fabric\.gradle\loom-cache\launch.cfg -Dfabric.dli.env=client -Dfabric.dli.main=net.fabricmc.loader.impl.launch.knot.KnotClient -Darchitectury.main.class=C:\Users\David\Git\Eight\AddonTemplate\fabric\.gradle\architectury\.main_class -Darchitectury.runtime.transformer=C:\Users\David\Git\Eight\AddonTemplate\fabric\.gradle\architectury\.transforms -Darchitectury.properties=C:\Users\David\Git\Eight\AddonTemplate\fabric\.gradle\architectury\.properties -Djdk.attach.allowAttachSelf=true -javaagent:C:\Users\David\Git\Eight\AddonTemplate\.gradle\architectury\architectury-transformer-agent.jar" />
+    <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/fabric/run" />
+    <method v="2">
+      <option name="Make" enabled="true" />
+    </method>
+  </configuration>
+</component>

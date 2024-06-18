@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "id": "addontemplate",
+  "version": "${version}",
+
+  "name": "AddonTemplate",
+  "description": "",
+  "authors": [],
+  "contact": {},
+
+  "license": "Mozilla Public License 2.0",
+  "icon": "icon.png",
+
+  "environment": "*",
+  "entrypoints": {
+    "main": [
+      "com.addontemplate.fabric.AddonTemplateFabric"
+    ]
+  },
+  "mixins": [
+    "template-fabric.mixins.json",
+    "template-common.mixins.json"
+  ],
+  "depends": {
+    "fabricloader": ">=0.15.11",
+    "minecraft": ">=1.20.1"
+  }
+}
