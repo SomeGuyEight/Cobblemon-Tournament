@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
-  "id": "addontemplate",
+  "id": "cobblemontournament",
   "version": "${version}",
 
-  "name": "AddonTemplate",
+  "name": "CobblemonTournament",
   "description": "",
   "authors": [],
   "contact": {},
@@ -14,12 +14,12 @@
   "environment": "*",
   "entrypoints": {
     "main": [
-      "com.addontemplate.fabric.AddonTemplateFabric"
+      "com.cobblemontournament.fabric.CobblemonTournamentFabric"
     ]
   },
   "mixins": [
-    "template-fabric.mixins.json",
-    "template-common.mixins.json"
+    "tournament-fabric.mixins.json",
+    "tournament-common.mixins.json"
   ],
   "depends": {
     "fabricloader": ">=0.15.11",
