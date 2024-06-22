@@ -10,6 +10,18 @@ architectury {
     minecraft = rootProject.minecraft_version
 }
 
+subprojects {
+    apply plugin: "dev.architectury.loom"
+
+    loom {
+        silentMojangMappingsLicense()
+    }
+
+    dependencies {
+        minecraft "com.mojang:minecraft:${rootProject.minecraft_version}"
+    }
+}
+
 allprojects {
     apply plugin: "java"
     apply plugin: "org.jetbrains.kotlin.jvm"
@@ -22,11 +34,6 @@ allprojects {
     group = rootProject.maven_group
 
     repositories {
-        // Add repositories to retrieve artifacts from in here.
-        // You should only use this when depending on other mods because
-        // Loom adds the essential maven repositories to download Minecraft and libraries from automatically.
-        // See https://docs.gradle.org/current/userguide/declaring_repositories.html
-        // for more information about repositories.
         maven {
             url = "https://maven.parchmentmc.org"
         }
@@ -45,21 +52,5 @@ allprojects {
 
     java {
         withSourcesJar()
-    }
-}
-
-subprojects {
-    apply plugin: "dev.architectury.loom"
-
-    loom {
-        silentMojangMappingsLicense()
-    }
-
-    dependencies {
-        minecraft "com.mojang:minecraft:${rootProject.minecraft_version}"
-        mappings loom.layered() {
-            officialMojangMappings()
-            parchment("org.parchmentmc.data:${rootProject.parchment_version}")
-        }
     }
 }

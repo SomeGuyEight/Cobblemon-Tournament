@@ -10,8 +10,7 @@ import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
 public class CobblemonTournamentForge
 {
     public CobblemonTournamentForge() {
-		// Submit our event bus to let architectury register our content on the right time
-        EventBuses.registerModEventBus(CobblemonTournament.MOD_ID,FMLJavaModLoadingContext.get().getModEventBus());
+        //EventBuses.registerModEventBus(CobblemonTournament.MOD_ID,FMLJavaModLoadingContext.get().getModEventBus());
         CobblemonTournament.init();
     }
 }

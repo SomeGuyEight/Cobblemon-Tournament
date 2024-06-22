@@ -1,11 +1,16 @@
+plugins {
+    id "dev.architectury.loom"
+    id 'org.jetbrains.kotlin.jvm' version "2.0.0"
+    id 'org.jetbrains.kotlin.plugin.serialization' version '2.0.0'
+}
+
 architectury {
-    common(rootProject.enabled_platforms.split(","))
+    common("fabric","forge")
 }
 
 dependencies {
-    // We depend on fabric loader here to use the fabric @Environment annotations and get the mixin dependencies
-    // Do NOT use other classes from fabric loader
     modImplementation "net.fabricmc:fabric-loader:${rootProject.fabric_loader_version}"
+    mappings(loom.officialMojangMappings())
     modApi "dev.architectury:architectury:${rootProject.architectury_version}"
     modImplementation "com.cobblemon:mod:${rootProject.cobblemon_version}"
 }
@@ -18,8 +23,5 @@ publishing {
         }
     }
 
-    // See https://docs.gradle.org/current/userguide/publishing_maven.html for information on how to set up publishing.
-    repositories {
-        // Add repositories to publish to here.
-    }
+    repositories { }
 }

@@ -1,7 +1,10 @@
 plugins {
     id "com.github.johnrengelman.shadow" version "7.1.2"
+    id 'org.jetbrains.kotlin.jvm' version "2.0.0"
+    id 'org.jetbrains.kotlin.plugin.serialization' version '2.0.0'
 }
 loom {
+    silentMojangMappingsLicense()
     forge {
         //todo
         //mixinConfig "template-common.mixins.json"
@@ -29,10 +32,16 @@ repositories {
 }
 
 dependencies {
+    minecraft "com.mojang:minecraft:${rootProject.minecraft_version}"
     forge "net.minecraftforge:forge:${rootProject.forge_version}"
     implementation "thedarkcolour:kotlinforforge:${rootProject.kotlin_for_forge_version}"
     modApi "dev.architectury:architectury-forge:${rootProject.architectury_version}"
     modImplementation "com.cobblemon:forge:${rootProject.cobblemon_version}"
+
+    mappings loom.layered() {
+        officialMojangMappings()
+        parchment("org.parchmentmc.data:${rootProject.parchment_version}")
+    }
 
     common(project(path: ":common", configuration: "namedElements")) { transitive false }
     shadowCommon(project(path: ":common", configuration: "transformProductionForge")) { transitive = false }
@@ -40,7 +49,6 @@ dependencies {
 
 processResources {
     inputs.property "version", project.version
-
     filesMatching("META-INF/mods.toml") {
         expand "version": project.version
     }
@@ -82,8 +90,5 @@ publishing {
         }
     }
 
-    // See https://docs.gradle.org/current/userguide/publishing_maven.html for information on how to set up publishing.
-    repositories {
-        // Add repositories to publish to here.
-    }
+    repositories { }
 }
