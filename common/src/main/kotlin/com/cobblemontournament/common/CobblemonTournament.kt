@@ -15,11 +15,11 @@ object CobblemonTournament
 {
     const val MOD_ID: String = "cobblemontournament"
     val LOGGER: Logger = LoggerFactory.getLogger("cobblemon-tournament")
-    var implementation: CommonInterface? = null
+    var implementation: CTModImplementation? = null
 
     @JvmStatic
     fun initialize(
-        implementation: CommonInterface
+        implementation: CTModImplementation
     )
     {
         CobblemonTournament.implementation = implementation
