@@ -1,16 +1,17 @@
 package com.someguy.storage.properties
 
 import net.minecraft.nbt.CompoundTag
-import java.util.UUID
 
-interface MutableProperties<T: Properties>
+interface MutableProperties <F: PropertyFields, P: Properties<F,P,M>, M: MutableProperties<F,P,M>>
+    : PropertyFields
 {
-    companion object
-    {
-        val minUUID = UUID(0,0)
-    }
-    fun toProperties() : T
-    fun setFromProperties(properties: T) : MutableProperties<T>
-    fun saveToNBT(nbt: CompoundTag) : CompoundTag
-    fun loadFromNBT(nbt: CompoundTag) : MutableProperties<T>
+    fun getHelper(): PropertiesHelper<F,P,M>
+    fun deepCopy(): P
+    fun deepMutableCopy(): M
+    fun setFromProperties(from: F): M
+    fun setFromNBT(nbt: CompoundTag): M
+    fun saveToNBT( nbt: CompoundTag): CompoundTag
+    // does not contain load b/c helper can do so through a constructor directly
+    //  also load === set at instance level
+
 }

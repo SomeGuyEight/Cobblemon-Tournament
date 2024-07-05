@@ -12,12 +12,16 @@ import java.util.UUID
 
 object PlaceholderClassStored: ClassStored
 {
-    private val minUuid: UUID = UUID(0,0)
-    override var uuid: UUID = minUuid
-    override var storeCoordinates: SettableObservable<StoreCoordinates<*, *>?> =
-        SettableObservable( StoreCoordinates( PlaceholderStore, UuidPosition(minUuid) ))
+    override var uuid: UUID = UUID.randomUUID()
 
-    override fun initialize() { }
+    override val name: String = "Placeholder ClassStored"
+
+    override var storeCoordinates: SettableObservable<StoreCoordinates<*, *>?> =
+        SettableObservable( StoreCoordinates( PlaceholderStore, UuidPosition(uuid) ))
+
+    override fun printProperties() { }
+
+    override fun initialize(): PlaceholderClassStored = this
 
     override fun getChangeObservable(): Observable<ClassStored> = SimpleObservable()
 

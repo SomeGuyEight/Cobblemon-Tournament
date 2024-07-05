@@ -43,6 +43,8 @@ abstract class Store<P: StorePosition,C: ClassStored>(id: UUID = UUID.randomUUID
      */
     abstract fun initialize()
 
+    abstract fun instanceNames(): Set<String>
+
     /** Returns true if the given position is pointing to a legitimate location in this store. */
     abstract fun isValidPosition(position: P): Boolean
 
@@ -71,7 +73,10 @@ abstract class Store<P: StorePosition,C: ClassStored>(id: UUID = UUID.randomUUID
     operator fun get(uuid: UUID) = find { it.uuid == uuid }
 
     /** Swaps the [ClassStored] at the specified positions. If one of the spaces is empty, it will simply move the not-null one to that space. */
-    open fun swap(position1: P, position2: P)
+    open fun swap(
+        position1: P,
+        position2: P
+    )
     {
         val instance1: C? = get(position1)
         val instance2: C? = get(position2)
@@ -86,7 +91,10 @@ abstract class Store<P: StorePosition,C: ClassStored>(id: UUID = UUID.randomUUID
      *
      * This is a shortcut to running [Store.swap]
      */
-    fun move(instance: C, position: P)
+    fun move(
+        instance: C,
+        position: P
+    )
     {
         val currentPosition = instance.storeCoordinates.get()?: return
         if (currentPosition.store != this) {
@@ -98,7 +106,9 @@ abstract class Store<P: StorePosition,C: ClassStored>(id: UUID = UUID.randomUUID
     }
 
     /** Removes any [ClassStored] that may be at the specified spot. Returns true if there was a [ClassStored] to remove. */
-    open fun remove(position: P): Boolean
+    open fun remove(
+        position: P
+    ): Boolean
     {
         val instance = get(position)
         return if (instance == null) {
@@ -110,7 +120,9 @@ abstract class Store<P: StorePosition,C: ClassStored>(id: UUID = UUID.randomUUID
 
     /** Removes the specified [ClassStored] from this store. Returns true if the [ClassStored] was in this store and was successfully removed. */
 
-    open fun remove(instance: C): Boolean
+    open fun remove(
+        instance: C
+    ): Boolean
     {
         val currentPosition = instance.storeCoordinates.get() ?: return false
         if (currentPosition.store != this) {

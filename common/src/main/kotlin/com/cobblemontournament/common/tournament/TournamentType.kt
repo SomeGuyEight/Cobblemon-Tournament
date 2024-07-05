@@ -2,8 +2,8 @@ package com.cobblemontournament.common.tournament
 
 enum class TournamentType
 {
-    RoundRobin,
-    SingleElimination,
-    DoubleElimination,
+    ROUND_ROBIN,
+    SINGLE_ELIMINATION,
+    DOUBLE_ELIMINATION,
     VGC,
 }

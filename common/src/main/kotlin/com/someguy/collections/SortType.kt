@@ -1,4 +1,4 @@
-package com.someguy.util
+package com.someguy.collections
 
 enum class SortType
 {

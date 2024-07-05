@@ -1,11 +1,13 @@
 package com.cobblemontournament.common.match
 
-enum class MatchStatus {
-    Error,
-    Empty,
-    NotReady,
-    Ready,
-    InProgress,
-    Complete,
-    Finalized,
+enum class MatchStatus
+{
+    UNKNOWN,
+    EMPTY,
+    PENDING,
+    NOT_READY,
+    READY,
+    IN_PROGRESS,
+    COMPLETE,
+    FINALIZED,
 }

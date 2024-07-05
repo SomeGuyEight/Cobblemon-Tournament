@@ -3,13 +3,18 @@ package com.someguy.storage.util
 import com.cobblemon.mod.common.util.fromJson
 import com.google.gson.Gson
 import com.google.gson.JsonObject
+import net.minecraft.nbt.CompoundTag
 import java.io.*
 import java.nio.file.Path
 import java.util.*
 
 object StoreUtil
 {
-    fun getFile(savePath: Path,dirName: String,subDirName: String?): File
+    fun getFile(
+        savePath: Path,
+        dirName: String,
+        subDirName: String?
+    ): File
     {
         val file: File = if (subDirName != null) {
             savePath.resolve("$dirName/$subDirName/").toFile()
@@ -20,8 +25,8 @@ object StoreUtil
     }
 
     /**
-     * @throws [IOException](1) from [File.createNewFile]
-     * @throws [FileNotFoundException](2) from [FileReader] constructor
+     * @throws [IOException] (1) from [File.createNewFile]
+     * @throws [FileNotFoundException] (2) from [FileReader] constructor
      * @return - target [JsonObject] if found
      * - null if [Exception] thrown from [Gson.fromJson]
      */
@@ -50,7 +55,13 @@ object StoreUtil
         }
     }
 
-    fun getUuidKey(root: Path, keyDir: File,name: String, key: String,gson: Gson): UUID
+    fun getUuidKey(
+        root: Path,
+        keyDir: File,
+        name: String,
+        key: String,
+        gson: Gson
+    ): UUID
     {
         val keyPath = root.resolve(getFileStringJson(keyDir,name))
         val file = keyPath.toFile()
@@ -66,7 +77,11 @@ object StoreUtil
         }
     }
 
-    private fun writeNewUuid(file: File,key: String,json: JsonObject): UUID
+    private fun writeNewUuid(
+        file: File,
+        key: String,
+        json: JsonObject
+    ): UUID
     {
         val pw: PrintWriter
         try {
@@ -83,12 +98,17 @@ object StoreUtil
         return id
     }
 
-    private fun getFileStringJson(rootFile: File, name: String): String
-    {
+    private fun getFileStringJson(
+        rootFile: File,
+        name: String
+    ): String {
         return getFileString(rootFile,name) + ".json"
     }
 
-    private fun getFileString(rootFile: File, name: String): String
+    private fun getFileString(
+        rootFile: File,
+        name: String
+    ): String
     {
         var fileString = rootFile.toString()
         if (!fileString.endsWith("/")) {
@@ -98,16 +118,30 @@ object StoreUtil
         return fileString
     }
 
+    fun CompoundTag.putIfNotNull(
+        key: String,
+        uuid: UUID?
+    ) {
+        if (uuid != null) {
+            this.putUUID(key, uuid)
+        }
+    }
+
+    fun CompoundTag.getNullableUUID(
+        key: String,
+    ): UUID? {
+        return if (this.contains(key)) {
+            this.getUUID(key)
+        } else null
+    }
+
     // https://www.baeldung.com/kotlin/convert-camel-case-snake-case
-    @Suppress("MemberVisibilityCanBePrivate","unused")
-    fun String.snakeToCamelCase(): String
-    {
+    fun String.snakeToCamelCase(): String {
         val pattern = "_[a-z]".toRegex()
         return replace(pattern) { it.value.last().uppercase() }
     }
-    @Suppress("MemberVisibilityCanBePrivate")
-    fun String.snakeToKebabCase(): String
-    {
+
+    fun String.snakeToKebabCase(): String {
         return this.replace('_','-')
     }
 

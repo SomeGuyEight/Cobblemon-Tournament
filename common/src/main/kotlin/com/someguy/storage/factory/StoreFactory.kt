@@ -22,6 +22,15 @@ import java.util.UUID
 // Eight's implementation
 interface StoreFactory
 {
-    fun <P: StorePosition,C: ClassStored,St: Store<P, C>> getStore(storeClass: Class<St>, uuid: UUID): St?
+    fun <P: StorePosition,C: ClassStored,St: Store<P, C>> getStore(
+        storeClass: Class<St>,
+        storeID: UUID
+    ): St?
+
+    fun <P: StorePosition,C: ClassStored,St: Store<P, C>> markStoreDirty(
+        storeClass: Class<St>,
+        storeID: UUID
+    ): Boolean
+
     fun shutdown()
 }

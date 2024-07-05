@@ -1,10 +1,11 @@
 package com.cobblemontournament.common.round
 
-enum class RoundType {
-    None,
-    Preliminary,
-    Primary,
-    Secondary,
-    RoundRobin,
-    TieBreaker,
+enum class RoundType
+{
+    NONE,
+    PRELIMINARY,
+    PRIMARY,
+    SECONDARY,
+    ROUND_ROBIN,
+    TIE_BREAK,
 }

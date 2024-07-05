@@ -17,9 +17,8 @@ package com.someguy.storage.adapter.flatfile
  *     useNestedFolders: Boolean,
  *     folderPerClass: Boolean,
  *     private val gson: Gson = GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create(),
- * ) : OneToOneFileStoreAdapter<JsonObject>(rootFolder, useNestedFolders, folderPerClass, "json") {
+ * ) : OneToOneFileStoreAdapter<JsonObject>(rootFolder, useNestedFolders, folderPerClass, "json")
  */
-
 
 import com.cobblemon.mod.common.util.fromJson
 import com.someguy.storage.store.Store
@@ -44,11 +43,20 @@ open class JSONStoreAdapter(
     useNestedFolders: Boolean,
     folderPerClass: Boolean,
     private val gson: Gson = GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create(),
-) : OneToOneFileStoreAdapter<JsonObject>(rootFolder, useNestedFolders, folderPerClass, "json") {
+): OneToOneFileStoreAdapter<JsonObject>(rootFolder, useNestedFolders, folderPerClass, "json")
+{
 
-    override fun <P: StorePosition,T: ClassStored,St: Store<P, T>> serialize(store: St) = store.saveToJSON(JsonObject())
+    override fun <P: StorePosition,T: ClassStored,St: Store<P,T>> serialize(
+        store: St
+    ): JsonObject {
+        return store.saveToJSON(JsonObject())
+    }
 
-    override fun save(file: File, serialized: JsonObject) {
+    override fun save(
+        file: File,
+        serialized: JsonObject
+    )
+    {
         val pw = PrintWriter(file)
         val json = gson.toJson(serialized)
         pw.write(json)
@@ -56,11 +64,12 @@ open class JSONStoreAdapter(
         pw.close()
     }
 
-    override fun <P : StorePosition, T : ClassStored, St : Store<P, T>> load(
+    override fun <P: StorePosition,T: ClassStored,St: Store<P,T>> load(
         file: File,
         storeClass: Class<out St>,
         uuid: UUID,
-    ): St? {
+    ): St?
+    {
         return try {
             val br = BufferedReader(FileReader(file))
             val json = gson.fromJson<JsonObject>(br)
@@ -76,4 +85,5 @@ open class JSONStoreAdapter(
             null
         }
     }
+
 }
