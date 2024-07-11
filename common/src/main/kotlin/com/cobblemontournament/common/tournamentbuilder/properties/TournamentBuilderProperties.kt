@@ -2,43 +2,87 @@ package com.cobblemontournament.common.tournamentbuilder.properties
 
 import com.cobblemon.mod.common.api.reactive.Observable
 import com.cobblemon.mod.common.api.reactive.SimpleObservable
-import com.cobblemontournament.common.player.properties.MutablePlayerProperties
+import com.cobblemontournament.common.api.challenge.ChallengeFormat
+import com.cobblemontournament.common.config.Config
+import com.cobblemontournament.common.player.properties.PlayerProperties
+import com.cobblemontournament.common.tournament.TournamentType
+import com.cobblemontournament.common.tournament.properties.TournamentProperties
 import com.cobblemontournament.common.tournamentbuilder.properties.TournamentBuilderPropertiesHelper.DEFAULT_TOURNAMENT_BUILDER_NAME
-import com.cobblemontournament.common.tournament.properties.MutableTournamentProperties
 import com.someguy.storage.properties.Properties
-import com.someguy.storage.properties.PropertiesCompanion
 import net.minecraft.nbt.CompoundTag
 import java.util.UUID
 
-data class TournamentBuilderProperties (
-    override val name                    : String,
-    override var tournamentBuilderID     : UUID,
-    override val tournamentProperties    : MutableTournamentProperties           = MutableTournamentProperties(),
-    override val seededPlayers           : MutableSet<MutablePlayerProperties>   = mutableSetOf(),
-    override val unseededPlayers         : MutableSet<MutablePlayerProperties>   = mutableSetOf(),
-) : Properties<TournamentBuilderPropertyFields, TournamentBuilderProperties, MutableTournamentBuilderProperties>,
-    TournamentBuilderPropertyFields
-
+class TournamentBuilderProperties : Properties <TournamentBuilderProperties>
 {
-    companion object: PropertiesCompanion<TournamentBuilderPropertyFields, TournamentBuilderProperties, MutableTournamentBuilderProperties> {
-        override val helper = TournamentBuilderPropertiesHelper
+    companion object {
+        val HELPER = TournamentBuilderPropertiesHelper
+        fun loadFromNBT( nbt: CompoundTag ) = HELPER.loadFromNBTHelper( nbt )
     }
 
-    constructor() : this (
-        name                    = DEFAULT_TOURNAMENT_BUILDER_NAME,
-        tournamentBuilderID     = UUID.randomUUID()
-    )
+    constructor(
+        name                    : String            = DEFAULT_TOURNAMENT_BUILDER_NAME,
+        tournamentBuilderID     : UUID              = UUID.randomUUID(),
+        tournamentType          : TournamentType    = Config.defaultTournamentType(),
+        challengeFormat         : ChallengeFormat = Config.defaultChallengeFormat(),
+        maxParticipants         : Int               = Config.defaultMaxParticipants(),
+        teamSize                : Int               = Config.defaultTeamSize(),
+        groupSize               : Int               = Config.defaultGroupSize(),
+        minLevel                : Int               = Config.defaultMinLevel(),
+        maxLevel                : Int               = Config.defaultMaxLevel(),
+        showPreview             : Boolean           = Config.defaultShowPreview(),
+        seededPlayers           : MutableSet<PlayerProperties>   = mutableSetOf(),
+        unseededPlayers         : MutableSet<PlayerProperties>   = mutableSetOf() )
+    {
+        this.name                                   = name
+        this.tournamentBuilderID                    = tournamentBuilderID
+        this.tournamentProperties.tournamentType    = tournamentType
+        this.tournamentProperties.challengeFormat   = challengeFormat
+        this.tournamentProperties.maxParticipants   = maxParticipants
+        this.tournamentProperties.teamSize          = teamSize
+        this.tournamentProperties.groupSize         = groupSize
+        this.tournamentProperties.minLevel          = minLevel
+        this.tournamentProperties.maxLevel          = maxLevel
+        this.tournamentProperties.showPreview       = showPreview
+        this.seededPlayers.addAll( seededPlayers )
+        this.unseededPlayers.addAll( unseededPlayers )
 
-    override fun getHelper() = TournamentBuilderPropertiesHelper
+        registerObservable( tournamentProperties.getChangeObservable() )
+    }
 
-    override fun deepCopy() = TournamentBuilderPropertiesHelper.deepCopyHelper(properties = this)
+    override val instance = this
+    override val helper = TournamentBuilderPropertiesHelper
 
-    override fun deepMutableCopy() = TournamentBuilderPropertiesHelper.deepMutableCopyHelper(properties = this)
+    var name = DEFAULT_TOURNAMENT_BUILDER_NAME
+        set( value ) { field = value; emitChange() }
 
-    override fun saveToNBT(nbt: CompoundTag) = TournamentBuilderPropertiesHelper.saveToNBTHelper(properties = this, nbt)
+    var tournamentBuilderID: UUID = UUID.randomUUID()
+        set( value ) { field = value; emitChange() }
 
-    // tournament builder properties are immutable so empty & a placeholder is fine
-    override fun getAllObservables(): Iterable<Observable<*>> = emptyList()
-    override fun getChangeObservable(): Observable<TournamentBuilderProperties> = SimpleObservable()
+    /** This is used to simplify builder properties class by piggybacking off tournament properties:
+     * - getters/setters & observables
+     * - debug logging & display in chat
+     * */
+    val tournamentProperties = TournamentProperties()
 
+    var seededPlayers = mutableSetOf <PlayerProperties>()
+        set( value ) { field = value; emitChange() }
+
+    var unseededPlayers = mutableSetOf <PlayerProperties>()
+        set( value ) { field = value; emitChange() }
+
+    private val observables = mutableListOf <Observable <*>>()
+    private val anyChangeObservable = SimpleObservable <TournamentBuilderProperties>()
+
+    private fun emitChange() = anyChangeObservable.emit( values = arrayOf(this) )
+    override fun getAllObservables() = observables.asIterable()
+    override fun getChangeObservable() = anyChangeObservable
+
+    protected fun registerObservable(
+        observable: Observable <*>
+    ) : Observable <*>
+    {
+        observables.add( observable )
+        observable.subscribe { anyChangeObservable.emit( values = arrayOf(this) ) }
+        return observable
+    }
 }

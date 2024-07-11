@@ -1,14 +1,17 @@
 package com.cobblemontournament.common.player.properties
 
 import com.cobblemon.mod.common.api.battles.model.actor.ActorType
-import com.cobblemontournament.common.util.TournamentDataKeys
+import com.cobblemontournament.common.api.storage.DataKeys
+import com.cobblemontournament.common.util.ChatUtil
 import com.someguy.storage.properties.PropertiesHelper
 import com.someguy.storage.util.StoreDataKeys
 import com.someguy.storage.util.StoreUtil.getNullableUUID
 import com.someguy.storage.util.StoreUtil.putIfNotNull
 import net.minecraft.nbt.CompoundTag
+import net.minecraft.server.level.ServerPlayer
+import org.slf4j.helpers.Util
 
-object PlayerPropertiesHelper : PropertiesHelper<PlayerPropertyFields,PlayerProperties,MutablePlayerProperties>
+object PlayerPropertiesHelper : PropertiesHelper <PlayerProperties>
 {
     const val   DEFAULT_PLAYER_NAME             = "Player Name"
     val         DEFAULT_ACTOR_TYPE              = ActorType.PLAYER
@@ -20,7 +23,7 @@ object PlayerPropertiesHelper : PropertiesHelper<PlayerPropertyFields,PlayerProp
     const val   DEFAULT_LOCK_POKEMON_ON_SET     = true
 
     override fun deepCopyHelper(
-        properties: PlayerPropertyFields
+        properties: PlayerProperties
     ): PlayerProperties
     {
         val props = PlayerProperties (
@@ -38,30 +41,10 @@ object PlayerPropertiesHelper : PropertiesHelper<PlayerPropertyFields,PlayerProp
         return props
     }
 
-    override fun deepMutableCopyHelper(
-        properties: PlayerPropertyFields
-    ): MutablePlayerProperties
-    {
-        val props = MutablePlayerProperties(
-            name                = properties.name,
-            actorType           = properties.actorType,
-            playerID            = properties.playerID,
-            tournamentID        = properties.tournamentID,
-            seed                = properties.seed,
-            originalSeed        = properties.originalSeed,
-            finalPlacement      = properties.finalPlacement,
-            pokemonTeamID       = properties.pokemonTeamID,
-            currentMatchID      = properties.currentMatchID,
-            pokemonFinal        = properties.pokemonFinal,
-            lockPokemonOnSet    = properties.lockPokemonOnSet)
-        return props
-    }
-
-    @Suppress("DuplicatedCode")
     override fun setFromPropertiesHelper(
-        mutable: MutablePlayerProperties,
-        from: PlayerPropertyFields,
-    ): MutablePlayerProperties
+        mutable: PlayerProperties,
+        from: PlayerProperties,
+    ): PlayerProperties
     {
         mutable.name                    = from.name
         mutable.actorType               = from.actorType
@@ -77,100 +60,170 @@ object PlayerPropertiesHelper : PropertiesHelper<PlayerPropertyFields,PlayerProp
         return mutable
     }
     override fun setFromNBTHelper(
-        mutable: MutablePlayerProperties,
+        mutable: PlayerProperties,
         nbt: CompoundTag
-    ): MutablePlayerProperties
+    ): PlayerProperties
     {
-        mutable.name                = nbt.getString(        TournamentDataKeys.PLAYER_NAME)
-        mutable.actorType           = enumValueOf<ActorType> ( nbt.getString( TournamentDataKeys.ACTOR_TYPE))
-        mutable.playerID            = nbt.getUUID(          TournamentDataKeys.PLAYER_ID)
-        mutable.tournamentID        = nbt.getUUID(          TournamentDataKeys.TOURNAMENT_ID)
-        mutable.seed                = nbt.getInt(           TournamentDataKeys.SEED)
-        mutable.originalSeed        = nbt.getInt(           TournamentDataKeys.ORIGINAL_SEED)
-        mutable.finalPlacement      = nbt.getInt(           TournamentDataKeys.FINAL_PLACEMENT)
-        mutable.pokemonTeamID       = nbt.getNullableUUID(  TournamentDataKeys.POKEMON_TEAM_ID)
-        mutable.currentMatchID      = nbt.getNullableUUID(  TournamentDataKeys.CURRENT_MATCH_ID)
-        mutable.pokemonFinal        = nbt.getBoolean(       TournamentDataKeys.POKEMON_FINAL)
-        mutable.lockPokemonOnSet    = nbt.getBoolean(       TournamentDataKeys.LOCK_POKEMON_ON_SET)
+        mutable.name                = nbt.getString(        DataKeys.PLAYER_NAME)
+        mutable.actorType           = enumValueOf<ActorType> ( nbt.getString( DataKeys.ACTOR_TYPE))
+        mutable.playerID            = nbt.getUUID(          DataKeys.PLAYER_ID)
+        mutable.tournamentID        = nbt.getUUID(          DataKeys.TOURNAMENT_ID)
+        mutable.seed                = nbt.getInt(           DataKeys.SEED)
+        mutable.originalSeed        = nbt.getInt(           DataKeys.ORIGINAL_SEED)
+        mutable.finalPlacement      = nbt.getInt(           DataKeys.FINAL_PLACEMENT)
+        mutable.pokemonTeamID       = nbt.getNullableUUID(  DataKeys.POKEMON_TEAM_ID)
+        mutable.currentMatchID      = nbt.getNullableUUID(  DataKeys.CURRENT_MATCH_ID)
+        mutable.pokemonFinal        = nbt.getBoolean(       DataKeys.POKEMON_FINAL)
+        mutable.lockPokemonOnSet    = nbt.getBoolean(       DataKeys.LOCK_POKEMON_ON_SET)
         return mutable
     }
 
     override fun saveToNBTHelper(
-        properties: PlayerPropertyFields,
+        properties: PlayerProperties,
         nbt: CompoundTag
     ): CompoundTag
     {
-        nbt.putString(      TournamentDataKeys.PLAYER_NAME          , properties.name)
-        nbt.putString(      TournamentDataKeys.ACTOR_TYPE           , properties.actorType.name)
-        nbt.putUUID(        TournamentDataKeys.PLAYER_ID            , properties.playerID)
-        nbt.putUUID(        TournamentDataKeys.TOURNAMENT_ID        , properties.tournamentID)
-        nbt.putInt(         TournamentDataKeys.SEED                 , properties.seed)
-        nbt.putInt(         TournamentDataKeys.ORIGINAL_SEED        , properties.originalSeed)
-        nbt.putInt(         TournamentDataKeys.FINAL_PLACEMENT      , properties.finalPlacement)
-        nbt.putIfNotNull(   TournamentDataKeys.POKEMON_TEAM_ID      , properties.pokemonTeamID)
-        nbt.putIfNotNull(   TournamentDataKeys.CURRENT_MATCH_ID     , properties.currentMatchID)
-        nbt.putBoolean(     TournamentDataKeys.POKEMON_FINAL        , properties.pokemonFinal)
-        nbt.putBoolean(     TournamentDataKeys.LOCK_POKEMON_ON_SET  , properties.lockPokemonOnSet)
+        nbt.putString(      DataKeys.PLAYER_NAME          , properties.name)
+        nbt.putString(      DataKeys.ACTOR_TYPE           , properties.actorType.name)
+        nbt.putUUID(        DataKeys.PLAYER_ID            , properties.playerID)
+        nbt.putUUID(        DataKeys.TOURNAMENT_ID        , properties.tournamentID)
+        nbt.putInt(         DataKeys.SEED                 , properties.seed)
+        nbt.putInt(         DataKeys.ORIGINAL_SEED        , properties.originalSeed)
+        nbt.putInt(         DataKeys.FINAL_PLACEMENT      , properties.finalPlacement)
+        nbt.putIfNotNull(   DataKeys.POKEMON_TEAM_ID      , properties.pokemonTeamID)
+        nbt.putIfNotNull(   DataKeys.CURRENT_MATCH_ID     , properties.currentMatchID)
+        nbt.putBoolean(     DataKeys.POKEMON_FINAL        , properties.pokemonFinal)
+        nbt.putBoolean(     DataKeys.LOCK_POKEMON_ON_SET  , properties.lockPokemonOnSet)
         return nbt
     }
 
-    override fun loadFromNBT(
+    override fun loadFromNBTHelper(
         nbt: CompoundTag
     ): PlayerProperties
     {
         return PlayerProperties(
-            name                = nbt.getString(        TournamentDataKeys.PLAYER_NAME),
-            actorType           = enumValueOf<ActorType>( nbt.getString( TournamentDataKeys.ACTOR_TYPE)),
-            playerID            = nbt.getUUID(          TournamentDataKeys.PLAYER_ID),
-            tournamentID        = nbt.getUUID(          TournamentDataKeys.TOURNAMENT_ID),
-            seed                = nbt.getInt(           TournamentDataKeys.SEED),
-            originalSeed        = nbt.getInt(           TournamentDataKeys.ORIGINAL_SEED),
-            finalPlacement      = nbt.getInt(           TournamentDataKeys.FINAL_PLACEMENT),
-            pokemonTeamID       = nbt.getNullableUUID(  TournamentDataKeys.POKEMON_TEAM_ID),
-            currentMatchID      = nbt.getNullableUUID(  TournamentDataKeys.CURRENT_MATCH_ID),
-            pokemonFinal        = nbt.getBoolean(       TournamentDataKeys.POKEMON_FINAL),
-            lockPokemonOnSet    = nbt.getBoolean(       TournamentDataKeys.LOCK_POKEMON_ON_SET),
+            name                = nbt.getString(        DataKeys.PLAYER_NAME),
+            actorType           = enumValueOf<ActorType>( nbt.getString( DataKeys.ACTOR_TYPE)),
+            playerID            = nbt.getUUID(          DataKeys.PLAYER_ID),
+            tournamentID        = nbt.getUUID(          DataKeys.TOURNAMENT_ID),
+            seed                = nbt.getInt(           DataKeys.SEED),
+            originalSeed        = nbt.getInt(           DataKeys.ORIGINAL_SEED),
+            finalPlacement      = nbt.getInt(           DataKeys.FINAL_PLACEMENT),
+            pokemonTeamID       = nbt.getNullableUUID(  DataKeys.POKEMON_TEAM_ID),
+            currentMatchID      = nbt.getNullableUUID(  DataKeys.CURRENT_MATCH_ID),
+            pokemonFinal        = nbt.getBoolean(       DataKeys.POKEMON_FINAL),
+            lockPokemonOnSet    = nbt.getBoolean(       DataKeys.LOCK_POKEMON_ON_SET),
         )
     }
 
-    override fun loadMutableFromNBT(
-        nbt: CompoundTag
-    ): MutablePlayerProperties
+    override fun logDebugHelper(properties: PlayerProperties)
     {
-        return MutablePlayerProperties(
-            name                = nbt.getString(        TournamentDataKeys.PLAYER_NAME),
-            actorType           = enumValueOf<ActorType>( nbt.getString( TournamentDataKeys.ACTOR_TYPE)),
-            playerID            = nbt.getUUID(          TournamentDataKeys.PLAYER_ID),
-            tournamentID        = nbt.getUUID(          TournamentDataKeys.TOURNAMENT_ID),
-            seed                = nbt.getInt(           TournamentDataKeys.SEED),
-            originalSeed        = nbt.getInt(           TournamentDataKeys.ORIGINAL_SEED),
-            finalPlacement      = nbt.getInt(           TournamentDataKeys.FINAL_PLACEMENT),
-            pokemonTeamID       = nbt.getNullableUUID(  TournamentDataKeys.POKEMON_TEAM_ID),
-            currentMatchID      = nbt.getNullableUUID(  TournamentDataKeys.CURRENT_MATCH_ID),
-            pokemonFinal        = nbt.getBoolean(       TournamentDataKeys.POKEMON_FINAL),
-            lockPokemonOnSet    = nbt.getBoolean(       TournamentDataKeys.LOCK_POKEMON_ON_SET),
-        )
+        Util.report("Player \"${properties.name}\" (${properties.actorType}) [${ChatUtil.shortUUID( properties.playerID )}]")
+        Util.report("- Seed: ${properties.seed} [Original: ${properties.originalSeed}]")
+        Util.report("- Pokemon Team ID: [${ChatUtil.shortUUID( properties.pokemonTeamID )}] (Final: ${properties.pokemonFinal})")
+        Util.report("- Current Match: [${ChatUtil.shortUUID( properties.currentMatchID )}]")
+        if (properties.finalPlacement > 0) {
+            Util.report("- Final Placement: ${properties.finalPlacement}")
+        }
+    }
+
+    override fun displayInChatHelper(
+        properties: PlayerProperties,
+        player: ServerPlayer)
+    {
+        displayInChatOptionalHelper(
+            properties          = properties,
+            player              = player,
+            displaySeed         = true,
+            displayPokemon      = true,
+            displayCurrentMatch = true,
+            displayPlacement    = true )
+    }
+
+    fun displayInChatOptionalHelper(
+        properties          : PlayerProperties,
+        player              : ServerPlayer,
+        spacing             : String = "",
+        displaySeed         : Boolean = false,
+        displayPokemon      : Boolean = false,
+        displayCurrentMatch : Boolean = false,
+        displayPlacement    : Boolean = false )
+    {
+        val text0 = ChatUtil.formatText(  text = "${spacing}Player \"" )
+        text0.append( ChatUtil.formatText( text = properties.name, ChatUtil.aqua  ) )
+        text0.append( ChatUtil.formatText( text = "\" " ) )
+        text0.append( ChatUtil.formatTextBracketed(
+            text    = ChatUtil.shortUUID( properties.playerID ),
+            color   = ChatUtil.aqua,
+            bold    = true ) )
+        player.displayClientMessage( text0 ,false )
+
+        if ( displaySeed ) {
+            val text1 = ChatUtil.formatText(  text = "$spacing  Seed " )
+            text1.append( ChatUtil.formatTextBracketed(
+                text    = "${properties.seed}",
+                color   = ChatUtil.yellow,
+                bold    = true ) )
+            text1.append( ChatUtil.formatText( text = " Original " ) )
+            text1.append( ChatUtil.formatTextBracketed(
+                text    = "${properties.originalSeed}",
+                color   = ChatUtil.yellow,
+                bold    = true ) )
+            player.displayClientMessage( text1 ,false )
+        }
+        if ( displayPokemon ) {
+            val text2 = ChatUtil.formatText( text = "$spacing  Pokemon Team ID " )
+            text2.append(
+                ChatUtil.formatTextBracketed(
+                    text = ChatUtil.shortUUID( properties.pokemonTeamID ),
+                    color = ChatUtil.yellow,
+                    bold = true ) )
+            text2.append(ChatUtil.formatText( text = " Team Final " ) )
+            text2.append(
+                ChatUtil.formatTextBracketed(
+                    text = "${properties.pokemonFinal}",
+                    color = ChatUtil.yellow,
+                    bold = true ) )
+            player.displayClientMessage( text2 ,false )
+        }
+        if ( displayCurrentMatch ) {
+            val text3 = ChatUtil.formatText(text = "$spacing  Current Match ")
+            text3.append(
+                ChatUtil.formatTextBracketed(
+                    text = ChatUtil.shortUUID( properties.currentMatchID ),
+                    color = ChatUtil.yellow,
+                    bold = true ) )
+            player.displayClientMessage(text3, false)
+        }
+        if (displayPlacement && properties.finalPlacement > 0) {
+            val text4 = ChatUtil.formatText( text = "$spacing  Final Placement " )
+            text4.append( ChatUtil.formatTextBracketed(
+                text    = "${properties.finalPlacement}",
+                color   = ChatUtil.yellow,
+                bold    = true ) )
+            player.displayClientMessage( text4 ,false )
+        }
     }
 
     // below are functions needed by some classes for collections of Player Properties
 
-    fun deepCopy(
-        players: MutableSet<MutablePlayerProperties>
-    ) : MutableSet<MutablePlayerProperties>
+    fun deepCopyPlayers(
+        players: MutableSet<PlayerProperties>
+    ) : MutableSet<PlayerProperties>
     {
-        val copy = mutableSetOf<MutablePlayerProperties>()
-        players.forEach { player -> copy.add( player.deepMutableCopy() ) }
+        val copy = mutableSetOf<PlayerProperties>()
+        players.forEach { player -> copy.add( player.deepCopy() ) }
         return copy
     }
 
     fun savePlayersToNBT(
-        players: MutableSet<MutablePlayerProperties>,
+        players: MutableSet<PlayerProperties>,
         nbt: CompoundTag,
     ) : CompoundTag
     {
         var index = 0
         players.forEach { properties ->
-            nbt.put(TournamentDataKeys.PLAYER_PROPERTIES + index++, properties.saveToNBT( CompoundTag()))
+            nbt.put(DataKeys.PLAYER_PROPERTIES + index++, properties.saveToNBT( CompoundTag()))
         }
         nbt.putInt(StoreDataKeys.SIZE,players.size)
         return nbt
@@ -178,14 +231,13 @@ object PlayerPropertiesHelper : PropertiesHelper<PlayerPropertyFields,PlayerProp
 
     fun loadPlayersFromNBT(
         nbt: CompoundTag,
-    ) : MutableSet<MutablePlayerProperties>
+    ) : MutableSet<PlayerProperties>
     {
-        val players = mutableSetOf<MutablePlayerProperties>()
+        val players = mutableSetOf<PlayerProperties>()
         if (nbt.contains(StoreDataKeys.SIZE) && nbt.getInt(StoreDataKeys.SIZE) != 0) {
             val size = nbt.getInt(StoreDataKeys.SIZE)
             for (i in 0 until size) {
-                players.add( loadMutableFromNBT(
-                    nbt.getCompound(TournamentDataKeys.PLAYER_PROPERTIES + i)))
+                players.add( loadFromNBTHelper( nbt.getCompound(DataKeys.PLAYER_PROPERTIES + i)))
             }
         }
         return players

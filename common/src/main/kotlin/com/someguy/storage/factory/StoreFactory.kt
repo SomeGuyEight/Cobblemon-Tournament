@@ -27,10 +27,5 @@ interface StoreFactory
         storeID: UUID
     ): St?
 
-    fun <P: StorePosition,C: ClassStored,St: Store<P, C>> markStoreDirty(
-        storeClass: Class<St>,
-        storeID: UUID
-    ): Boolean
-
     fun shutdown()
 }

@@ -54,15 +54,15 @@ open class FileBackedStoreFactory<Ser> (
     }
 
     protected var saveExecutor: ExecutorService = Executors.newSingleThreadExecutor()
-    protected val storeCaches = mutableMapOf<Class<out Store<*, *>>, StoreCache<*, *, *>>()
+    protected val storeCaches = mutableMapOf<Class<out Store<*,*>>, StoreCache<*,*,*>>()
     private val dirtyStores = mutableSetOf<Store<*,*>>()
 
-    protected inner class StoreCache<P: StorePosition,C: ClassStored,St: Store<P, C>> {
+    protected inner class StoreCache <P: StorePosition,C: ClassStored,St: Store<P,C>> {
         val cacheMap = mutableMapOf<UUID,St>()
     }
 
-    fun isCached(
-        store: Store<*,*>
+    fun <P: StorePosition,C: ClassStored> isCached(
+        store: Store<P,C>
     ): Boolean {
         return storeCaches[store::class.java]?.cacheMap?.containsKey(store.storeID) == true
     }
@@ -70,9 +70,9 @@ open class FileBackedStoreFactory<Ser> (
     @Suppress("UNCHECKED_CAST")
     protected fun <P: StorePosition,C: ClassStored,St: Store<P,C>> getStoreCache(
         storeClass: Class<out St>
-    ) : StoreCache<P,C,St>
+    ): StoreCache<P,C,St>
     {
-        val cache: StoreCache<*,*,*>  = storeCaches.getOrPut(storeClass) { StoreCache<P,C,St>() }
+        val cache: StoreCache<*,*,*> = storeCaches.getOrPut(storeClass) { StoreCache<P,C,St>() }
         // 'safe' unchecked cast b/c types confirmed by type parameters & getOrPut
         return cache as StoreCache<P,C,St>
     }
@@ -85,56 +85,40 @@ open class FileBackedStoreFactory<Ser> (
     }
 
     protected fun <P: StorePosition,C: ClassStored,St: Store<P, C>> getStoreInner(
-        storeClass: Class<St>,
+        storeClass: Class<out St>,
         storeID: UUID,
         constructor: ((UUID) -> St) = { storeClass.getConstructor(UUID::class.java).newInstance(it) }
     ): St?
     {
-        val cache = getStoreCache(storeClass).cacheMap
-        val cached = cache[storeID]
+        val cache = getStoreCache(storeClass)
+        val cached = cache.cacheMap[storeID]
         if (cached != null) {
             return cached
         } else {
+            //var newStore = false
             val loaded = adapter.load(storeClass, storeID)
                 ?: run {
                     if (createIfMissing) {
+                        //newStore = true
                         return@run constructor(storeID)
                     } else {
                         return@run null
                     }
                 }?: return null
+            //if (newStore) dirtyStores.add(loaded)
             loaded.initialize()
             track(loaded)
-            cache[storeID] = loaded
+            cache.cacheMap[storeID] = loaded
             return loaded
         }
     }
 
     fun track(
-        store: Store<*, *>
+        store: Store<*,*>
     ) {
         store.getAnyChangeObservable()
             .pipe(emitWhile { isCached(store) })
             .subscribeOnServer { dirtyStores.add(store) }
-    }
-
-    /**
-     * [Store], [storeClass], [storeID], [dirtyStores]
-     *
-     *      if [storeClass] with [storeID] exists & is successfully added to [dirtyStores]
-     *          returns true
-     *      else [storeClass] does not exist or failed to add existing store to [dirtyStores]
-     *          returns false
-     */
-    override fun <P: StorePosition,C: ClassStored,St: Store<P,C>> markStoreDirty(
-        storeClass: Class<St>,
-        storeID: UUID
-    ): Boolean
-    {
-        val store = getStore(storeClass,storeID)
-        return if (store != null) {
-            dirtyStores.add(store)
-        } else false
     }
 
     fun save(
@@ -148,7 +132,7 @@ open class FileBackedStoreFactory<Ser> (
 
     fun saveAll()
     {
-        LOGGER.debug("Serializing ${dirtyStores.size} stores.")
+            LOGGER.debug( "Serializing ${dirtyStores.size} stores." )
         val serializedStores = dirtyStores.map { SerializedStore(it.javaClass, it.storeID, adapter.serialize(it)) }
         dirtyStores.clear()
         LOGGER.debug("Queueing save.")

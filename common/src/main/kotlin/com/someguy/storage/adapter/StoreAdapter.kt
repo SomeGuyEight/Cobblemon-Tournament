@@ -21,7 +21,6 @@ import java.util.UUID
 // Eight's implementation
 interface StoreAdapter<Ser>
 {
-
     /**
      * Attempts to load a store using the specified class and UUID. This would return null if
      * the file does not exist or if this store adapter doesn't know how to load this storage class.

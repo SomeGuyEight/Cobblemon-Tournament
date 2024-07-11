@@ -11,27 +11,19 @@ interface ClassStored
 {
     val uuid: UUID
     val name: String
-    val storeCoordinates: SettableObservable<StoreCoordinates<*, *>?>
+    val storeCoordinates: SettableObservable<StoreCoordinates<*,*>?>
 
     fun initialize(): ClassStored
-    fun getChangeObservable(): Observable<*>
+    fun getChangeObservable(): Observable <*>
     fun printProperties()
 
-    fun saveToNBT(nbt: CompoundTag): CompoundTag
-    fun loadFromNBT(nbt: CompoundTag): ClassStored
-    fun saveToJSON(json: JsonObject): JsonObject
-    fun loadFromJSON(json: JsonObject): ClassStored
+    fun saveToNBT( nbt: CompoundTag ): CompoundTag
+    fun loadFromNBT( nbt: CompoundTag ): ClassStored
+    fun saveToJSON( json: JsonObject ): JsonObject
+    fun loadFromJSON( json: JsonObject ): ClassStored
 
-    /* TODO: add fun getDebugInfo(): Set<String>
-    // template below
-    fun getDebugInfo(): Set<String>
-    {
-        val debug = mutableSetOf<String>()
-        debug.add("Name: $this.name (${this::class.java})")
-        debug.add(" - ID: $this.uuid")
-        // below is for any fields the class implements or other pertinent info
-        debug.add(" - ")
-    }
+    /* TODO: add fun getDebugInfo()
+    fun getDebugInfo()
      */
 
 }

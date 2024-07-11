@@ -138,12 +138,16 @@ abstract class Store<P: StorePosition,C: ClassStored>(id: UUID = UUID.randomUUID
         return true
     }
 
+
     /**
      * Returns an [Observable] that emits Unit whenever there is a change to this store. This includes any save-worthy
      * change to a [ClassStored] contained in the store. You can access an Observable in each ClassStored that emits Unit for
      * each change, accessed by [ClassStored.getChangeObservable].
      */
-    abstract fun getAnyChangeObservable(): Observable<Unit>
+    // Important. Don't change to unit, b/c it breaks the factory tracking.
+    // - It may be b/c emitting void breaks the cast, but I am not exactly sure.
+    // - I do know keeping it as 'Store<*,*>' works as intended
+    abstract fun getAnyChangeObservable(): Observable<Store<*,*>>
 
     /** Gets an iterable of all [ServerPlayer]s that should be notified of any changes in this store. */
     abstract fun getObservingPlayers(): Iterable<ServerPlayer>
@@ -159,16 +163,17 @@ abstract class Store<P: StorePosition,C: ClassStored>(id: UUID = UUID.randomUUID
 
     /** &#9888; IMPORTANT: ALWAYS call [Store.initialize] when loading &#9888;
      *
-     * &#9888; If not done data will d-sync &#9888;
+     * If not done data will d-sync
      */
-    abstract fun loadFromNBT(nbt: CompoundTag): Store<P, C>
+    abstract fun loadFromNBT(nbt: CompoundTag): Store<P,C>
 
     abstract fun saveToJSON(json: JsonObject): JsonObject
 
     /** &#9888; IMPORTANT: ALWAYS call [Store.initialize] when loading &#9888;
      *
-     * &#9888; If not done data will d-sync &#9888;
+     * If not done data will d-sync
      */
-    abstract fun loadFromJSON(json: JsonObject): Store<P, C>
+    abstract fun loadFromJSON(json: JsonObject): Store<P,C>
+
 
 }

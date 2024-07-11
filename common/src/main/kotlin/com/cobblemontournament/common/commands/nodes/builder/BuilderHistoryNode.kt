@@ -1,29 +1,25 @@
 package com.cobblemontournament.common.commands.nodes.builder
 
-import com.cobblemontournament.common.TournamentManager
 import com.cobblemontournament.common.commands.suggestions.BuilderNameSuggestionProvider
-import com.cobblemontournament.common.commands.util.NodeKeys.BUILDER
-import com.cobblemontournament.common.commands.util.NodeKeys.BUILDER_NAME
-import com.cobblemontournament.common.commands.util.NodeKeys.HISTORY
-import com.cobblemontournament.common.commands.util.NodeKeys.TOURNAMENT
-import com.cobblemontournament.common.commands.util.CommandUtil.logNoArgument
-import com.cobblemontournament.common.tournamentbuilder.TournamentBuilder
-import com.cobblemontournament.common.tournamentbuilder.TournamentBuilderStore
+import com.cobblemontournament.common.util.CommandUtil
+import com.cobblemontournament.common.commands.nodes.NodeKeys.BUILDER
+import com.cobblemontournament.common.commands.nodes.NodeKeys.BUILDER_NAME
+import com.cobblemontournament.common.commands.nodes.NodeKeys.HISTORY
+import com.cobblemontournament.common.commands.nodes.NodeKeys.TOURNAMENT
 import com.mojang.brigadier.arguments.StringArgumentType
 import com.mojang.brigadier.builder.LiteralArgumentBuilder
 import com.mojang.brigadier.builder.RequiredArgumentBuilder
-import com.mojang.brigadier.context.CommandContext
 import net.minecraft.commands.CommandSourceStack
 import net.minecraft.commands.Commands
 
 object BuilderHistoryNode
 {
     /**
-     * [TOURNAMENT] -> [BUILDER] -> [HISTORY] -> [BUILDER_NAME]
+     * [TOURNAMENT] - [BUILDER] - [HISTORY] - [BUILDER_NAME]
      *
      *      literal     [TOURNAMENT]    ->
      *      literal     [BUILDER]       ->
-     *      literal     [HISTORY]        ->
+     *      literal     [HISTORY]       ->
      *      argument    [BUILDER_NAME] , StringType ->
      *      _
      */
@@ -35,11 +31,11 @@ object BuilderHistoryNode
     }
 
     /**
-     * [TOURNAMENT] -> [BUILDER] -> [HISTORY] -> [BUILDER_NAME]
+     * [TOURNAMENT] - [BUILDER] - [HISTORY] - [BUILDER_NAME]
      *
      *      literal     [TOURNAMENT]    ->
      *      literal     [BUILDER]       ->
-     *      literal     [HISTORY]        ->
+     *      literal     [HISTORY]       ->
      *      argument    [BUILDER_NAME] , StringType ->
      *      _
      */
@@ -58,23 +54,23 @@ object BuilderHistoryNode
     {
         val builder = literal?: argument
         return BuilderNode.initialNode(
-            Commands.literal( HISTORY)
-                .executes { _ ->
-                    logNoArgument( HISTORY, TournamentBuilder::class.java.simpleName)
+            Commands.literal(HISTORY)
+                .executes { ctx ->
+                    CommandUtil.displayNoArgument(
+                        player = ctx.source.player,
+                        nodeKey = HISTORY
+                    )
                 }
                 .then(Commands.argument(BUILDER_NAME, StringArgumentType.string())
-                    .suggests(
-                        BuilderNameSuggestionProvider(
-                            TournamentBuilderStore::class.java,
-                            TournamentManager.serverStoreKey)
-                    )
-                    .executes { c: CommandContext<CommandSourceStack> ->
-                        logNoArgument(
-                            StringArgumentType.getString(c, BUILDER_NAME),
-                            TournamentBuilder::class.java.simpleName)
+                    .suggests(BuilderNameSuggestionProvider())
+                    .executes { ctx ->
+                        CommandUtil.displayNoArgument(
+                            player = ctx.source.player,
+                            nodeKey = "$HISTORY $BUILDER_NAME"
+                        )
                     }
-                    .then( builder)
-                ))
+                    .then(builder))
+        )
     }
 
 }

@@ -1,18 +1,17 @@
 package com.cobblemontournament.common.commands.testing
 
-import com.cobblemontournament.common.generator.IndexedSeedGenerator
+import com.cobblemontournament.common.generator.indexedseed.IndexedSeedGenerator
+import com.cobblemontournament.common.util.ChatUtil
 import com.mojang.brigadier.Command
 import com.mojang.brigadier.CommandDispatcher
 import com.mojang.brigadier.arguments.IntegerArgumentType
 import com.mojang.brigadier.context.CommandContext
-import com.mojang.brigadier.context.StringRange
 import com.someguy.collections.SortType
 import net.minecraft.commands.CommandBuildContext
 import net.minecraft.commands.CommandSourceStack
 import net.minecraft.commands.Commands
 import net.minecraft.commands.Commands.argument
 import net.minecraft.commands.Commands.literal
-import org.slf4j.helpers.Util
 
 object TestCommands
 {
@@ -27,7 +26,7 @@ object TestCommands
             literal("tournament")
                 .then(literal("test")
                     .then(literal("ping")
-                            .executes { pong() }
+                            .executes { ctx -> pong( ctx) }
                     )))
 
         dispatcher.register(
@@ -49,13 +48,18 @@ object TestCommands
                     .then(literal("run-seed-gen")
                         .then(argument("size", IntegerArgumentType.integer())
                             .executes { ctx ->
-                                runSeedGen(IntegerArgumentType.getInteger(ctx, "size"))
+                                runSeedGen( ctx, IntegerArgumentType.getInteger(ctx, "size"))
                             }
                         ))))
     }
 
-    private fun pong(): Int {
-        Util.report("Pong.")
+    private fun pong(
+        ctx: CommandContext<CommandSourceStack>
+    ): Int {
+        val player = ctx.source.player
+        if (player != null) {
+            ChatUtil.displayInPlayerChat( player, text = "Pong.")
+        }
         return Command.SINGLE_SUCCESS
     }
 
@@ -66,31 +70,36 @@ object TestCommands
     ): Int
     {
         val nodes = ctx.nodes
+        val strings = mutableListOf<String>()
         for (parsed in nodes) {
             val name = parsed.node.name
             val range = parsed.range
-            Util.report("node -> name == $name & range == $range")
+            strings.add("node -> name == $name & range == $range")
             val argument = ctx.input.subSequence(range.start, range.end)
-            Util.report("node -> name == $name & argument == $argument")
+            strings.add("node -> name == $name & argument == $argument")
         }
-        Util.report("Sum (a + b) = " + (a + b))
+        val player = ctx.source.player
+        if (player != null) {
+            for (string in strings) {
+                ChatUtil.displayInPlayerChat( player, text = string)
+            }
+            ChatUtil.displayInPlayerChat( player, text = "Sum (a + b) = " + (a + b))
+        }
         return Command.SINGLE_SUCCESS
     }
 
     private fun runSeedGen(
+        ctx: CommandContext<CommandSourceStack>,
         seeds: Int
     ): Int
     {
         val indexedSeeds = IndexedSeedGenerator.getIndexedSeedArray(seeds, SortType.INDEX_ASCENDING)
         indexedSeeds.print()
+        val player = ctx.source.player
+        if (player != null) {
+            ChatUtil.displayInPlayerChat( player, text = "Ran & printed Indexed Seed Generation")
+        }
         return Command.SINGLE_SUCCESS
-    }
-
-    private fun log(
-        name: String,
-        range: StringRange
-    ) {
-        Util.report("node -> name == $name & range == $range")
     }
 
 }

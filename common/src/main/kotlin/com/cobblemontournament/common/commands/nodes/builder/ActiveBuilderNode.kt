@@ -1,25 +1,21 @@
 package com.cobblemontournament.common.commands.nodes.builder
 
-import com.cobblemontournament.common.TournamentManager
 import com.cobblemontournament.common.commands.suggestions.BuilderNameSuggestionProvider
-import com.cobblemontournament.common.commands.util.NodeKeys.ACTIVE
-import com.cobblemontournament.common.commands.util.NodeKeys.BUILDER
-import com.cobblemontournament.common.commands.util.NodeKeys.BUILDER_NAME
-import com.cobblemontournament.common.commands.util.NodeKeys.TOURNAMENT
-import com.cobblemontournament.common.commands.util.CommandUtil.logNoArgument
-import com.cobblemontournament.common.tournamentbuilder.TournamentBuilder
-import com.cobblemontournament.common.tournamentbuilder.TournamentBuilderStore
+import com.cobblemontournament.common.util.CommandUtil
+import com.cobblemontournament.common.commands.nodes.NodeKeys.ACTIVE
+import com.cobblemontournament.common.commands.nodes.NodeKeys.BUILDER
+import com.cobblemontournament.common.commands.nodes.NodeKeys.BUILDER_NAME
+import com.cobblemontournament.common.commands.nodes.NodeKeys.TOURNAMENT
 import com.mojang.brigadier.arguments.StringArgumentType
 import com.mojang.brigadier.builder.LiteralArgumentBuilder
 import com.mojang.brigadier.builder.RequiredArgumentBuilder
-import com.mojang.brigadier.context.CommandContext
 import net.minecraft.commands.CommandSourceStack
 import net.minecraft.commands.Commands
 
 object ActiveBuilderNode
 {
     /**
-     * [TOURNAMENT] -> [BUILDER] -> [ACTIVE] -> [BUILDER_NAME]
+     * [TOURNAMENT] - [BUILDER] - [ACTIVE] - [BUILDER_NAME]
      *
      *      literal     [TOURNAMENT]    ->
      *      literal     [BUILDER]       ->
@@ -28,14 +24,14 @@ object ActiveBuilderNode
      *      _
      */
     @JvmStatic
-    fun activeBuilder(
+    fun node(
         literal: LiteralArgumentBuilder<CommandSourceStack>
     ): LiteralArgumentBuilder<CommandSourceStack> {
         return inner( literal = literal, argument = null)
     }
 
     /**
-     * [TOURNAMENT] -> [BUILDER] -> [ACTIVE] -> [BUILDER_NAME]
+     * [TOURNAMENT] - [BUILDER] - [ACTIVE] - [BUILDER_NAME]
      *
      *      literal     [TOURNAMENT]    ->
      *      literal     [BUILDER]       ->
@@ -44,7 +40,7 @@ object ActiveBuilderNode
      *      _
      */
     @JvmStatic
-    fun activeBuilder(
+    fun node(
         argument: RequiredArgumentBuilder<CommandSourceStack,*>
     ): LiteralArgumentBuilder<CommandSourceStack> {
         return inner( literal = null, argument = argument)
@@ -57,19 +53,16 @@ object ActiveBuilderNode
     ): LiteralArgumentBuilder<CommandSourceStack>
     {
         val builder = literal?: argument
-        return BuilderNode.initialNode( Commands.literal( ACTIVE)
+        return BuilderNode.initialNode(Commands.literal(ACTIVE)
             .then(Commands.argument(BUILDER_NAME, StringArgumentType.string())
-                .suggests(
-                    BuilderNameSuggestionProvider(
-                        TournamentBuilderStore::class.java,
-                        TournamentManager.serverStoreKey))
-                .executes { c: CommandContext<CommandSourceStack> ->
-                    logNoArgument(
-                        StringArgumentType.getString(c,BUILDER_NAME),
-                        TournamentBuilder::class.java.simpleName)
+                .suggests(BuilderNameSuggestionProvider())
+                .executes { ctx ->
+                    CommandUtil.displayNoArgument(
+                        player = ctx.source.player,
+                        nodeKey = BUILDER_NAME
+                    )
                 }
-                .then( builder))
+                .then(builder))
         )
     }
-
 }

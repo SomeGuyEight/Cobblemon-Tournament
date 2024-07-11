@@ -18,7 +18,7 @@ import com.someguy.storage.store.Store
 
 // Eight's implementation
 data class StoreCoordinates<P: StorePosition,C: ClassStored> (
-    val store: Store<P, C>, // Dangerous wildcard ??
+    val store: Store<P, C>,
     val position: P
 ) {
     fun get() = store[position]

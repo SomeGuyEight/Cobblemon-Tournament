@@ -18,4 +18,5 @@ import java.util.UUID
 data class SerializedStore<Ser>(
     val storeClass: Class<out Store<*,*>>,
     val uuid: UUID,
-    val serializedForm: Ser)
+    val serializedForm: Ser
+)

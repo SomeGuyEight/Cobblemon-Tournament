@@ -2,44 +2,64 @@ package com.cobblemontournament.common.round.properties
 
 import com.cobblemon.mod.common.api.reactive.Observable
 import com.cobblemon.mod.common.api.reactive.SimpleObservable
-import com.cobblemontournament.common.round.RoundType
 import com.cobblemontournament.common.round.properties.RoundPropertiesHelper.DEFAULT_ROUND_INDEX
 import com.cobblemontournament.common.round.properties.RoundPropertiesHelper.DEFAULT_ROUND_TYPE
+import com.cobblemontournament.common.round.RoundType
 import com.someguy.storage.properties.Properties
-import com.someguy.storage.properties.PropertiesCompanion
 import net.minecraft.nbt.CompoundTag
 import java.util.UUID
 
-data class RoundProperties(
-    override val roundID             : UUID,
-    override val tournamentID        : UUID,
-    override val roundIndex          : Int,
-    override val roundType           : RoundType        = DEFAULT_ROUND_TYPE,
-    override val indexedMatchMap     : Map<Int,UUID>    = mutableMapOf()
-): RoundPropertyFields, Properties<RoundPropertyFields, RoundProperties, MutableRoundProperties>
+class RoundProperties : Properties <RoundProperties>
 {
-    companion object: PropertiesCompanion <RoundPropertyFields, RoundProperties, MutableRoundProperties>
-    {
-        override val helper = RoundPropertiesHelper
-
+    companion object {
+        val HELPER = RoundPropertiesHelper
+        /** Returns a new RoundProperties instance loaded from the CompoundTag */
+        fun loadFromNBT( nbt: CompoundTag ) = HELPER.loadFromNBTHelper( nbt )
     }
 
-    constructor() : this(
+    constructor(): this(
         roundID         = UUID.randomUUID(),
         tournamentID    = UUID.randomUUID(),
-        roundIndex      = DEFAULT_ROUND_INDEX,
-    )
+        roundIndex      = DEFAULT_ROUND_INDEX)
 
-    override fun getHelper() = RoundPropertiesHelper
+    constructor (
+        roundID             : UUID,
+        tournamentID        : UUID,
+        roundIndex          : Int,
+        roundType           : RoundType = DEFAULT_ROUND_TYPE,
+        indexedMatchMap     : MutableMap <Int,UUID> = mutableMapOf()
+    ): super ()
+    {
+        this.roundID            = roundID
+        this.tournamentID       = tournamentID
+        this.roundIndex         = roundIndex
+        this.roundType          = roundType
+        this.indexedMatchMap.putAll( indexedMatchMap)
+    }
 
-    override fun deepCopy() = helper.deepCopyHelper( properties = this)
+    override val instance = this
+    override val helper = RoundPropertiesHelper
 
-    override fun deepMutableCopy() = helper.deepMutableCopyHelper( properties = this)
+    var roundID: UUID = UUID.randomUUID()
+        set(value) { field = value; emitChange() }
 
-    override fun saveToNBT(nbt: CompoundTag) = helper.saveToNBTHelper( properties = this, nbt = nbt)
+    var tournamentID: UUID = UUID.randomUUID()
+        set(value) { field = value; emitChange() }
 
-    // round properties are immutable so empty & a placeholder is fine
-    override fun getAllObservables(): Iterable<Observable<*>> = emptyList()
-    override fun getChangeObservable(): Observable<RoundProperties> = SimpleObservable()
+    var roundIndex: Int = -1
+        set(value) { field = value; emitChange() }
+
+    var roundType           : RoundType = DEFAULT_ROUND_TYPE
+        set(value) { field = value; emitChange() }
+
+    var indexedMatchMap     : MutableMap<Int,UUID>  = mutableMapOf()
+        set(value) { field = value; emitChange() }
+
+    private val observables = mutableListOf<Observable<*>>()
+    val anyChangeObservable = SimpleObservable<RoundProperties>()
+
+    private fun emitChange() = anyChangeObservable.emit( values = arrayOf(this) )
+    override fun getAllObservables() = observables.asIterable()
+    override fun getChangeObservable() = anyChangeObservable
 
 }

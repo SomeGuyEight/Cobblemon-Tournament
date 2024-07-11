@@ -4,7 +4,7 @@ import com.cobblemontournament.common.CTModImplementation;
 import com.cobblemontournament.common.config.ConfigProvider;
 import com.turtlehoarder.cobblemonchallenge.fabric.CobblemonChallengeFabric;
 import com.cobblemontournament.common.CobblemonTournament;
-import com.cobblemontournament.common.TournamentCommands;
+import com.cobblemontournament.common.commands.TournamentCommands;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.fabricmc.loader.api.FabricLoader;

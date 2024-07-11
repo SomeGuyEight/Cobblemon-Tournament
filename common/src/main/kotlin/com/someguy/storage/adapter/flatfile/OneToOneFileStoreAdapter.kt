@@ -31,19 +31,25 @@ import java.io.File
 import java.util.UUID
 
 // Eight's implementation
-@Suppress("MemberVisibilityCanBePrivate")
 abstract class OneToOneFileStoreAdapter<Ser>(
     private val rootFolder: String,
     private val useNestedFolders: Boolean,
     private val folderPerClass: Boolean,
     private val fileExtension: String
-) : FileStoreAdapter<Ser>, StoreAdapterParent<Ser>() {
+) : FileStoreAdapter<Ser>, StoreAdapterParent<Ser>()
+{
+    abstract fun save( file: File, serialized: Ser)
 
-    abstract fun save(file: File, serialized: Ser)
+    abstract fun <P: StorePosition,T: ClassStored,St: Store<P, T>> load(
+        file: File,
+        storeClass: Class<out St>, uuid: UUID
+    ): St?
 
-    abstract fun <P: StorePosition,T: ClassStored,St: Store<P, T>> load(file: File, storeClass: Class<out St>, uuid: UUID): St?
-
-    fun getFile(storeClass: Class<out Store<*, *>>, uuid: UUID): File {
+    fun getFile(
+        storeClass: Class<out Store<*, *>>,
+        uuid: UUID
+    ): File
+    {
         val className = storeClass.simpleName.lowercase()
         val subfolder1 = if (folderPerClass) "$className/" else ""
         val subfolder2 = if (useNestedFolders) "${uuid.toString().substring(0, 2)}/" else ""
@@ -54,7 +60,11 @@ abstract class OneToOneFileStoreAdapter<Ser>(
         return file
     }
 
-    override fun save(storeClass: Class<out Store<*, *>>, uuid: UUID, serialized: Ser) {
+    override fun save(
+        storeClass: Class<out Store<*, *>>,
+        uuid: UUID, serialized: Ser
+    )
+    {
         val file = getFile(storeClass, uuid)
         val tempFile = File(file.absolutePath + ".temp")
         tempFile.createNewFile()
@@ -88,4 +98,5 @@ abstract class OneToOneFileStoreAdapter<Ser>(
             null
         }
     }
+
 }

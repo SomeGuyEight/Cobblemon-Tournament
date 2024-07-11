@@ -25,22 +25,28 @@ import java.util.UUID
 /** Provides a generic layer for adapters which are expected to allow for children */
 
 // Eight's implementation
-@Suppress("MemberVisibilityCanBePrivate")
 abstract class StoreAdapterParent<Ser> : StoreAdapter<Ser>
 {
     val children: MutableList<StoreAdapter<*>> = mutableListOf()
 
-    fun with(vararg children: StoreAdapter<*>) : StoreAdapter<Ser>
-    {
+    fun with(
+        vararg children: StoreAdapter<*>
+    ) : StoreAdapter<Ser> {
         this.children.addAll(children)
         return this
     }
 
-    override fun <P: StorePosition,C: ClassStored,St: Store<P, C>> load(storeClass: Class<St>, uuid: UUID): St?
-    {
+    override fun <P: StorePosition,C: ClassStored,St: Store<P, C>> load(
+        storeClass: Class<St>,
+        uuid: UUID
+    ): St? {
         return this.provide(storeClass, uuid)
             ?: children.firstNotNullOfOrNull { it.load(storeClass, uuid) }
     }
 
-    abstract fun <P: StorePosition,C: ClassStored,St: Store<P, C>> provide(storeClass: Class<St>, uuid: UUID): St?
+    abstract fun <P: StorePosition,C: ClassStored,St: Store<P, C>> provide(
+        storeClass: Class<St>,
+        uuid: UUID
+    ): St?
+
 }

@@ -1,21 +1,18 @@
 package com.cobblemontournament.common.commands.nodes.builder
 
-import com.cobblemontournament.common.commands.nodes.TournamentNode
-import com.cobblemontournament.common.commands.util.NodeKeys.BUILDER
-import com.cobblemontournament.common.commands.util.NodeKeys.TOURNAMENT
-import com.cobblemontournament.common.commands.util.CommandUtil.logNoArgument
-import com.cobblemontournament.common.tournamentbuilder.TournamentBuilder
-import com.mojang.brigadier.arguments.StringArgumentType
+import com.cobblemontournament.common.commands.nodes.TournamentRootNode
+import com.cobblemontournament.common.commands.nodes.NodeKeys.BUILDER
+import com.cobblemontournament.common.commands.nodes.NodeKeys.TOURNAMENT
+import com.cobblemontournament.common.util.CommandUtil
 import com.mojang.brigadier.builder.LiteralArgumentBuilder
 import com.mojang.brigadier.builder.RequiredArgumentBuilder
-import com.mojang.brigadier.context.CommandContext
 import net.minecraft.commands.CommandSourceStack
 import net.minecraft.commands.Commands
 
 object BuilderNode
 {
     /**
-     * [TOURNAMENT] -> [BUILDER]
+     * [TOURNAMENT] - [BUILDER]
      *
      *      literal     [TOURNAMENT]    ->
      *      literal     [BUILDER]       ->
@@ -29,7 +26,7 @@ object BuilderNode
     }
 
     /**
-     * [TOURNAMENT] -> [BUILDER]
+     * [TOURNAMENT] - [BUILDER]
      *
      *      literal     [TOURNAMENT]    ->
      *      literal     [BUILDER]       ->
@@ -49,13 +46,12 @@ object BuilderNode
     ): LiteralArgumentBuilder<CommandSourceStack>
     {
         val builder = literal?: argument
-        return TournamentNode.initialNode(
+        return TournamentRootNode.initialNode(
             Commands.literal(BUILDER)
-                .executes { c: CommandContext<CommandSourceStack> ->
-                    // TODO clean these up
-                    logNoArgument(
-                        StringArgumentType.getString(c, BUILDER),
-                        TournamentBuilder::class.java.simpleName)
+                .executes { ctx ->
+                    CommandUtil.displayNoArgument(
+                        player  = ctx.source.player,
+                        nodeKey = BUILDER)
                 }
                 .then( builder)
         )
