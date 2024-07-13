@@ -42,9 +42,9 @@ object GenerateTournamentCommand
      */
     @JvmStatic
     fun register(
-        dispatcher  : CommandDispatcher <CommandSourceStack>,
-        registry    : CommandBuildContext,
-        selection   : CommandSelection )
+        dispatcher  : CommandDispatcher <CommandSourceStack>, )
+//        registry    : CommandBuildContext,
+//        selection   : CommandSelection )
     {
         dispatcher.register(
             ActiveBuilderNode.node(

@@ -16,19 +16,19 @@ object TournamentCommands
         registry    : CommandBuildContext,
         selection   : CommandSelection )
     {
-        CreateTournamentBuilderCommand.register( dispatcher, registry, selection )
-        UpdateBuilderCommand.register( dispatcher, registry, selection )
-        GenerateTournamentCommand.register( dispatcher, registry, selection )
-        PrintBuilderInfoCommand.register( dispatcher, registry, selection )
-        RegisterPlayerCommand.register( dispatcher, registry, selection )
-        UnregisterPlayerCommand.register( dispatcher, registry, selection )
-        UpdatePlayerCommand.register( dispatcher, registry, selection )
+        CreateTournamentBuilderCommand.register( dispatcher ) //, registry, selection )
+        UpdateBuilderCommand.register( dispatcher ) //, registry, selection )
+        GenerateTournamentCommand.register( dispatcher ) //, registry, selection )
+        PrintBuilderInfoCommand.register( dispatcher ) //, registry, selection )
+        RegisterPlayerCommand.register( dispatcher ) //, registry, selection )
+        UnregisterPlayerCommand.register( dispatcher ) //, registry, selection )
+        UpdatePlayerCommand.register( dispatcher ) //, registry, selection )
 
-        MyActiveInfoCommand.register(dispatcher, registry, selection )
-        MyActiveCurrentMatchCommand.register(dispatcher, registry, selection )
-        TournamentHistoryCommand.register( dispatcher, registry, selection )
+        MyActiveInfoCommand.register(dispatcher ) //, registry, selection )
+        MyActiveCurrentMatchCommand.register(dispatcher ) //, registry, selection )
+        TournamentHistoryCommand.register( dispatcher ) //, registry, selection )
 
-        MyMatchesCommand.register( dispatcher, registry, selection )
+        MyMatchesCommand.register( dispatcher ) //, registry, selection )
 
         //TestCommands.register( dispatcher, registry, selection )
         //RegisterFakePlayerCommand.register( dispatcher, registry, selection )

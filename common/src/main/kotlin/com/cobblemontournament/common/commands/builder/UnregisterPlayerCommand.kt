@@ -41,9 +41,9 @@ object UnregisterPlayerCommand
      */
     @JvmStatic
     fun register(
-        dispatcher  : CommandDispatcher <CommandSourceStack>,
-        registry    : CommandBuildContext,
-        selection   : CommandSelection )
+        dispatcher  : CommandDispatcher <CommandSourceStack>, )
+//        registry    : CommandBuildContext,
+//        selection   : CommandSelection )
     {
         dispatcher.register(
             ActivePlayersBuilderNode.player(
