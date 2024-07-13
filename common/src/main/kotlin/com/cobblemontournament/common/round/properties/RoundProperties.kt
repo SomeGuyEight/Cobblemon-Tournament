@@ -17,16 +17,16 @@ class RoundProperties : Properties <RoundProperties>
         fun loadFromNBT( nbt: CompoundTag ) = HELPER.loadFromNBTHelper( nbt )
     }
 
-    constructor(): this(
-        roundID         = UUID.randomUUID(),
+    constructor( uuid: UUID = UUID.randomUUID() ) : this (
+        roundID         = uuid,
         tournamentID    = UUID.randomUUID(),
-        roundIndex      = DEFAULT_ROUND_INDEX)
+        roundIndex      = DEFAULT_ROUND_INDEX )
 
     constructor (
         roundID             : UUID,
         tournamentID        : UUID,
         roundIndex          : Int,
-        roundType           : RoundType = DEFAULT_ROUND_TYPE,
+        roundType           : RoundType             = DEFAULT_ROUND_TYPE,
         indexedMatchMap     : MutableMap <Int,UUID> = mutableMapOf()
     ): super ()
     {
@@ -41,24 +41,24 @@ class RoundProperties : Properties <RoundProperties>
     override val helper = RoundPropertiesHelper
 
     var roundID: UUID = UUID.randomUUID()
-        set(value) { field = value; emitChange() }
+        set( value ) { field = value; emitChange() }
 
     var tournamentID: UUID = UUID.randomUUID()
-        set(value) { field = value; emitChange() }
+        set( value ) { field = value; emitChange() }
 
     var roundIndex: Int = -1
-        set(value) { field = value; emitChange() }
+        set( value ) { field = value; emitChange() }
 
-    var roundType           : RoundType = DEFAULT_ROUND_TYPE
-        set(value) { field = value; emitChange() }
+    var roundType: RoundType = DEFAULT_ROUND_TYPE
+        set( value ) { field = value; emitChange() }
 
-    var indexedMatchMap     : MutableMap<Int,UUID>  = mutableMapOf()
-        set(value) { field = value; emitChange() }
+    var indexedMatchMap: MutableMap<Int,UUID>  = mutableMapOf()
+        set( value ) { field = value; emitChange() }
 
-    private val observables = mutableListOf<Observable<*>>()
-    val anyChangeObservable = SimpleObservable<RoundProperties>()
+    private val observables = mutableListOf <Observable <*>>()
+    val anyChangeObservable = SimpleObservable <RoundProperties>()
 
-    private fun emitChange() = anyChangeObservable.emit( values = arrayOf(this) )
+    private fun emitChange() = anyChangeObservable.emit( values = arrayOf( this ) )
     override fun getAllObservables() = observables.asIterable()
     override fun getChangeObservable() = anyChangeObservable
 

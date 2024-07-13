@@ -1,7 +1,7 @@
 package com.cobblemontournament.common.commands.builder
 
 import com.cobblemon.mod.common.api.battles.model.actor.ActorType
-import com.cobblemontournament.common.commands.suggestions.ActorTypeSuggestionProvider
+import com.cobblemontournament.common.api.PlayerManager
 import com.cobblemontournament.common.commands.nodes.builder.ActivePlayersBuilderNode
 import com.cobblemontournament.common.commands.suggestions.PlayerNameSuggestionProvider
 import com.cobblemontournament.common.util.CommandUtil
@@ -10,7 +10,6 @@ import com.cobblemontournament.common.commands.nodes.NodeKeys.BUILDER
 import com.cobblemontournament.common.commands.nodes.NodeKeys.BUILDER_NAME
 import com.cobblemontournament.common.commands.nodes.NodeKeys.NEW
 import com.cobblemontournament.common.commands.nodes.NodeKeys.PLAYER
-import com.cobblemontournament.common.commands.nodes.NodeKeys.PLAYER_ENTITY
 import com.cobblemontournament.common.commands.nodes.NodeKeys.PLAYER_NAME
 import com.cobblemontournament.common.commands.nodes.NodeKeys.PLAYER_SEED
 import com.cobblemontournament.common.commands.nodes.NodeKeys.SEED
@@ -23,14 +22,11 @@ import com.mojang.brigadier.CommandDispatcher
 import com.mojang.brigadier.arguments.IntegerArgumentType
 import com.mojang.brigadier.arguments.StringArgumentType
 import com.mojang.brigadier.context.CommandContext
-import net.minecraft.commands.CommandBuildContext
 import net.minecraft.commands.CommandSourceStack
 import net.minecraft.commands.Commands
-import net.minecraft.commands.Commands.CommandSelection
-import net.minecraft.commands.arguments.EntityArgument
 import net.minecraft.network.chat.MutableComponent
-import net.minecraft.server.level.ServerPlayer
 import org.slf4j.helpers.Util
+import java.util.*
 
 object UpdatePlayerCommand
 {
@@ -51,9 +47,9 @@ object UpdatePlayerCommand
      */
     @JvmStatic
     fun register(
-        dispatcher: CommandDispatcher<CommandSourceStack>,
-        registry: CommandBuildContext,
-        selection: CommandSelection )
+        dispatcher: CommandDispatcher<CommandSourceStack>, )
+//        registry: CommandBuildContext,
+//        selection: CommandSelection )
     {
         dispatcher.register(
             ActivePlayersBuilderNode.player(
@@ -62,11 +58,11 @@ object UpdatePlayerCommand
                         .suggests { ctx, builder ->
                             PlayerNameSuggestionProvider().getSuggestions(ctx,builder)
                         }
-                        .then(Commands.literal(ACTOR_TYPE)
-                            .then( Commands.argument("$NEW$ACTOR_TYPE",StringArgumentType.string())
-                                .suggests(ActorTypeSuggestionProvider())
-                                .executes { ctx -> updatePlayer( ctx = ctx) }
-                            ))
+//                        .then(Commands.literal(ACTOR_TYPE)
+//                            .then( Commands.argument("$NEW$ACTOR_TYPE",StringArgumentType.string())
+//                                .suggests(ActorTypeSuggestionProvider())
+//                                .executes { ctx -> updatePlayer( ctx = ctx) }
+//                            ))
                         .then(Commands.literal(SEED)
                             .then(Commands.argument("$NEW$PLAYER_SEED", IntegerArgumentType.integer(-1))
                                 .executes { ctx -> updatePlayer( ctx = ctx) }
@@ -80,18 +76,28 @@ object UpdatePlayerCommand
         ctx: CommandContext <CommandSourceStack>
     ): Int
     {
-        var updatedPlayer   : ServerPlayer? = null
-        var seed            : Int?          = null
-        var actorType       : ActorType?    = null
+        var playerID    : UUID? = null
+        var seed        : Int?          = null
+        var actorType   : ActorType?    = null
 
         val ( nodeEntries, tournamentBuilder ) = CommandUtil.getNodesAndTournamentBuilder( ctx )
         for ( entry in nodeEntries ) {
             when ( entry.key ) {
-                PLAYER_ENTITY -> updatedPlayer = EntityArgument.getPlayer( ctx, entry.key )
+                PLAYER_NAME -> {
+                    // round about way of getting playerID from name IF player is registered
+                    playerID = tournamentBuilder?.getPlayer( entry.value )?.playerID
+                }
                 "$NEW$PLAYER_SEED" -> seed = Integer.parseInt( entry.value )
-                "$NEW$ACTOR_TYPE" -> actorType = TournamentUtil.getActorTypeOrNull( entry.value ) ?: continue
+                "$NEW$ACTOR_TYPE" -> {
+                    actorType = TournamentUtil.getActorTypeOrNull( entry.value )
+                        ?: continue
+                }
             }
         }
+
+        val updatedPlayer = if ( playerID != null ) {
+            PlayerManager.getServerPlayer( playerID )
+        } else null
 
         var success = 0
         val text: MutableComponent

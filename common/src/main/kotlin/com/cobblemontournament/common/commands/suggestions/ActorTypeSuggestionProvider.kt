@@ -8,15 +8,15 @@ import com.mojang.brigadier.suggestion.SuggestionsBuilder
 import java.util.concurrent.CompletableFuture
 import net.minecraft.commands.CommandSourceStack
 
-class ActorTypeSuggestionProvider: SuggestionProvider<CommandSourceStack>
+class ActorTypeSuggestionProvider : SuggestionProvider <CommandSourceStack>
 {
     override fun getSuggestions(
-        context: CommandContext<CommandSourceStack>,
+        context: CommandContext <CommandSourceStack>,
         builder: SuggestionsBuilder,
     ): CompletableFuture<Suggestions>
     {
-        for (instance in ActorType.entries) {
-            builder.suggest(instance.name)
+        for ( instance in ActorType.entries ) {
+            builder.suggest( instance.name )
         }
         return builder.buildFuture()
     }

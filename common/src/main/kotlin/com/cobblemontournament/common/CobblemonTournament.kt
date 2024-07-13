@@ -17,16 +17,16 @@ object CobblemonTournament
 {
     const val MOD_ID: String = "cobblemontournament"
     val LOGGER: Logger = LoggerFactory.getLogger("cobblemon-tournament")
-    var implementation: CTModImplementation? = null
+    var implementation: TournamentModImplementation? = null
     /** Don't call prior to server initialization. Has server ref cached after server starts. */
     internal var server: MinecraftServer? = null
 
     @JvmStatic
     fun initialize(
-        implementation: CTModImplementation,
+        implementation: TournamentModImplementation,
     )
     {
-        CobblemonTournament.implementation = implementation
+        this.implementation = implementation
         implementation.registerEvents()
         implementation.initializeConfig()
         implementation.registerCommands()

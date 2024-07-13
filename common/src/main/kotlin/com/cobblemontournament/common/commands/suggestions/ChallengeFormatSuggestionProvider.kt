@@ -1,10 +1,10 @@
 package com.cobblemontournament.common.commands.suggestions
 
+import com.cobblemontournament.common.api.challenge.ChallengeFormat
 import com.mojang.brigadier.context.CommandContext
 import com.mojang.brigadier.suggestion.SuggestionProvider
 import com.mojang.brigadier.suggestion.Suggestions
 import com.mojang.brigadier.suggestion.SuggestionsBuilder
-import com.turtlehoarder.cobblemonchallenge.common.battle.ChallengeFormat
 import net.minecraft.commands.CommandSourceStack
 import java.util.concurrent.CompletableFuture
 

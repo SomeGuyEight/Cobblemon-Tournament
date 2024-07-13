@@ -13,10 +13,8 @@ import com.cobblemontournament.common.commands.nodes.NodeKeys.TOURNAMENT
 import com.mojang.brigadier.Command
 import com.mojang.brigadier.CommandDispatcher
 import com.mojang.brigadier.context.CommandContext
-import net.minecraft.commands.CommandBuildContext
 import net.minecraft.commands.CommandSourceStack
 import net.minecraft.commands.Commands
-import net.minecraft.commands.Commands.CommandSelection
 import org.slf4j.helpers.Util
 
 object PrintBuilderInfoCommand
@@ -38,9 +36,9 @@ object PrintBuilderInfoCommand
      */
     @JvmStatic
     fun register(
-        dispatcher  : CommandDispatcher <CommandSourceStack>,
-        registry    : CommandBuildContext,
-        selection   : CommandSelection )
+        dispatcher  : CommandDispatcher <CommandSourceStack>, )
+//        registry    : CommandBuildContext,
+//        selection   : CommandSelection )
     {
         dispatcher.register(
             ActiveBuilderInfoNode.getInfo(
@@ -88,20 +86,22 @@ object PrintBuilderInfoCommand
         val player = ctx.source.player
 
         if ( printBuilderInfo && player != null ) {
-            tournamentBuilder?.printPropertiesInChat( player )
+            tournamentBuilder?.displayPropertiesInChatSlim( player )
         } else if ( printBuilderInfo ) {
             tournamentBuilder?.printProperties()
         }
 
         if ( printPlayerInfo && player != null ) {
-            tournamentBuilder?.printPlayerInfoInChat( player )
+            tournamentBuilder?.displayPlayerInfoInChat(
+                player      = player,
+                spacing     = "  ",
+                displaySeed = true )
         } else if ( printPlayerInfo ) {
             tournamentBuilder?.printPlayerInfo()
         }
 
         if ( printOverview && player != null ) {
-            tournamentBuilder?.printPropertiesInChat( player )
-            tournamentBuilder?.printPlayerInfoInChat( player )
+            tournamentBuilder?.displayPropertiesInChat( player )
         } else if ( printOverview ) {
             tournamentBuilder?.printProperties()
             tournamentBuilder?.printPlayerInfo()

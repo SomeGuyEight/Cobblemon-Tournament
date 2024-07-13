@@ -17,16 +17,16 @@ class MatchProperties : Properties <MatchProperties>
 {
     companion object {
         val HELPER = MatchPropertiesHelper
-        fun loadFromNbt( nbt: CompoundTag ) = HELPER.loadFromNBTHelper( nbt )
+        fun loadFromNBT( nbt: CompoundTag ) = HELPER.loadFromNBTHelper( nbt )
     }
 
-    constructor() : this(
-        matchID                 = UUID.randomUUID(),
+    constructor( uuid: UUID = UUID.randomUUID() ) : this (
+        matchID                 = uuid,
         tournamentID            = UUID.randomUUID(),
         roundID                 = UUID.randomUUID(),
         roundIndex              = DEFAULT_ROUND_INDEX,
         tournamentMatchIndex    = DEFAULT_TOURNAMENT_MATCH_INDEX,
-        roundMatchIndex         = DEFAULT_ROUND_MATCH_INDEX)
+        roundMatchIndex         = DEFAULT_ROUND_MATCH_INDEX )
 
     constructor(
         matchID                 : UUID,

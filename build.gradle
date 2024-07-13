@@ -4,6 +4,7 @@ plugins {
     id 'org.jetbrains.kotlin.plugin.serialization' version '2.0.0'
     id 'architectury-plugin' version '3.4-SNAPSHOT'
     id 'dev.architectury.loom' version '1.6-SNAPSHOT' apply false
+    id 'maven-publish'
 }
 
 architectury {
@@ -39,9 +40,11 @@ allprojects {
         }
         maven {
             url = "https://maven.impactdev.net/repository/development"
-            content {
-                includeGroup 'com.cobblemon'
-            }
+            content { includeGroup 'com.cobblemon' }
+        }
+        maven {
+            url "https://cursemaven.com"
+            content { includeGroup "curse.maven" }
         }
     }
 

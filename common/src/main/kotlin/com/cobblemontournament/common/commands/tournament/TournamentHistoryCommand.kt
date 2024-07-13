@@ -1,6 +1,7 @@
 package com.cobblemontournament.common.commands.tournament
 
 import com.cobblemontournament.common.api.TournamentStoreManager
+import com.cobblemontournament.common.api.storage.TournamentStore
 import com.cobblemontournament.common.util.CommandUtil
 import com.cobblemontournament.common.commands.nodes.NodeKeys.HISTORY
 import com.cobblemontournament.common.commands.nodes.NodeKeys.OVERVIEW
@@ -10,10 +11,8 @@ import com.cobblemontournament.common.commands.nodes.tournament.TournamentHistor
 import com.mojang.brigadier.Command
 import com.mojang.brigadier.CommandDispatcher
 import com.mojang.brigadier.context.CommandContext
-import net.minecraft.commands.CommandBuildContext
 import net.minecraft.commands.CommandSourceStack
 import net.minecraft.commands.Commands
-import net.minecraft.commands.Commands.CommandSelection
 import org.slf4j.helpers.Util
 
 object TournamentHistoryCommand
@@ -34,10 +33,9 @@ object TournamentHistoryCommand
      */
     @JvmStatic
     fun register(
-        dispatcher  : CommandDispatcher <CommandSourceStack>,
-        registry    : CommandBuildContext,
-        selection   : CommandSelection
-    )
+        dispatcher  : CommandDispatcher <CommandSourceStack>, )
+//        registry    : CommandBuildContext,
+//        selection   : CommandSelection )
     {
         dispatcher.register(
             TournamentHistoryNode.node(
@@ -53,24 +51,38 @@ object TournamentHistoryCommand
         ctx: CommandContext <CommandSourceStack>
     ): Int
     {
+        /*
         //val ( _, tournament ) = CommandUtil.getNodesAndTournament( ctx )
-//        for ( entry in nodeEntries ) {
-//            when ( entry.key ) {
-//                TOURNAMENT_NAME -> {
-//                    val ( instance, _ ) = TournamentStoreManager.getTournamentByName( entry.value )
-//                    tournament = instance
-//                }
-//            }
-//        }
+        for ( entry in nodeEntries ) {
+            when ( entry.key ) {
+                TOURNAMENT_NAME -> {
+                    val ( instance, _ ) = TournamentStoreManager.getTournamentByName( entry.value )
+                    tournament = instance
+                }
+            }
+        }
+         */
 
-        val tournament = TournamentStoreManager.getTournament( TournamentStoreManager.inactiveStoreKey )
+        val tournamentName = CommandUtil.tryGetNodeInput(
+            nodes   = ctx.nodes,
+            input   = ctx.input,
+            key     = TOURNAMENT_NAME )
+
+        val tournament = if (tournamentName != null) {
+            TournamentStoreManager.getInstanceByName(
+                name        = tournamentName,
+                storeClass  = TournamentStore::class.java,
+                storeID     = TournamentStoreManager.inactiveStoreKey
+            ).first
+        } else null
+
         val player = ctx.source.player
         val text = if ( tournament == null ) {
             CommandUtil.failedCommand( reason = "Tournament was null" )
         } else if (player == null) {
             CommandUtil.failedCommand( reason = "Server Player was null" )
         } else {
-            tournament.printOverviewInChat( player )
+            tournament.displayResultsInChat( player )
             return Command.SINGLE_SUCCESS
         }
 

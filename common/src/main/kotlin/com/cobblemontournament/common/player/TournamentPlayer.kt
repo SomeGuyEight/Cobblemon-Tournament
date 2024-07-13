@@ -6,23 +6,29 @@ import com.cobblemon.mod.common.api.reactive.SimpleObservable
 import com.cobblemontournament.common.player.properties.PlayerProperties
 import com.someguy.storage.classstored.ClassStored
 import com.cobblemontournament.common.api.storage.DataKeys
+import com.cobblemontournament.common.player.properties.PlayerPropertiesHelper
 import com.google.gson.JsonObject
 import com.someguy.storage.coordinates.StoreCoordinates
 import net.minecraft.nbt.CompoundTag
+import net.minecraft.server.level.ServerPlayer
 import java.util.UUID
 
 // Important: (UUID) constructor is needed for serialization method
-open class TournamentPlayer( uuid: UUID ) : ClassStored
+@Suppress( names = ["unused"] )
+open class TournamentPlayer : ClassStored
 {
-    constructor() : this( UUID.randomUUID() )
-
-    constructor (
-        properties: PlayerProperties
-    ) : this ( properties.playerID ) {
-        this.properties.setFromProperties( properties )
+    companion object {
+        fun loadFromNBT( nbt: CompoundTag ): TournamentPlayer {
+            return TournamentPlayer( PlayerProperties.loadFromNBT( nbt.getCompound( DataKeys.PLAYER_PROPERTIES ) ) )
+        }
     }
 
-    protected var properties = PlayerProperties()
+    constructor ( uuid: UUID = UUID.randomUUID() ) : this ( PlayerProperties( uuid ) )
+    constructor ( properties: PlayerProperties) {
+        this.properties = properties
+    }
+
+    protected val properties: PlayerProperties
 
     override val name get() = properties.name
 
@@ -46,10 +52,10 @@ open class TournamentPlayer( uuid: UUID ) : ClassStored
         get() = properties.finalPlacement
         set( value ) { properties.finalPlacement = value }
 
-    var pokemonTeamID = properties.pokemonTeamID
+    var pokemonTeamID: UUID? = null
         get() = properties.pokemonTeamID
         protected set( value ) {
-            if ( !properties.pokemonFinal ) {
+            if ( field != null && !properties.pokemonFinal ) {
                 return
             }
             field = value
@@ -61,8 +67,6 @@ open class TournamentPlayer( uuid: UUID ) : ClassStored
     var pokemonFinal
         get() = properties.pokemonFinal
         protected set( value ) { properties.pokemonFinal = value }
-
-    override fun printProperties() = properties.logDebug()
 
     override fun initialize(): TournamentPlayer {
         registerObservable( properties.anyChangeObservable )
@@ -100,6 +104,22 @@ open class TournamentPlayer( uuid: UUID ) : ClassStored
         observables.add( observable )
         observable.subscribe { anyChangeObservable.emit( values = arrayOf( this ) ) }
         return observable
+    }
+
+    override fun printProperties() = properties.logDebug()
+
+    fun displayInChat( player: ServerPlayer ) = properties.displayInChat( player )
+
+    fun displayInChatOptional(
+        player              : ServerPlayer,
+        spacing             : String = "",
+        displaySeed         : Boolean = false,
+        displayPokemon      : Boolean = false,
+        displayCurrentMatch : Boolean = false,
+        displayPlacement    : Boolean = false )
+    {
+        PlayerPropertiesHelper.displayInChatOptionalHelper(
+            properties, player, spacing, displaySeed, displayPokemon, displayCurrentMatch, displayPlacement )
     }
 
 }

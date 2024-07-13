@@ -12,18 +12,20 @@ import net.minecraft.nbt.CompoundTag
 import java.util.UUID
 
 // Important: (UUID) constructor is needed for serialization method
-open class TournamentRound( uuid: UUID ) : ClassStored
+open class TournamentRound : ClassStored
 {
-    constructor() : this ( UUID.randomUUID() )
-
-    constructor (
-        properties: RoundProperties,
-    ) : this ( properties.roundID )
-    {
-        this.properties.setFromProperties( properties )
+    companion object {
+        fun loadFromNBT( nbt: CompoundTag ): TournamentRound {
+            return TournamentRound( RoundProperties.loadFromNBT( nbt.getCompound( DataKeys.ROUND_PROPERTIES ) ) )
+        }
     }
 
-    protected var properties = RoundProperties()
+    constructor ( uuid: UUID = UUID.randomUUID() ) : this ( RoundProperties( uuid ) )
+    constructor ( properties: RoundProperties) {
+        this.properties = properties
+    }
+
+    protected val properties: RoundProperties
 
     override val name get() = "Round $roundIndex [${roundType.name} type]"
 
@@ -62,21 +64,21 @@ open class TournamentRound( uuid: UUID ) : ClassStored
         return this
     }
 
-    override fun saveToJSON(json: JsonObject): JsonObject { TODO("Not yet implemented") }
-    override fun loadFromJSON(json: JsonObject): ClassStored { TODO("Not yet implemented") }
+    override fun saveToJSON( json: JsonObject ): JsonObject { TODO("Not yet implemented") }
+    override fun loadFromJSON( json: JsonObject ): ClassStored { TODO("Not yet implemented") }
 
     private val observables = mutableListOf <Observable <*>>()
-    val anyChangeObservable = SimpleObservable<TournamentRound>()
+    val anyChangeObservable = SimpleObservable <TournamentRound>()
 
     fun getAllObservables() = observables.asIterable()
     override fun getChangeObservable() = anyChangeObservable
 
     protected fun registerObservable(
         observable: Observable <*>
-    ) : Observable <*>
+    ): Observable <*>
     {
-        observables.add(observable)
-        observable.subscribe { anyChangeObservable.emit(this) }
+        observables.add( observable )
+        observable.subscribe { anyChangeObservable.emit( values = arrayOf( this ) ) }
         return observable
     }
 

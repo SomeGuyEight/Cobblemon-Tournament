@@ -3,14 +3,17 @@ plugins {
     id 'org.jetbrains.kotlin.jvm' version "2.0.0"
     id 'org.jetbrains.kotlin.plugin.serialization' version '2.0.0'
 }
+
 loom {
     silentMojangMappingsLicense()
+
     forge {
         //todo
         //mixinConfig "template-common.mixins.json"
         //mixinConfig "template-forge.mixins.json"
     }
 }
+
 architectury {
     platformSetupLoomIde()
     forge()
@@ -37,6 +40,7 @@ dependencies {
     implementation "thedarkcolour:kotlinforforge:${rootProject.kotlin_for_forge_version}"
     modApi "dev.architectury:architectury-forge:${rootProject.architectury_version}"
     modImplementation "com.cobblemon:forge:${rootProject.cobblemon_version}"
+    implementation "curse.maven:cobblemon-challenge-908215:5339596"
 
     mappings loom.layered() {
         officialMojangMappings()

@@ -3,6 +3,8 @@ package com.cobblemontournament.common.commands.nodes
 /**
  * TODO: ¯\_(ツ)_/¯ What should the object name be?? Names?? WIP IDK
  */
+
+@Suppress( names = ["unused", "MemberVisibilityCanBePrivate"] )
 object NodeKeys
 {
     const val NAME                  = "name"
@@ -15,6 +17,7 @@ object NodeKeys
     const val CURRENT_MATCH         = "current-match"
     const val ACTIONS               = "actions"
     const val OVERVIEW              = "overview"
+    const val RESULTS               = "results"
 
     const val NEW                   = "new-"
     const val FAKE                  = "fake"

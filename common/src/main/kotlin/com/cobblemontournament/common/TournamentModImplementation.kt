@@ -1,6 +1,6 @@
 package com.cobblemontournament.common
 
-interface CTModImplementation
+interface TournamentModImplementation
 {
     fun initializeConfig()
     fun registerEvents()

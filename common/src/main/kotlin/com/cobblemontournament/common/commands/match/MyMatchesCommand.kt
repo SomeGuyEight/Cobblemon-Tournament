@@ -9,10 +9,8 @@ import com.cobblemontournament.common.commands.nodes.match.MyMatchesNode
 import com.mojang.brigadier.Command
 import com.mojang.brigadier.CommandDispatcher
 import com.mojang.brigadier.context.CommandContext
-import net.minecraft.commands.CommandBuildContext
 import net.minecraft.commands.CommandSourceStack
 import net.minecraft.commands.Commands
-import net.minecraft.commands.Commands.CommandSelection
 import org.slf4j.helpers.Util
 
 object MyMatchesCommand
@@ -30,10 +28,9 @@ object MyMatchesCommand
      */
     @JvmStatic
     fun register(
-        dispatcher  : CommandDispatcher <CommandSourceStack>,
-        registry    : CommandBuildContext,
-        selection   : CommandSelection
-    )
+        dispatcher  : CommandDispatcher <CommandSourceStack>, )
+//        registry    : CommandBuildContext,
+//        selection   : CommandSelection )
     {
         dispatcher.register(
             MyMatchesNode.node(
@@ -41,7 +38,10 @@ object MyMatchesCommand
                     .executes { ctx ->
                         myMatches( ctx )
                     }
-            ))
+            ).executes { ctx ->
+                myMatches( ctx )
+            }
+        )
     }
 
     @JvmStatic
@@ -65,11 +65,7 @@ object MyMatchesCommand
             return Command.SINGLE_SUCCESS
         }
 
-//        if (player != null) {
-//            player.displayClientMessage( text ,false)
-//        } else {
-            Util.report( text.string )
-//        }
+        Util.report( text.string )
         return 0
     }
 

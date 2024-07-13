@@ -10,6 +10,8 @@ import com.cobblemontournament.common.player.TournamentPlayer
 import com.cobblemontournament.common.round.TournamentRound
 import com.cobblemontournament.common.tournament.TournamentType
 import com.cobblemontournament.common.api.storage.DataKeys
+import com.cobblemontournament.common.api.storage.PlayerStore
+import com.cobblemontournament.common.api.storage.TournamentStore
 import com.cobblemontournament.common.tournament.TournamentStatus
 import com.cobblemontournament.common.util.ChatUtil
 import com.cobblemontournament.common.util.TournamentUtil
@@ -86,8 +88,8 @@ object TournamentPropertiesHelper: PropertiesHelper <TournamentProperties>
         mutable.maxLevel            = nbt.getInt(       DataKeys.MAX_LEVEL )
         mutable.showPreview         = nbt.getBoolean(   DataKeys.SHOW_PREVIEW )
         mutable.rounds              = loadRoundData(  nbt.getCompound( DataKeys.ROUND_MAP ) )
-        mutable.matches             = loadMatchData(  tournamentID, nbt.getCompound( DataKeys.MATCH_MAP ) )
-        mutable.players             = loadPlayerData( tournamentID, nbt.getCompound( DataKeys.PLAYER_MAP ) )
+        mutable.matches             = loadMatchData(  tournamentID )
+        mutable.players             = loadPlayerData( tournamentID )
         return mutable
     }
 
@@ -108,8 +110,6 @@ object TournamentPropertiesHelper: PropertiesHelper <TournamentProperties>
         nbt.putInt(     DataKeys.MAX_LEVEL          , properties.maxLevel )
         nbt.putBoolean( DataKeys.SHOW_PREVIEW       , properties.showPreview )
         nbt.put( DataKeys.ROUND_MAP,  saveRoundData(  properties.rounds, CompoundTag() ) )
-        nbt.put( DataKeys.MATCH_MAP,  saveMatchData(  properties.matches, CompoundTag() ) )
-        nbt.put( DataKeys.PLAYER_MAP, savePlayerData( properties.players, CompoundTag() ) )
         return nbt
     }
 
@@ -131,110 +131,73 @@ object TournamentPropertiesHelper: PropertiesHelper <TournamentProperties>
             maxLevel            = nbt.getInt(       DataKeys.MAX_LEVEL ),
             showPreview         = nbt.getBoolean(   DataKeys.SHOW_PREVIEW ),
             rounds              = loadRoundData(  nbt.getCompound( DataKeys.ROUND_MAP ) ),
-            matches             = loadMatchData(  tournamentID, nbt.getCompound( DataKeys.MATCH_MAP ) ),
-            players             = loadPlayerData( tournamentID, nbt.getCompound( DataKeys.PLAYER_MAP ) )
-        )
+            matches             = loadMatchData(  tournamentID ),
+            players             = loadPlayerData( tournamentID ) )
     }
 
     private fun saveRoundData(
-        rounds: Map<UUID,TournamentRound>,
+        rounds: Map <UUID,TournamentRound>,
         nbt: CompoundTag
     ): CompoundTag
     {
         var size = 0
         rounds.forEach {
-            nbt.put(DataKeys.ROUND_DATA + size++, it.value.saveToNBT( CompoundTag() ))
+            nbt.put( DataKeys.ROUND_DATA + size++, it.value.saveToNBT( CompoundTag() ) )
         }
-        nbt.putInt(StoreDataKeys.SIZE,size)
+        nbt.putInt( StoreDataKeys.SIZE, size )
         return nbt
     }
 
     private fun loadRoundData(
         nbt: CompoundTag
-    ): MutableMap<UUID, TournamentRound>
+    ): MutableMap <UUID,TournamentRound>
     {
-        val map   = mutableMapOf<UUID,TournamentRound>()
-        val size  = nbt.getInt(StoreDataKeys.SIZE)
+        val map   = mutableMapOf <UUID,TournamentRound>()
+        val size  = nbt.getInt( StoreDataKeys.SIZE )
         for (i in 0 until size) {
-            val round = TournamentRound().loadFromNBT(nbt.getCompound(DataKeys.ROUND_DATA + i))
+            val round = TournamentRound.loadFromNBT( nbt.getCompound( DataKeys.ROUND_DATA + i ) )
             map[round.uuid] = round
         }
         return map
     }
 
-    private fun saveMatchData(
-        matches: Map<UUID,TournamentMatch>,
-        nbt: CompoundTag
-    ): CompoundTag
-    {
-        var size = 0
-        for ((_,match) in matches) {
-            nbt.putUUID(DataKeys.ROUND_ID + size, match.roundID )
-            nbt.putUUID(DataKeys.MATCH_ID + size++, match.uuid )
-        }
-        nbt.putInt(StoreDataKeys.SIZE,size)
-        return nbt
-    }
-
     private fun loadMatchData(
-        tournamentID: UUID,
-        nbt: CompoundTag
-    ): MutableMap<UUID, TournamentMatch>
+        tournamentID: UUID
+    ): MutableMap <UUID,TournamentMatch>
     {
-        val map   = mutableMapOf<UUID,TournamentMatch>()
-        val size  = nbt.getInt(StoreDataKeys.SIZE)
-        for (i in 0 until size) {
-            val roundID = nbt.getUUID(DataKeys.ROUND_ID + i) // TODO implement method in manager
-            val matchID = nbt.getUUID(DataKeys.MATCH_ID + i)
-            val match = TournamentStoreManager.getMatch( tournamentID, matchID )?: continue
+        val map = mutableMapOf <UUID,TournamentMatch>()
+        for ( match in TournamentStoreManager.getStoreIterator( MatchStore::class.java, tournamentID ) ) {
             map[match.uuid] = match
         }
         return map
     }
 
-    private fun savePlayerData(
-        players: Map<UUID,TournamentPlayer>,
-        nbt: CompoundTag
-    ): CompoundTag
-    {
-        var size = 0
-        players.forEach {
-            nbt.putUUID(DataKeys.PLAYER_ID + size++, it.value.uuid )
-        }
-        nbt.putInt(StoreDataKeys.SIZE,size)
-        return nbt
-    }
-
     private fun loadPlayerData(
-        tournamentID: UUID,
-        nbt: CompoundTag
-    ): MutableMap<UUID, TournamentPlayer>
+        tournamentID: UUID
+    ): MutableMap <UUID,TournamentPlayer>
     {
-        val map   = mutableMapOf<UUID,TournamentPlayer>()
-        val size  = nbt.getInt(StoreDataKeys.SIZE)
-        for (i in 0 until size) {
-            val playerID = nbt.getUUID(DataKeys.PLAYER_ID + i)
-            val player = TournamentStoreManager.getPlayer( tournamentID, playerID )?: continue
+        val map = mutableMapOf <UUID,TournamentPlayer>()
+        for ( player in TournamentStoreManager.getStoreIterator( PlayerStore::class.java, tournamentID ) ) {
             map[player.uuid] = player
         }
         return map
     }
 
-    override fun logDebugHelper( properties: TournamentProperties)
+    override fun logDebugHelper( properties: TournamentProperties )
     {
-        Util.report("Tournament \"${properties.name}\" [${ChatUtil.shortUUID( properties.tournamentID )}]")
-        Util.report("- ${properties.tournamentType} [${properties.challengeFormat}]")
-        Util.report("- Max Participants: ${properties.maxParticipants}")
-        Util.report("- Team Size (${properties.teamSize}) - Group Size (${properties.groupSize})")
-        Util.report("- Level Range [Min: ${properties.minLevel}, Max: ${properties.maxLevel}]")
-        Util.report("- Show Preview: ${properties.showPreview}")
-        if (properties.rounds.isNotEmpty() || properties.matches.isNotEmpty()) {
-            Util.report("- Rounds (${properties.rounds.size}) - Matches (${properties.matches.size})")
+        Util.report( "Tournament \"${properties.name}\" [${ChatUtil.shortUUID( properties.tournamentID )}]" )
+        Util.report( "- ${properties.tournamentType} [${properties.challengeFormat}]" )
+        Util.report( "- Max Participants: ${properties.maxParticipants}" )
+        Util.report( "- Team Size (${properties.teamSize}) - Group Size (${properties.groupSize})" )
+        Util.report( "- Level Range [Min: ${properties.minLevel}, Max: ${properties.maxLevel}]" )
+        Util.report( "- Show Preview: ${properties.showPreview}")
+        if ( properties.rounds.isNotEmpty() || properties.matches.isNotEmpty() ) {
+            Util.report( "- Rounds (${properties.rounds.size}) - Matches (${properties.matches.size})" )
         }
-        if (properties.players.isNotEmpty()) {
-            Util.report("  Players ${properties.players.size}:")
+        if ( properties.players.isNotEmpty() ) {
+            Util.report( "  Players ${properties.players.size}:" )
             properties.players.forEach {
-                Util.report("  - ${it.value} [${ChatUtil.shortUUID( it.key )}]")
+                Util.report("  - ${it.value} [${ChatUtil.shortUUID( it.key )}]" )
             }
         }
     }
@@ -243,26 +206,10 @@ object TournamentPropertiesHelper: PropertiesHelper <TournamentProperties>
         properties: TournamentProperties,
         player: ServerPlayer )
     {
-        val title = ChatUtil.formatText(
-            text    = "Tournament ",
-            color   = ChatUtil.green )
-        title.append( ChatUtil.formatText( text = "\""))
-        title.append( ChatUtil.formatText(
-            text    = properties.name,
-            color   = ChatUtil.green ) )
-        title.append( ChatUtil.formatText( text = "\" "))
-        title.append( ChatUtil.formatTextBracketed(
-            text    = ChatUtil.shortUUID(properties.tournamentID),
-            color   = ChatUtil.green ) )
-        title.append( ChatUtil.formatText( text = " "))
-        title.append( ChatUtil.formatTextBracketed(
-            text    = properties.tournamentStatus.name,
-            color   = ChatUtil.yellow ) )
-        player.displayClientMessage( title, false )
-
+        displayTitleInChatHelper( properties, player )
         displaySlimInChatHelper( properties, player )
 
-        if (properties.rounds.isNotEmpty() || properties.matches.isNotEmpty()) {
+        if ( properties.rounds.isNotEmpty() || properties.matches.isNotEmpty() ) {
             val text = ChatUtil.formatText(
                 text    = "  Rounds ",
                 color   = ChatUtil.yellow,
@@ -280,7 +227,7 @@ object TournamentPropertiesHelper: PropertiesHelper <TournamentProperties>
                 color = ChatUtil.yellow ) )
             player.displayClientMessage( text, false )
         }
-        if (properties.players.isNotEmpty()) {
+        if ( properties.players.isNotEmpty() ) {
             val text0 = ChatUtil.formatText(
                 text    = "  Players ",
                 color   = ChatUtil.aqua,
@@ -304,32 +251,89 @@ object TournamentPropertiesHelper: PropertiesHelper <TournamentProperties>
         }
     }
 
+    private fun displayTitleInChatHelper(
+        properties  : TournamentProperties,
+        player      : ServerPlayer )
+    {
+        val title = ChatUtil.formatText(
+            text    = "Tournament ",
+            color   = ChatUtil.green )
+        title.append( ChatUtil.formatText( text = "\"" ) )
+        title.append( ChatUtil.formatText(
+            text    = properties.name,
+            color   = ChatUtil.green ) )
+        title.append( ChatUtil.formatText( text = "\" " ) )
+        title.append( ChatUtil.formatTextBracketed(
+            text    = ChatUtil.shortUUID(properties.tournamentID ),
+            color   = ChatUtil.green ) )
+        title.append( ChatUtil.formatText( text = " " ) )
+        title.append( ChatUtil.formatTextBracketed(
+            text    = properties.tournamentStatus.name,
+            color   = ChatUtil.yellow ) )
+        player.displayClientMessage( title, false )
+    }
+
     fun displaySlimInChatHelper(
         properties: TournamentProperties,
-        player: ServerPlayer)
+        player: ServerPlayer )
     {
-        val component0 = ChatUtil.formatText( text = "  ")
-        component0.append( ChatUtil.formatTextBracketed( text = "${properties.tournamentType}", color = ChatUtil.yellow ) )
-        component0.append( ChatUtil.formatText( text = " " ) )
-        component0.append( ChatUtil.formatTextBracketed( text = "${properties.challengeFormat}", color = ChatUtil.yellow ) )
-        val component1 = ChatUtil.formatText( text = "  Max Participants ")
-        component1.append( ChatUtil.formatTextBracketed( text = "${properties.maxParticipants}", color = ChatUtil.yellow ) )
-        val component2 = ChatUtil.formatText( text = "  Team Size " )
-        component2.append( ChatUtil.formatTextBracketed( text = "${properties.teamSize}", color = ChatUtil.yellow ) )
-        component2.append( ChatUtil.formatText( text = " Group Size " ) )
-        component2.append( ChatUtil.formatTextBracketed( text = "${properties.groupSize}", color = ChatUtil.yellow ) )
-        val component3 = ChatUtil.formatText( text = "  Level Range: Min " )
-        component3.append( ChatUtil.formatTextBracketed( text = "${properties.minLevel}", color = ChatUtil.yellow ) )
-        component3.append( ChatUtil.formatText( text = " Max " ) )
-        component3.append( ChatUtil.formatTextBracketed( text = "${properties.maxLevel}", color = ChatUtil.yellow ) )
-        val component4 = ChatUtil.formatText( text = "  Show Preview ")
-        component4.append( ChatUtil.formatTextBracketed( text = "${properties.showPreview}", color = ChatUtil.yellow ) )
+        val typeAndFormat = ChatUtil.formatTextBracketed(
+            text = "${properties.tournamentType}",
+            color = ChatUtil.yellow,
+            spacingBefore = "  " )
+        typeAndFormat.append( ChatUtil.formatTextBracketed(
+            text = "${properties.challengeFormat}",
+            color = ChatUtil.yellow,
+            spacingBefore = " " ) )
+        player.displayClientMessage( typeAndFormat, false )
 
-        player.displayClientMessage( component0, false )
-        player.displayClientMessage( component1, false )
-        player.displayClientMessage( component2, false )
-        player.displayClientMessage( component3, false )
-        player.displayClientMessage( component4, false )
+        val maxParticipants = ChatUtil.formatText(
+            text = "  Max Participants " )
+        maxParticipants.append( ChatUtil.formatTextBracketed(
+            text = "${properties.maxParticipants}",
+            color = ChatUtil.yellow ) )
+        player.displayClientMessage( maxParticipants, false )
+//
+//        val teamSize = ChatUtil.formatText(
+//            text = "  Team Size " )
+//        teamSize.append( ChatUtil.formatTextBracketed(
+//            text = "${properties.teamSize}",
+//            color = ChatUtil.yellow ) )
+//        player.displayClientMessage( teamSize, false )
+
+//        val groupSize = ChatUtil.formatText(
+//            text = "  Group Size " )
+//        groupSize.append( ChatUtil.formatTextBracketed(
+//            text = "${properties.groupSize}",
+//            color = ChatUtil.yellow ) )
+//        player.displayClientMessage( groupSize, false )
+
+        // TODO temp until level range is released for CobblemonChallenge
+        val level = ChatUtil.formatText(
+            text = "  Level " )
+        level.append( ChatUtil.formatTextBracketed(
+            text = "${properties.maxLevel}",
+            color = ChatUtil.yellow ) )
+        player.displayClientMessage( level, false )
+
+//        val levelRange = ChatUtil.formatText(
+//            text = "  Level Range: Min " )
+//        levelRange.append( ChatUtil.formatTextBracketed(
+//            text = "${properties.minLevel}",
+//            color = ChatUtil.yellow ) )
+//        levelRange.append( ChatUtil.formatText(
+//            text = " Max " ) )
+//        levelRange.append( ChatUtil.formatTextBracketed(
+//            text = "${properties.maxLevel}",
+//            color = ChatUtil.yellow ) )
+//        player.displayClientMessage( levelRange, false )
+
+        val preview = ChatUtil.formatText(
+            text = "  Show Preview " )
+        preview.append( ChatUtil.formatTextBracketed(
+            text = "${properties.showPreview}",
+            color = ChatUtil.yellow ) )
+        player.displayClientMessage( preview, false )
     }
 
     fun displayOverviewInChat(
@@ -338,8 +342,15 @@ object TournamentPropertiesHelper: PropertiesHelper <TournamentProperties>
         fullOverview: Boolean = false )
     {
         displayInChatHelper( properties, player )
-        val tournament = TournamentStoreManager.getTournament( properties.tournamentID )?: return
-        val matchStore = TournamentStoreManager.getStore( MatchStore::class.java, properties.tournamentID )?: return // TODO log
+        val tournament = TournamentStoreManager.getInstance(
+            storeClass  = TournamentStore::class.java,
+            storeID     = TournamentStoreManager.activeStoreKey,
+            instanceID  = properties.tournamentID
+        ) ?: return // TODO log?
+        val matchStore = TournamentStoreManager.getStore(
+            storeClass  = MatchStore::class.java,
+            uuid        = properties.tournamentID
+        ) ?: return // TODO log?
 
         val matches = mutableListOf<TournamentMatch>()
         val addMatchPredicate: (TournamentMatch) -> Boolean =
@@ -349,9 +360,9 @@ object TournamentPropertiesHelper: PropertiesHelper <TournamentProperties>
                 { true }
             }
         run loop@ {
-            for (match in matchStore.iterator() ) {
+            for ( match in matchStore.iterator() ) {
                 if ( addMatchPredicate( match ) ) {
-                    matches.add(match)
+                    matches.add( match )
                 }
             }
         }
@@ -363,32 +374,94 @@ object TournamentPropertiesHelper: PropertiesHelper <TournamentProperties>
             player  = player,
             text    = "Round ${firstMatch.roundID} [${ChatUtil.shortUUID( firstMatch.roundID )}]",
             color   = ChatUtil.yellow,
-            bold    = true)
+            bold    = true )
         var roundIndex = firstMatch.roundIndex
-        for (match in matches) {
-            if (roundIndex != match.roundIndex ){
+        for ( match in matches ) {
+            if ( roundIndex != match.roundIndex ){
                 roundIndex = match.roundIndex
                 ChatUtil.displayInPlayerChat(
                     player  = player,
                     text    = "Round $roundIndex [${ChatUtil.shortUUID( match.roundID )}]",
                     color   = ChatUtil.yellow,
-                    bold    = true)
+                    bold    = true )
             }
             val matchPlayers = match.playerEntrySet()
             val entry = matchPlayers.firstNotNullOfOrNull { it }
-            if (entry == null && !fullOverview) {
+            if ( entry == null && !fullOverview ) {
                 continue
             }
             val playerTwoID = matchPlayers.firstNotNullOfOrNull {
-                if (it.value != entry?.value) it.key else null
+                if ( it.value != entry?.value ) it.key else null
             }
             MatchManager.displayMatchDetails(
                 player          = player,
                 playerOneName   = properties.players[entry?.key]?.name ?: "[null]",
                 playerTwoName   = properties.players[playerTwoID]?.name ?: "[null]",
                 tournamentName  = tournament.name,
-                match           = match)
+                match           = match )
         }
+    }
+
+    fun displayResultsInChatHelper(
+        properties  : TournamentProperties,
+        player      : ServerPlayer )
+    {
+        val predicate: (TournamentPlayer) -> Boolean = { p -> p.finalPlacement > 0 }
+        val finalizedPlayers = mutableListOf<TournamentPlayer>()
+        val competingPlayers = mutableListOf<TournamentPlayer>()
+        for (p in properties.players.values) {
+            if (predicate(p)) {
+                finalizedPlayers.add(p)
+            } else {
+                competingPlayers.add(p)
+            }
+        }
+        if (finalizedPlayers.isNotEmpty()) {
+            displayTitleInChatHelper( properties, player )
+            displaySlimInChatHelper( properties, player )
+            ChatUtil.displayInPlayerChat(
+                player = player,
+                text = "Final Placements:",
+                color = ChatUtil.green )
+            for (p in finalizedPlayers) {
+                displayFinalPlacementInChat( player, p )
+            }
+        }
+        if (competingPlayers.isNotEmpty()) {
+            ChatUtil.displayInPlayerChat(
+                player = player,
+                text = "Players still competing:",
+                color = ChatUtil.green )
+            for (p in competingPlayers) {
+                displayFinalPlacementInChat( player, p )
+            }
+        }
+    }
+
+    private fun displayFinalPlacementInChat(
+        player: ServerPlayer,
+        tournamentPlayer: TournamentPlayer )
+    {
+        val text = ChatUtil.formatTextBracketed(
+            text            = tournamentPlayer.finalPlacement.toString(),
+            color           = ChatUtil.green,
+            spacingBefore   = "  ",
+            bold    = true )
+        text.append( ChatUtil.formatText(
+            text            = " Player " ) )
+        text.append( ChatUtil.formatTextQuoted(
+            text            = tournamentPlayer.name,
+            color           = ChatUtil.aqua,
+            spacingAfter    = " ",
+            bold    = true ) )
+        text.append( ChatUtil.formatTextBracketed(
+            text    = ChatUtil.shortUUID( tournamentPlayer.uuid ),
+            color   = ChatUtil.aqua ) )
+        text.append( ChatUtil.formatText(
+            text    = " Original Seed " ) )
+        text.append( ChatUtil.formatTextBracketed(
+            text    = tournamentPlayer.originalSeed.toString() ) )
+        player.displayClientMessage( text ,false )
     }
 
 }

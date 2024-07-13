@@ -15,18 +15,18 @@ import com.someguy.storage.properties.Properties
 import net.minecraft.nbt.CompoundTag
 import java.util.UUID
 
-class PlayerProperties : Properties <PlayerProperties>
+class PlayerProperties : Properties <PlayerProperties>, Comparable<PlayerProperties>
 {
     companion object {
         val HELPER = PlayerPropertiesHelper
-        fun loadFromNbt( nbt: CompoundTag ) = HELPER.loadFromNBTHelper( nbt )
+        fun loadFromNBT( nbt: CompoundTag ) = HELPER.loadFromNBTHelper( nbt )
     }
 
-    constructor() : this (
+    constructor( uuid: UUID = UUID.randomUUID() ) : this (
         name            = DEFAULT_PLAYER_NAME,
         actorType       = DEFAULT_ACTOR_TYPE,
-        playerID        = UUID.randomUUID(),
-        tournamentID    = UUID.randomUUID())
+        playerID        = uuid,
+        tournamentID    = UUID.randomUUID() )
 
     constructor(
         name               : String,
@@ -90,11 +90,33 @@ class PlayerProperties : Properties <PlayerProperties>
     var lockPokemonOnSet = DEFAULT_LOCK_POKEMON_ON_SET
         set( value ) { field = value; emitChange() }
 
+
     private val observables = mutableListOf <Observable <*>>()
     val anyChangeObservable = SimpleObservable <PlayerProperties>()
 
     private fun emitChange() = anyChangeObservable.emit( values = arrayOf( this ) )
     override fun getAllObservables() = observables.asIterable()
     override fun getChangeObservable() = anyChangeObservable
+
+    override fun compareTo(
+        other: PlayerProperties
+    ): Int
+    {
+        return compareValuesBy(
+            a = this,
+            b = other,
+            { it.name               },
+            { it.actorType          },
+            { it.playerID           },
+            { it.tournamentID       },
+            { it.seed               },
+            { it.originalSeed       },
+            { it.pokemonTeamID      },
+            { it.pokemonFinal       },
+            { it.lockPokemonOnSet   },
+            { it.currentMatchID     },
+            { it.finalPlacement     }
+        )
+    }
 
 }

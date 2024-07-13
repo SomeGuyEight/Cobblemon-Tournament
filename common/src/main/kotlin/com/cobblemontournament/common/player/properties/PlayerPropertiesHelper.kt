@@ -64,17 +64,17 @@ object PlayerPropertiesHelper : PropertiesHelper <PlayerProperties>
         nbt: CompoundTag
     ): PlayerProperties
     {
-        mutable.name                = nbt.getString(        DataKeys.PLAYER_NAME)
-        mutable.actorType           = enumValueOf<ActorType> ( nbt.getString( DataKeys.ACTOR_TYPE))
-        mutable.playerID            = nbt.getUUID(          DataKeys.PLAYER_ID)
-        mutable.tournamentID        = nbt.getUUID(          DataKeys.TOURNAMENT_ID)
-        mutable.seed                = nbt.getInt(           DataKeys.SEED)
-        mutable.originalSeed        = nbt.getInt(           DataKeys.ORIGINAL_SEED)
-        mutable.finalPlacement      = nbt.getInt(           DataKeys.FINAL_PLACEMENT)
-        mutable.pokemonTeamID       = nbt.getNullableUUID(  DataKeys.POKEMON_TEAM_ID)
-        mutable.currentMatchID      = nbt.getNullableUUID(  DataKeys.CURRENT_MATCH_ID)
-        mutable.pokemonFinal        = nbt.getBoolean(       DataKeys.POKEMON_FINAL)
-        mutable.lockPokemonOnSet    = nbt.getBoolean(       DataKeys.LOCK_POKEMON_ON_SET)
+        mutable.name                = nbt.getString(        DataKeys.PLAYER_NAME )
+        mutable.actorType           = enumValueOf <ActorType>( nbt.getString( DataKeys.ACTOR_TYPE) )
+        mutable.playerID            = nbt.getUUID(          DataKeys.PLAYER_ID )
+        mutable.tournamentID        = nbt.getUUID(          DataKeys.TOURNAMENT_ID )
+        mutable.seed                = nbt.getInt(           DataKeys.SEED )
+        mutable.originalSeed        = nbt.getInt(           DataKeys.ORIGINAL_SEED )
+        mutable.finalPlacement      = nbt.getInt(           DataKeys.FINAL_PLACEMENT )
+        mutable.pokemonTeamID       = nbt.getNullableUUID(  DataKeys.POKEMON_TEAM_ID )
+        mutable.currentMatchID      = nbt.getNullableUUID(  DataKeys.CURRENT_MATCH_ID )
+        mutable.pokemonFinal        = nbt.getBoolean(       DataKeys.POKEMON_FINAL )
+        mutable.lockPokemonOnSet    = nbt.getBoolean(       DataKeys.LOCK_POKEMON_ON_SET )
         return mutable
     }
 
@@ -83,17 +83,17 @@ object PlayerPropertiesHelper : PropertiesHelper <PlayerProperties>
         nbt: CompoundTag
     ): CompoundTag
     {
-        nbt.putString(      DataKeys.PLAYER_NAME          , properties.name)
-        nbt.putString(      DataKeys.ACTOR_TYPE           , properties.actorType.name)
-        nbt.putUUID(        DataKeys.PLAYER_ID            , properties.playerID)
-        nbt.putUUID(        DataKeys.TOURNAMENT_ID        , properties.tournamentID)
-        nbt.putInt(         DataKeys.SEED                 , properties.seed)
-        nbt.putInt(         DataKeys.ORIGINAL_SEED        , properties.originalSeed)
-        nbt.putInt(         DataKeys.FINAL_PLACEMENT      , properties.finalPlacement)
-        nbt.putIfNotNull(   DataKeys.POKEMON_TEAM_ID      , properties.pokemonTeamID)
-        nbt.putIfNotNull(   DataKeys.CURRENT_MATCH_ID     , properties.currentMatchID)
-        nbt.putBoolean(     DataKeys.POKEMON_FINAL        , properties.pokemonFinal)
-        nbt.putBoolean(     DataKeys.LOCK_POKEMON_ON_SET  , properties.lockPokemonOnSet)
+        nbt.putString(      DataKeys.PLAYER_NAME          , properties.name )
+        nbt.putString(      DataKeys.ACTOR_TYPE           , properties.actorType.name )
+        nbt.putUUID(        DataKeys.PLAYER_ID            , properties.playerID )
+        nbt.putUUID(        DataKeys.TOURNAMENT_ID        , properties.tournamentID )
+        nbt.putInt(         DataKeys.SEED                 , properties.seed )
+        nbt.putInt(         DataKeys.ORIGINAL_SEED        , properties.originalSeed )
+        nbt.putInt(         DataKeys.FINAL_PLACEMENT      , properties.finalPlacement )
+        nbt.putIfNotNull(   DataKeys.POKEMON_TEAM_ID      , properties.pokemonTeamID )
+        nbt.putIfNotNull(   DataKeys.CURRENT_MATCH_ID     , properties.currentMatchID )
+        nbt.putBoolean(     DataKeys.POKEMON_FINAL        , properties.pokemonFinal )
+        nbt.putBoolean(     DataKeys.LOCK_POKEMON_ON_SET  , properties.lockPokemonOnSet )
         return nbt
     }
 
@@ -118,18 +118,18 @@ object PlayerPropertiesHelper : PropertiesHelper <PlayerProperties>
 
     override fun logDebugHelper(properties: PlayerProperties)
     {
-        Util.report("Player \"${properties.name}\" (${properties.actorType}) [${ChatUtil.shortUUID( properties.playerID )}]")
-        Util.report("- Seed: ${properties.seed} [Original: ${properties.originalSeed}]")
-        Util.report("- Pokemon Team ID: [${ChatUtil.shortUUID( properties.pokemonTeamID )}] (Final: ${properties.pokemonFinal})")
-        Util.report("- Current Match: [${ChatUtil.shortUUID( properties.currentMatchID )}]")
+        Util.report( "Player \"${ properties.name }\" (${ properties.actorType }) [${ ChatUtil.shortUUID( properties.playerID ) }]" )
+        Util.report( "- Seed: ${ properties.seed } [Original: ${ properties.originalSeed }]" )
+        Util.report( "- Pokemon Team ID: [${ ChatUtil.shortUUID( properties.pokemonTeamID ) }] (Final: ${ properties.pokemonFinal })" )
+        Util.report( "- Current Match: [${ ChatUtil.shortUUID( properties.currentMatchID ) }]" )
         if (properties.finalPlacement > 0) {
-            Util.report("- Final Placement: ${properties.finalPlacement}")
+            Util.report( "- Final Placement: ${ properties.finalPlacement }" )
         }
     }
 
     override fun displayInChatHelper(
-        properties: PlayerProperties,
-        player: ServerPlayer)
+        properties  : PlayerProperties,
+        player      : ServerPlayer )
     {
         displayInChatOptionalHelper(
             properties          = properties,
@@ -149,7 +149,7 @@ object PlayerPropertiesHelper : PropertiesHelper <PlayerProperties>
         displayCurrentMatch : Boolean = false,
         displayPlacement    : Boolean = false )
     {
-        val text0 = ChatUtil.formatText(  text = "${spacing}Player \"" )
+        val text0 = ChatUtil.formatText(  text = "${ spacing }Player \"" )
         text0.append( ChatUtil.formatText( text = properties.name, ChatUtil.aqua  ) )
         text0.append( ChatUtil.formatText( text = "\" " ) )
         text0.append( ChatUtil.formatTextBracketed(
@@ -161,12 +161,12 @@ object PlayerPropertiesHelper : PropertiesHelper <PlayerProperties>
         if ( displaySeed ) {
             val text1 = ChatUtil.formatText(  text = "$spacing  Seed " )
             text1.append( ChatUtil.formatTextBracketed(
-                text    = "${properties.seed}",
+                text    = "${ properties.seed }",
                 color   = ChatUtil.yellow,
                 bold    = true ) )
             text1.append( ChatUtil.formatText( text = " Original " ) )
             text1.append( ChatUtil.formatTextBracketed(
-                text    = "${properties.originalSeed}",
+                text    = "${ properties.originalSeed }",
                 color   = ChatUtil.yellow,
                 bold    = true ) )
             player.displayClientMessage( text1 ,false )
@@ -181,7 +181,7 @@ object PlayerPropertiesHelper : PropertiesHelper <PlayerProperties>
             text2.append(ChatUtil.formatText( text = " Team Final " ) )
             text2.append(
                 ChatUtil.formatTextBracketed(
-                    text = "${properties.pokemonFinal}",
+                    text = "${ properties.pokemonFinal }",
                     color = ChatUtil.yellow,
                     bold = true ) )
             player.displayClientMessage( text2 ,false )
@@ -198,7 +198,7 @@ object PlayerPropertiesHelper : PropertiesHelper <PlayerProperties>
         if (displayPlacement && properties.finalPlacement > 0) {
             val text4 = ChatUtil.formatText( text = "$spacing  Final Placement " )
             text4.append( ChatUtil.formatTextBracketed(
-                text    = "${properties.finalPlacement}",
+                text    = "${ properties.finalPlacement }",
                 color   = ChatUtil.yellow,
                 bold    = true ) )
             player.displayClientMessage( text4 ,false )
@@ -208,36 +208,36 @@ object PlayerPropertiesHelper : PropertiesHelper <PlayerProperties>
     // below are functions needed by some classes for collections of Player Properties
 
     fun deepCopyPlayers(
-        players: MutableSet<PlayerProperties>
-    ) : MutableSet<PlayerProperties>
+        players: MutableSet <PlayerProperties>
+    ): MutableSet <PlayerProperties>
     {
-        val copy = mutableSetOf<PlayerProperties>()
+        val copy = mutableSetOf <PlayerProperties>()
         players.forEach { player -> copy.add( player.deepCopy() ) }
         return copy
     }
 
     fun savePlayersToNBT(
-        players: MutableSet<PlayerProperties>,
-        nbt: CompoundTag,
-    ) : CompoundTag
+        players : Iterator <PlayerProperties>,
+        nbt     : CompoundTag,
+    ): CompoundTag
     {
-        var index = 0
+        var size = 0
         players.forEach { properties ->
-            nbt.put(DataKeys.PLAYER_PROPERTIES + index++, properties.saveToNBT( CompoundTag()))
+            nbt.put( DataKeys.PLAYER_PROPERTIES + size++, properties.saveToNBT( CompoundTag() ) )
         }
-        nbt.putInt(StoreDataKeys.SIZE,players.size)
+        nbt.putInt( StoreDataKeys.SIZE, size )
         return nbt
     }
 
     fun loadPlayersFromNBT(
         nbt: CompoundTag,
-    ) : MutableSet<PlayerProperties>
+    ): MutableSet <PlayerProperties>
     {
-        val players = mutableSetOf<PlayerProperties>()
-        if (nbt.contains(StoreDataKeys.SIZE) && nbt.getInt(StoreDataKeys.SIZE) != 0) {
-            val size = nbt.getInt(StoreDataKeys.SIZE)
-            for (i in 0 until size) {
-                players.add( loadFromNBTHelper( nbt.getCompound(DataKeys.PLAYER_PROPERTIES + i)))
+        val players = mutableSetOf <PlayerProperties>()
+        if ( nbt.contains( StoreDataKeys.SIZE ) && nbt.getInt( StoreDataKeys.SIZE ) != 0 ) {
+            val size = nbt.getInt( StoreDataKeys.SIZE )
+            for ( i in 0 until size ) {
+                players.add( loadFromNBTHelper( nbt.getCompound( DataKeys.PLAYER_PROPERTIES + i ) ) )
             }
         }
         return players

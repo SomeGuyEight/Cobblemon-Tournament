@@ -226,7 +226,7 @@ object TestChatFormating
         ChatUtil.displayInPlayerChat(
             player = player,
             text = "[Tournament Builder]" )
-        builder.printPropertiesInChat( player )
+        builder.displayPropertiesInChat( player )
     }
 
     fun createTournamentBuilderCommand( player: ServerPlayer)

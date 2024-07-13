@@ -1,5 +1,6 @@
 package com.cobblemontournament.common.api.storage
 
+@Suppress( names = ["unused", "MemberVisibilityCanBePrivate"] )
 object DataKeys
 {
     const val ACTIVE_STORE_KEY              = "active_store_key"
@@ -10,6 +11,14 @@ object DataKeys
     const val ROUND_DATA                    = "round_data"
     const val MATCH_DATA                    = "match_data"
     const val PLAYER_DATA                   = "player_data"
+
+    const val ROUND_MAP                     = "round_map"
+    const val MATCH_MAP                     = "match_map"
+    const val PLAYER_MAP                    = "player_map"
+
+    const val ROUND_SET                     = "round_set"
+    const val MATCH_SET                     = "match_set"
+    const val PLAYER_SET                    = "player_set"
 
     const val TOURNAMENT_BUILDER_STORE_ID   = "tournament_store_id"
     const val TOURNAMENT_STORE_ID           = "tournament_store_id"
@@ -39,19 +48,16 @@ object DataKeys
     const val MIN_LEVEL                     = "min_level"
     const val MAX_LEVEL                     = "max_level"
     const val SHOW_PREVIEW                  = "show_preview"
-    const val ROUND_MAP                     = "round_map"
-    const val MATCH_MAP                     = "match_map"
-    const val PLAYER_MAP                    = "player_map"
 
     const val ROUND_TYPE                    = "round_type"
-    const val ROUND_PROPERTIES              = "match_properties"
+    const val ROUND_PROPERTIES              = "round_properties"
     const val ROUND_INDEX                   = "round_index"
     const val ROUND_MATCH_INDEX_TO_ID       = "round_match_index_to_id"
 
     const val MATCH_PROPERTIES              = "match_properties"
     const val MATCH_STATUS                  = "match_status"
     const val TOURNAMENT_MATCH_INDEX        = "tournament_match_index"
-    const val ROUND_MATCH_INDEX             = "round_match"
+    const val ROUND_MATCH_INDEX             = "round_match_index"
     const val MATCH_CONNECTIONS             = "match_connections"
     const val VICTOR_NEXT_MATCH             = "victor_next_match"
     const val DEFEATED_NEXT_MATCH           = "defeated_next_match"
@@ -65,8 +71,8 @@ object DataKeys
     const val SEED                          = "seed"
     const val ORIGINAL_SEED                 = "original_seed"
     const val FINAL_PLACEMENT               = "final_placement"
-    const val CURRENT_MATCH_ID              = "current_match"
+    const val CURRENT_MATCH_ID              = "current_match_id"
     const val POKEMON_TEAM_ID               = "pokemon_team_id"
     const val POKEMON_FINAL                 = "pokemon_final"
-    const val LOCK_POKEMON_ON_SET           = "lock_pokemon_team_on_set"
+    const val LOCK_POKEMON_ON_SET           = "lock_pokemon_on_set"
 }

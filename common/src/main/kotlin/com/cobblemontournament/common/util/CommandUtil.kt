@@ -1,6 +1,8 @@
 package com.cobblemontournament.common.util
 
 import com.cobblemontournament.common.api.TournamentStoreManager
+import com.cobblemontournament.common.api.storage.TournamentBuilderStore
+import com.cobblemontournament.common.api.storage.TournamentStore
 import com.cobblemontournament.common.commands.nodes.NodeEntry
 import com.cobblemontournament.common.commands.nodes.NodeKeys.BUILDER_NAME
 import com.cobblemontournament.common.commands.nodes.NodeKeys.TOURNAMENT_NAME
@@ -18,17 +20,33 @@ object CommandUtil
 {
     @JvmStatic
     fun getNodeEntries(
-        parsedNodes : List <ParsedCommandNode <*>>,
-        input       : String
+        nodes   : List <ParsedCommandNode <*>>,
+        input   : String
     ): List <NodeEntry>
     {
         val list = mutableListOf <NodeEntry>()
-        for ( parsedNode in parsedNodes ) {
+        for ( parsedNode in nodes ) {
             val range = parsedNode.range
             val value = input.subSequence( range.start, range.end )
             list.add( NodeEntry( parsedNode.node.name, value.toString() ) )
         }
         return list
+    }
+
+    @JvmStatic
+    fun tryGetNodeInput(
+        nodes   : List <ParsedCommandNode <*>>,
+        input   : String,
+        key     : String
+    ): String?
+    {
+        for ( parsedNode in nodes ) {
+            if ( parsedNode.node.name == key ) {
+                val range = parsedNode.range
+                return input.subSequence( range.start, range.end ).toString()
+            }
+        }
+        return null
     }
 
     @JvmStatic
@@ -39,7 +57,11 @@ object CommandUtil
         val nodeEntries = getNodeEntries( ctx.nodes, ctx.input )
         val entry = nodeEntries.firstOrNull { it.key == TOURNAMENT_NAME }
         val tournament = if ( entry != null ) {
-            TournamentStoreManager.getTournamentByName( entry.value ).first
+            TournamentStoreManager.getInstanceByName(
+                name        = entry.value,
+                storeClass  = TournamentStore::class.java,
+                storeID     = TournamentStoreManager.activeStoreKey
+            ).first
         } else null
         return Pair( nodeEntries, tournament )
     }
@@ -51,9 +73,12 @@ object CommandUtil
     {
         val nodeEntries = getNodeEntries( ctx.nodes, ctx.input )
         val entry = nodeEntries.firstOrNull { it.key == BUILDER_NAME }
-        val builder = if ( entry != null ) {
-            TournamentStoreManager.getTournamentBuilderByName( entry.value ).first
-        } else null
+        val ( builder, _ ) = if ( entry != null ) {
+            TournamentStoreManager.getInstanceByName(
+                name        = entry.value,
+                storeClass  = TournamentBuilderStore::class.java,
+                storeID     = TournamentStoreManager.activeStoreKey )
+        } else Pair( null, null )
         return Pair( nodeEntries, builder )
     }
 
@@ -82,9 +107,13 @@ object CommandUtil
         bracketColor: String    = ChatUtil.white,
     ): MutableComponent
     {
-        var commandText = "/challenge ${opponent.name.string} "
-        commandText    += "minLevel ${tournament.minLevel} maxLevel ${tournament.maxLevel} "
-        commandText    += "handicapP1 0 handicapP2 0" // TODO implement handicap in player properties
+//      // this is the format for the next version of CobblemonChallenge when Handicap & level range are supported
+//        var commandText = "/challenge ${opponent.name.string} "
+//        commandText    += "minLevel ${tournament.minLevel} maxLevel ${tournament.maxLevel} "
+//        commandText    += "handicapP1 0 handicapP2 0" // _TODO implement handicap in player properties
+
+        var commandText = "/challenge ${ opponent.name.string }"
+        commandText    += " level ${ tournament.maxLevel }"
         commandText    +=  if ( tournament.showPreview ) "" else " nopreview"
 
         val interactable = ChatUtil.getInteractableCommand(

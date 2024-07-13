@@ -8,6 +8,9 @@ import com.cobblemontournament.common.api.TournamentStoreManager
 import com.cobblemontournament.common.match.properties.MatchProperties
 import com.cobblemontournament.common.player.TournamentPlayer
 import com.cobblemontournament.common.api.storage.DataKeys
+import com.cobblemontournament.common.api.storage.MatchStore
+import com.cobblemontournament.common.api.storage.PlayerStore
+import com.cobblemontournament.common.api.storage.TournamentStore
 import com.cobblemontournament.common.util.ChatUtil
 import com.cobblemontournament.common.util.TournamentUtil
 import com.someguy.storage.classstored.ClassStored
@@ -18,17 +21,21 @@ import org.slf4j.helpers.Util
 import java.util.UUID
 
 // Important: (UUID) constructor is needed for serialization method
-open class TournamentMatch( uuid: UUID ) : ClassStored
+@Suppress( names = ["unused"] )
+open class TournamentMatch : ClassStored
 {
-    constructor() : this ( UUID.randomUUID() )
-
-    constructor (
-        properties: MatchProperties
-    ): this (properties.matchID) {
-        this.properties.setFromProperties( properties )
+    companion object {
+        fun loadFromNBT( nbt: CompoundTag ): TournamentMatch {
+            return TournamentMatch( MatchProperties.loadFromNBT( nbt.getCompound( DataKeys.MATCH_PROPERTIES ) ) )
+        }
     }
 
-    protected var properties = MatchProperties()
+    constructor ( uuid: UUID = UUID.randomUUID() ) : this ( MatchProperties( uuid ) )
+    constructor ( properties: MatchProperties) {
+        this.properties = properties
+    }
+
+    protected val properties: MatchProperties
 
     override val name get() = properties.name
 
@@ -118,36 +125,48 @@ open class TournamentMatch( uuid: UUID ) : ClassStored
             return
         }
 
-        val tournament = TournamentStoreManager.getTournament( tournamentID )
+        val tournament = TournamentStoreManager.getInstance(
+            storeClass  = TournamentStore::class.java,
+            storeID     = TournamentStoreManager.activeStoreKey,
+            instanceID  = tournamentID )
         val tournamentInsert = if ( tournament != null ) {
             " in \"${tournament.name}\""
         } else ""
 
         val victorTeamIndex = playerMap[victorID]
         val victorNextMatch = if ( matchConnections.victorNextMatch != null ) {
-            TournamentStoreManager.getMatch( tournamentID, matchConnections.victorNextMatch!! )
+            TournamentStoreManager.getInstance(
+                storeClass  = MatchStore::class.java,
+                storeID     = tournamentID,
+                instanceID  = matchConnections.victorNextMatch!! )
         } else null
+
         val defeatedNextMatch = if ( matchConnections.defeatedNextMatch != null ) {
-            TournamentStoreManager.getMatch( tournamentID, matchConnections.defeatedNextMatch!! )
+            TournamentStoreManager.getInstance(
+                storeClass  = MatchStore::class.java,
+                storeID     = tournamentID,
+                instanceID  = matchConnections.defeatedNextMatch!! )
         } else null
 
         for ( ( playerID, team ) in playerMap ) {
-            val serverPlayer = PlayerManager.getServerPlayer( playerID )
-            val player = TournamentStoreManager.getPlayer( tournamentID, playerID )
+            val player = TournamentStoreManager.getInstance(
+                storeClass  = PlayerStore::class.java,
+                storeID     = tournamentID,
+                instanceID  = playerID )
             if ( player == null ) {
                 Util.report( "Player was null when trying to set the match VictorID." )
                 continue
             }
+
+            val serverPlayer = PlayerManager.getServerPlayer( playerID )
             if ( team == victorTeamIndex ) {
                 if ( victorNextMatch == null ) {
                     player.finalPlacement = 1
                     if ( serverPlayer != null ) {
-
                         ChatUtil.displayInPlayerChat(
                             player  = serverPlayer,
                             text    = "Congratulations Trainer ${player.name}! You won first place$tournamentInsert!",
                             color   = ChatUtil.green )
-
                     } else {
                         Util.report( "Player ${player.name} won first place!" )
                     }

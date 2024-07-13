@@ -4,7 +4,7 @@ package com.cobblemontournament.forge;
 //import com.cobblemontournament.common.CommonInterface;
 //import com.cobblemontournament.common.commands.TestTournamentCommand;
 //import com.cobblemontournament.forge.config.TournamentConfigForge;
-//import com.turtlehoarder.cobblemonchallenge.common.event.ChallengeEventHandler;
+//import com.cobblemontournament.common.turtlehoarder.cobblemonchallenge.common.event.ChallengeEventHandler;
 //import net.minecraftforge.common.ForgeConfigSpec;
 //import net.minecraftforge.common.MinecraftForge;
 //import net.minecraftforge.event.RegisterCommandsEvent;

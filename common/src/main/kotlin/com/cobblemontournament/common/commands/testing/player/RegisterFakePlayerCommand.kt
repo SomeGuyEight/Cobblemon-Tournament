@@ -2,6 +2,7 @@ package com.cobblemontournament.common.commands.testing.player
 
 import com.cobblemon.mod.common.api.battles.model.actor.ActorType
 import com.cobblemontournament.common.api.TournamentStoreManager
+import com.cobblemontournament.common.api.storage.TournamentBuilderStore
 import com.cobblemontournament.common.commands.nodes.builder.ActivePlayersBuilderNode
 import com.cobblemontournament.common.commands.nodes.NodeKeys.BUILDER
 import com.cobblemontournament.common.commands.nodes.NodeKeys.BUILDER_NAME
@@ -75,7 +76,10 @@ object RegisterFakePlayerCommand
         for (entry in nodeEntries) {
             when (entry.key) {
                 BUILDER_NAME -> {
-                    val ( builder, _ ) = TournamentStoreManager.getTournamentBuilderByName( entry.value)
+                    val ( builder, _ ) = TournamentStoreManager.getInstanceByName(
+                        name        = entry.value,
+                        storeClass  = TournamentBuilderStore::class.java,
+                        storeID     = TournamentStoreManager.activeStoreKey )
                     tournamentBuilder = builder
                 }
                 PLAYER_ENTITY ->  {

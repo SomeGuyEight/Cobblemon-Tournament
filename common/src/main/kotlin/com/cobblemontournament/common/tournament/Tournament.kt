@@ -9,6 +9,7 @@ import com.cobblemontournament.common.player.TournamentPlayer
 import com.cobblemontournament.common.tournament.properties.TournamentProperties
 import com.someguy.storage.classstored.ClassStored
 import com.cobblemontournament.common.api.storage.DataKeys
+import com.cobblemontournament.common.api.storage.TournamentStore
 import com.cobblemontournament.common.match.MatchStatus
 import com.google.gson.JsonObject
 import com.someguy.storage.coordinates.StoreCoordinates
@@ -17,17 +18,21 @@ import net.minecraft.server.level.ServerPlayer
 import java.util.UUID
 
 // Important: (UUID) constructor is needed for serialization method
-open class Tournament( uuid: UUID ) : ClassStored
+@Suppress( names = ["unused"] )
+open class Tournament : ClassStored
 {
-    constructor() : this ( UUID.randomUUID() )
-
-    constructor (
-        properties: TournamentProperties,
-    ) : this ( properties.tournamentID ) {
-        this.properties.setFromProperties( properties )
+    companion object {
+        fun loadFromNBT( nbt: CompoundTag ): Tournament {
+            return Tournament( TournamentProperties.loadFromNBT( nbt.getCompound( DataKeys.TOURNAMENT_PROPERTIES ) ) )
+        }
     }
 
-    protected var properties = TournamentProperties()
+    constructor ( uuid: UUID = UUID.randomUUID() ) : this ( TournamentProperties( uuid ) )
+    constructor ( properties: TournamentProperties ) {
+        this.properties = properties
+    }
+
+    protected val properties: TournamentProperties
 
     override val name
         get() = properties.name
@@ -57,8 +62,10 @@ open class Tournament( uuid: UUID ) : ClassStored
     protected val players   get() = properties.players
 
     override fun printProperties() = properties.logDebug()
-
-    fun printOverviewInChat( player: ServerPlayer ) = properties.displayInChat( player )
+    fun displayOverviewInChat(player: ServerPlayer ) = properties.displayInChat( player )
+    fun displayResultsInChat( player: ServerPlayer ) {
+        properties.displayResultsInChat( player = player )
+    }
 
     fun copyProperties() = properties.deepCopy()
 
@@ -76,7 +83,7 @@ open class Tournament( uuid: UUID ) : ClassStored
         playerID: UUID
     ): TournamentMatch? {
         val player = players[playerID] ?: return null
-        return if (player.tournamentID == tournamentID && players[player.uuid] != null ) {
+        return if ( player.tournamentID == tournamentID && players[player.uuid] != null ) {
             matches[player.currentMatchID]
         } else null
     }
@@ -106,7 +113,9 @@ open class Tournament( uuid: UUID ) : ClassStored
 
     private fun finalize() {
         tournamentStatus = TournamentStatus.FINALIZED
-        TournamentStoreManager.deactivateTournament( tournament = this )
+        TournamentStoreManager.deactivateInstance(
+            storeClass  = TournamentStore::class.java,
+            instance    = this )
     }
 
     override fun saveToNBT(
@@ -150,15 +159,8 @@ open class Tournament( uuid: UUID ) : ClassStored
         // TODO add switch for other tournament types
         // this is for single elimination
         // - if the player won their last match, they should be #1 and never get here...
-        // - catching to be safe for now. remove when system is not so fluid
-        if (player.uuid == finalMatch.victorID) { return 1 }
-        return rounds[finalMatch.roundID]?.matchMapSize?.plus( other = 1 )
-            ?: run {
-                // alternative way to get final placement if round == null (shouldn't need, but...)
-                val shiftCount = ( rounds.size -1 ) - finalMatch.roundIndex
-                val playersAhead = 1 shl shiftCount
-                return playersAhead + 1
-            }
+        if ( player.uuid == finalMatch.victorID ) { return 1 }
+        return rounds[finalMatch.roundID]?.matchMapSize?.plus( other = 1 ) ?: -69420 // lolz
     }
 
 }

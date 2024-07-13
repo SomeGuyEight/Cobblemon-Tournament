@@ -1,24 +1,18 @@
 package com.cobblemontournament.fabric;
 
-import com.cobblemontournament.common.CTModImplementation;
+import com.cobblemontournament.common.TournamentModImplementation;
 import com.cobblemontournament.common.config.ConfigProvider;
-import com.turtlehoarder.cobblemonchallenge.fabric.CobblemonChallengeFabric;
 import com.cobblemontournament.common.CobblemonTournament;
 import com.cobblemontournament.common.commands.TournamentCommands;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.fabricmc.loader.api.FabricLoader;
 
-public class CobblemonTournamentFabric implements ModInitializer, CTModImplementation
+public class CobblemonTournamentFabric implements ModInitializer, TournamentModImplementation
 {
     @Override
-    public void onInitialize()
-    {
+    public void onInitialize() {
         CobblemonTournament.initialize (this);
-        
-        // here while challenge is integrated in testing project
-        // TODO: remove when able to use as dependency
-        new CobblemonChallengeFabric().onInitialize();
     }
 
     @Override

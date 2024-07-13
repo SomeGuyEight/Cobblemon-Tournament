@@ -1,6 +1,8 @@
 package com.cobblemontournament.common.commands.suggestions
 
 import com.cobblemontournament.common.api.TournamentStoreManager
+import com.cobblemontournament.common.api.storage.TournamentBuilderStore
+import com.cobblemontournament.common.api.storage.TournamentStore
 import com.cobblemontournament.common.commands.nodes.NodeKeys.BUILDER_NAME
 import com.cobblemontournament.common.commands.nodes.NodeKeys.TOURNAMENT_NAME
 import com.cobblemontournament.common.tournament.Tournament
@@ -12,7 +14,6 @@ import com.mojang.brigadier.suggestion.Suggestions
 import com.mojang.brigadier.suggestion.SuggestionsBuilder
 import java.util.concurrent.CompletableFuture
 import net.minecraft.commands.CommandSourceStack
-import java.util.*
 
 /**
  * This returns suggestions for players based on the name give in the
@@ -20,28 +21,34 @@ import java.util.*
  *
  * All names will be suggested if a valid [TournamentBuilder] or [Tournament] is found.
  */
-class PlayerNameSuggestionProvider(
-    val instanceID: UUID? = null
-): SuggestionProvider<CommandSourceStack>
+class PlayerNameSuggestionProvider : SuggestionProvider <CommandSourceStack>
 {
     override fun getSuggestions(
-        ctx: CommandContext<CommandSourceStack>,
-        builder: SuggestionsBuilder,
-    ): CompletableFuture<Suggestions>
+        ctx     : CommandContext <CommandSourceStack>,
+        builder : SuggestionsBuilder,
+    ): CompletableFuture <Suggestions>
     {
+        val nodeEntries = CommandUtil.getNodeEntries( ctx.nodes, ctx.input )
+        val entry = nodeEntries.firstOrNull { it.key == BUILDER_NAME }
+            ?: nodeEntries.firstOrNull { it.key == TOURNAMENT_NAME }
+            ?: return builder.buildFuture()
 
-        val nodeEntries = CommandUtil.getNodeEntries( ctx.nodes, ctx.input)
-        var entry = nodeEntries.firstOrNull { it.key == BUILDER_NAME }
-        if (entry == null) {
-           entry = nodeEntries.firstOrNull { it.key == TOURNAMENT_NAME }?: return builder.buildFuture()
-        }
-        if (entry.key == BUILDER_NAME) {
-            val (tournamentBuilder,_) = TournamentStoreManager.getTournamentBuilderByName(entry.value)
-            tournamentBuilder?.getPlayerNames()?.forEach { builder.suggest( it ) }
-        } else if (entry.key == TOURNAMENT_NAME) {
-            val (tournament,_) = TournamentStoreManager.getTournamentByName(entry.value)
-            tournament?.getPlayerNames()?.forEach { builder.suggest( it.name ) }
+        if ( entry.key == BUILDER_NAME ) {
+            val tournamentBuilder = TournamentStoreManager.getInstanceByName(
+                name        = entry.value,
+                storeClass  = TournamentBuilderStore::class.java,
+                storeID     = TournamentStoreManager.activeStoreKey
+            ).first ?: return builder.buildFuture()
+            tournamentBuilder.getPlayerNames().forEach { builder.suggest( it ) }
+        } else if ( entry.key == TOURNAMENT_NAME ) {
+            val tournament = TournamentStoreManager.getInstanceByName(
+                name        = entry.value,
+                storeClass  = TournamentStore::class.java,
+                storeID     = TournamentStoreManager.activeStoreKey
+            ).first ?: return builder.buildFuture()
+            tournament.getPlayerNames().forEach { builder.suggest( it.name ) }
         }
         return builder.buildFuture()
     }
+
 }

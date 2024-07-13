@@ -18,20 +18,21 @@ object RoundPropertiesHelper: PropertiesHelper<RoundProperties>
 
     override fun deepCopyHelper(
         properties: RoundProperties
-    ): RoundProperties {
+    ): RoundProperties
+    {
         return RoundProperties(
             roundID         = properties.roundID,
             tournamentID    = properties.tournamentID,
             roundIndex      = properties.roundIndex,
             roundType       = properties.roundType,
-            indexedMatchMap = TournamentUtil.copy( properties.indexedMatchMap )
-        )
+            indexedMatchMap = TournamentUtil.copy( properties.indexedMatchMap ) )
     }
 
     override fun setFromPropertiesHelper(
         mutable: RoundProperties,
-        from: RoundProperties,
-    ): RoundProperties {
+        from: RoundProperties
+    ): RoundProperties
+    {
         mutable.roundID         = from.roundID
         mutable.tournamentID    = from.tournamentID
         mutable.roundIndex      = from.roundIndex
@@ -45,12 +46,12 @@ object RoundPropertiesHelper: PropertiesHelper<RoundProperties>
         nbt: CompoundTag
     ): RoundProperties
     {
-        mutable.roundID         = nbt.getUUID(DataKeys.ROUND_ID)
-        mutable.tournamentID    = nbt.getUUID(DataKeys.TOURNAMENT_ID)
-        mutable.roundIndex      = nbt.getInt(DataKeys.ROUND_INDEX)
-        mutable.roundType       = enumValueOf<RoundType>(nbt.getString(DataKeys.ROUND_TYPE))
-        if (nbt.contains(DataKeys.ROUND_MATCH_INDEX_TO_ID)) {
-            mutable.indexedMatchMap.putAll(loadIndexedMatchMapFromNBT(nbt))
+        mutable.roundID         = nbt.getUUID( DataKeys.ROUND_ID )
+        mutable.tournamentID    = nbt.getUUID( DataKeys.TOURNAMENT_ID )
+        mutable.roundIndex      = nbt.getInt( DataKeys.ROUND_INDEX )
+        mutable.roundType       = enumValueOf <RoundType>( nbt.getString( DataKeys.ROUND_TYPE ) )
+        if ( nbt.contains( DataKeys.ROUND_MATCH_INDEX_TO_ID ) ) {
+            mutable.indexedMatchMap.putAll( loadIndexedMatchMapFromNBT( nbt ) )
         }
         return mutable
     }
@@ -60,33 +61,32 @@ object RoundPropertiesHelper: PropertiesHelper<RoundProperties>
         nbt: CompoundTag
     ): CompoundTag
     {
-        nbt.putUUID(    DataKeys.ROUND_ID         , properties.roundID)
-        nbt.putUUID(    DataKeys.TOURNAMENT_ID    , properties.tournamentID)
-        nbt.putInt(     DataKeys.ROUND_INDEX      , properties.roundIndex)
-        nbt.putString(  DataKeys.ROUND_TYPE       , properties.roundType.toString())
-        if (properties.indexedMatchMap.isNotEmpty()) {
+        nbt.putUUID(    DataKeys.ROUND_ID         , properties.roundID )
+        nbt.putUUID(    DataKeys.TOURNAMENT_ID    , properties.tournamentID )
+        nbt.putInt(     DataKeys.ROUND_INDEX      , properties.roundIndex )
+        nbt.putString(  DataKeys.ROUND_TYPE       , properties.roundType.toString() )
+        if ( properties.indexedMatchMap.isNotEmpty() ) {
             nbt.put(
                 DataKeys.ROUND_MATCH_INDEX_TO_ID,
-                saveIndexedMatchMapToNBT( properties.indexedMatchMap, CompoundTag())
-            )
+                saveIndexedMatchMapToNBT( properties.indexedMatchMap, CompoundTag() ) )
         }
         return nbt
     }
 
     private fun saveIndexedMatchMapToNBT(
-        indexedMatchMap: Map<Int, UUID>,
+        indexedMatchMap: Map <Int,UUID>,
         nbt: CompoundTag
     ): CompoundTag
     {
-        if (indexedMatchMap.isEmpty()) {
+        if ( indexedMatchMap.isEmpty() ) {
             return nbt
         }
         var index = 0
-        for ((roundMatchIndex,matchID) in indexedMatchMap) {
-            nbt.putInt(DataKeys.ROUND_MATCH_INDEX + index     , roundMatchIndex)
-            nbt.putUUID(DataKeys.MATCH_ID         + index++   , matchID)
+        for ( ( roundMatchIndex, matchID ) in indexedMatchMap ) {
+            nbt.putInt( DataKeys.ROUND_MATCH_INDEX + index     , roundMatchIndex )
+            nbt.putUUID( DataKeys.MATCH_ID         + index++   , matchID )
         }
-        nbt.putInt(StoreDataKeys.SIZE, indexedMatchMap.size)
+        nbt.putInt( StoreDataKeys.SIZE, indexedMatchMap.size )
         return nbt
     }
 
@@ -94,32 +94,31 @@ object RoundPropertiesHelper: PropertiesHelper<RoundProperties>
         nbt: CompoundTag
     ): RoundProperties
     {
-        val map = if (nbt.contains(DataKeys.ROUND_MATCH_INDEX_TO_ID)) {
-            loadIndexedMatchMapFromNBT(nbt.getCompound(DataKeys.ROUND_MATCH_INDEX_TO_ID))
+        val map = if ( nbt.contains( DataKeys.ROUND_MATCH_INDEX_TO_ID ) ) {
+            loadIndexedMatchMapFromNBT( nbt.getCompound( DataKeys.ROUND_MATCH_INDEX_TO_ID ) )
         } else {
             mutableMapOf()
         }
         return RoundProperties(
-            roundID         = nbt.getUUID(DataKeys.ROUND_ID),
-            tournamentID    = nbt.getUUID(DataKeys.TOURNAMENT_ID),
-            roundIndex      = nbt.getInt(DataKeys.ROUND_INDEX),
-            roundType       = enumValueOf<RoundType>(nbt.getString(DataKeys.ROUND_TYPE)),
-            indexedMatchMap = map
-        )
+            roundID         = nbt.getUUID( DataKeys.ROUND_ID ), // TODO: FIX: null pointer thrown when getting inactive tournament round
+            tournamentID    = nbt.getUUID( DataKeys.TOURNAMENT_ID ),
+            roundIndex      = nbt.getInt( DataKeys.ROUND_INDEX ),
+            roundType       = enumValueOf <RoundType>( nbt.getString( DataKeys.ROUND_TYPE ) ),
+            indexedMatchMap = map )
     }
 
     private fun loadIndexedMatchMapFromNBT(
         nbt: CompoundTag
-    ): MutableMap<Int, UUID>
+    ): MutableMap <Int,UUID>
     {
-        val indexedMatchMap = mutableMapOf<Int, UUID>()
-        if (!nbt.contains(StoreDataKeys.SIZE) || nbt.getInt(StoreDataKeys.SIZE) == 0) {
+        val indexedMatchMap = mutableMapOf <Int,UUID>()
+        if ( !nbt.contains( StoreDataKeys.SIZE ) || nbt.getInt( StoreDataKeys.SIZE ) == 0 ) {
             return indexedMatchMap
         }
-        val size = nbt.getInt(StoreDataKeys.SIZE)
-        for (i in 0 until size) {
-            val roundMatchIndex     = nbt.getInt(   DataKeys.ROUND_MATCH_INDEX + i)
-            val matchID             = nbt.getUUID(  DataKeys.MATCH_ID + i)
+        val size = nbt.getInt( StoreDataKeys.SIZE )
+        for ( i in 0 until size ) {
+            val roundMatchIndex     = nbt.getInt(   DataKeys.ROUND_MATCH_INDEX + i )
+            val matchID             = nbt.getUUID(  DataKeys.MATCH_ID + i )
             indexedMatchMap[roundMatchIndex] = matchID
         }
         return indexedMatchMap
@@ -127,14 +126,14 @@ object RoundPropertiesHelper: PropertiesHelper<RoundProperties>
 
     override fun logDebugHelper( properties: RoundProperties )
     {
-        Util.report("${properties.roundType} Round ${properties.roundIndex} " +
-                "(${properties.indexedMatchMap.size} matches) [${ChatUtil.shortUUID( properties.roundID )}]")
-        Util.report("- Tournament ID [${ChatUtil.shortUUID( properties.tournamentID )}]")
+        Util.report( "${properties.roundType} Round ${properties.roundIndex} " +
+                "(${properties.indexedMatchMap.size} matches) [${ChatUtil.shortUUID( properties.roundID )}]" )
+        Util.report( "- Tournament ID [${ChatUtil.shortUUID( properties.tournamentID )}]")
     }
 
     override fun displayInChatHelper(
         properties: RoundProperties,
-        player: ServerPlayer)
+        player: ServerPlayer )
     {
         val text0 = ChatUtil.formatTextBracketed(
             text    = "${properties.roundType}",

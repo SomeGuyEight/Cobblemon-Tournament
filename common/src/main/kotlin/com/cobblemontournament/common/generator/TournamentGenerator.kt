@@ -17,6 +17,7 @@ import com.cobblemontournament.common.util.TournamentUtil
 import com.someguy.collections.SortType
 import java.util.UUID
 
+@Suppress( names = ["UNUSED_PARAMETER"] )
 object TournamentGenerator
 {
     fun toTournament(
@@ -24,7 +25,7 @@ object TournamentGenerator
         builder: TournamentBuilder
     ): TournamentData?
     {
-        if (builder.totalPlayersSize() < 2) {
+        if (builder.playersSize() < 2) {
             // TODO log not enough players for tournament
             return null
         }
@@ -46,40 +47,37 @@ object TournamentGenerator
         tournamentProperties: TournamentProperties
     ): TournamentData
     {
-        val roundCount = getRoundCount( builder, tournamentProperties)
-        val firstRoundMatchCount = 1 shl (roundCount - 1)
+        val roundCount = getRoundCount( builder, tournamentProperties )
+        val firstRoundMatchCount = 1 shl ( roundCount - 1 )
 
         val roundProperties = mutableSetOf <RoundProperties>()
         val matchProperties = mutableSetOf <MatchProperties>()
         val sortedPlayers = sortPlayers(
-            builder.getSeededPlayers(),
-            builder.getUnseededPlayers(),
-            tournamentProperties
-        )
+            seededPlayers           = builder.getSeededPlayers(),
+            unseededPlayers         = builder.getUnseededPlayers(),
+            tournamentProperties    = tournamentProperties )
 
         handleFirstRound(
-            roundProperties,
-            matchProperties,
-            sortedPlayers,
-            builder,
-            tournamentProperties
-        )
+            rounds                  = roundProperties,
+            matches                 = matchProperties,
+            sortedPlayers           = sortedPlayers,
+            builder                 = builder,
+            tournamentProperties    = tournamentProperties )
 
         initializeRoundsAndMatches(
-            firstRoundMatchCount,
-            roundCount,
-            roundProperties,
-            matchProperties,
-            tournamentProperties
-        )
+            firstRoundMatchCount    = firstRoundMatchCount,
+            roundCount              = roundCount,
+            rounds                  = roundProperties,
+            matches                 = matchProperties,
+            tournamentProperties    = tournamentProperties )
 
-        setMatchConnections( matchProperties, roundProperties)
+        setMatchConnections( matchProperties, roundProperties )
 
         handleFirstRoundByes( tournamentProperties, matchProperties, sortedPlayers )
 
-        val rounds  = getRounds( roundProperties, tournamentProperties)
-        val matches = getMatches( matchProperties, tournamentProperties)
-        val players = getPlayers( sortedPlayers, tournamentProperties)
+        val rounds  = getRounds( roundProperties, tournamentProperties )
+        val matches = getMatches( matchProperties, tournamentProperties )
+        val players = getPlayers( sortedPlayers, tournamentProperties )
 
         rounds.forEach  { tournamentProperties.rounds [it.uuid] = it }
         matches.forEach { tournamentProperties.matches[it.uuid] = it }
@@ -87,7 +85,7 @@ object TournamentGenerator
 
         val tournament = Tournament( tournamentProperties ).initialize()
 
-        return TournamentData( tournament, rounds, matches, players)
+        return TournamentData( tournament, rounds, matches, players )
     }
 
     private fun handleDoubleElimination(
@@ -96,7 +94,7 @@ object TournamentGenerator
     ): TournamentData {
         (TODO("Not implemented yet"))
     }
-    
+
     private fun handleRoundRobin(
         builder     : TournamentBuilder,
         properties  : TournamentProperties
@@ -128,12 +126,12 @@ object TournamentGenerator
         builder: TournamentBuilder
     ): Int
     {
-        val playerCount = builder.totalPlayersSize()
+        val playerCount = builder.playersSize()
         var bracketSlots = IndexedSeedGenerator.ceilToPowerOfTwo( playerCount )
         // -1 b/c first shift divides the total players in half & gets the actual first round match count
         //  -> this is to give the actual quantity of matches in the first round (round index 0)
         var rounds = -1
-        while (bracketSlots > 0) {
+        while ( bracketSlots > 0 ) {
             bracketSlots = bracketSlots shr 1
             rounds++
         }
@@ -159,6 +157,64 @@ object TournamentGenerator
     ): Int {
         // TODO
         return 0
+    }
+
+
+    private fun sortPlayers(
+        seededPlayers           : List <PlayerProperties>,
+        unseededPlayers         : List <PlayerProperties>,
+        tournamentProperties    : TournamentProperties
+    ): List <PlayerProperties>
+    {
+        val orderedPlayers = ArrayList( seededPlayers.stream().toList() )
+        orderedPlayers.sortWith( Comparator.comparing( PlayerProperties::seed ) )
+
+        val shuffledPlayers = ArrayDeque( unseededPlayers.shuffled() )
+        orderedPlayers.addAll( shuffledPlayers )
+
+        val sameSeedQueue = ArrayDeque<PlayerProperties>()
+        val size = orderedPlayers.size
+
+        for ( i in 0 until size ) {
+            var nextPlayer: PlayerProperties?
+            if ( sameSeedQueue.isNotEmpty() ) {
+                nextPlayer = sameSeedQueue.removeFirst()
+                // 'i + 1 != size' to catch out of bounds error on last iteration
+            } else if ( i + 1 != size && orderedPlayers[i]!!.seed == orderedPlayers[i + 1]!!.seed ) {
+                // multiple players with same seed -> create collection to pull players from at random
+                var lastIndex = i
+                val tempSameSeeds = mutableSetOf <PlayerProperties>()
+                tempSameSeeds.add( orderedPlayers[lastIndex] )
+                // TODO clean up predicate? make more readable...
+                while ( ( lastIndex + 1 ) != orderedPlayers.size && orderedPlayers[lastIndex].seed == orderedPlayers[lastIndex + 1].seed ) {
+                    tempSameSeeds.add( orderedPlayers[++lastIndex] )
+                }
+                sameSeedQueue.addAll( tempSameSeeds.shuffled() )
+                nextPlayer = sameSeedQueue.removeFirst()
+            } else {
+                // just add the next player in order with new instance containing synced seed
+                nextPlayer = orderedPlayers[i]
+                if ( nextPlayer == null ) {
+                    // TODO: LOG if nextPlayer was null
+                    // should not happen... but just in case continue past
+                    continue
+                }
+            }
+
+            orderedPlayers.removeAt( i )
+            orderedPlayers.add(
+                i, // index in list
+                PlayerProperties(
+                    name            = nextPlayer.name,
+                    actorType       = nextPlayer.actorType,
+                    playerID        = nextPlayer.playerID,
+                    tournamentID    = tournamentProperties.tournamentID,
+                    seed            = i + 1,
+                    originalSeed    = nextPlayer.seed,
+                    pokemonTeamID   = nextPlayer.pokemonTeamID ) )
+        }
+
+        return orderedPlayers
     }
 
     private fun handleFirstRound(
@@ -191,63 +247,6 @@ object TournamentGenerator
         return matchMap
     }
 
-    private fun sortPlayers(
-        seededPlayers           : List <PlayerProperties>,
-        unseededPlayers         : List <PlayerProperties>,
-        tournamentProperties    : TournamentProperties
-    ): List <PlayerProperties>
-    {
-        val orderedPlayers = ArrayList( seededPlayers.stream().toList() )
-        orderedPlayers.sortWith( Comparator.comparing( PlayerProperties::seed ) )
-
-        val shuffledPlayers = ArrayDeque( unseededPlayers.shuffled() )
-        orderedPlayers.addAll( shuffledPlayers )
-
-        val sameSeedQueue = ArrayDeque<PlayerProperties>()
-        val size = orderedPlayers.size
-
-        for ( i in 0 until size ) {
-            var nextPlayer: PlayerProperties?
-            if ( sameSeedQueue.isNotEmpty() ) {
-                nextPlayer = sameSeedQueue.removeFirst()
-            // 'i + 1 != size' to catch out of bounds error on last iteration
-            } else if ( i + 1 != size && orderedPlayers[i]!!.seed == orderedPlayers[i + 1]!!.seed ) {
-                // multiple players with same seed -> create collection to pull players from at random
-                var lastIndex = i
-                val tempSameSeeds = mutableSetOf <PlayerProperties>()
-                tempSameSeeds.add( orderedPlayers[lastIndex] )
-                while ( ( lastIndex + 1 ) != orderedPlayers.size && orderedPlayers[lastIndex].seed == orderedPlayers[lastIndex + 1].seed ) {
-                    tempSameSeeds.add( orderedPlayers[++lastIndex] )
-                }
-                sameSeedQueue.addAll( tempSameSeeds.shuffled() )
-                nextPlayer = sameSeedQueue.removeFirst()
-            } else {
-                // just add the next player in order with new instance containing synced seed
-                nextPlayer = orderedPlayers[i]
-                if ( nextPlayer == null ) {
-                    // TODO: LOG if nextPlayer was null
-                    // should not happen... but just in case continue past
-                    continue
-                }
-            }
-
-            orderedPlayers.removeAt( i )
-            orderedPlayers.add(
-                i, // index in list
-                PlayerProperties(
-                    name            = nextPlayer.name,
-                    actorType       = nextPlayer.actorType,
-                    playerID        = nextPlayer.playerID,
-                    tournamentID    = tournamentProperties.tournamentID,
-                    seed            = i + 1,
-                    originalSeed    = nextPlayer.seed,
-                    pokemonTeamID   = nextPlayer.pokemonTeamID)
-            )
-        }
-
-        return orderedPlayers
-    }
-
     private fun getFirstRoundMatches(
         roundID                 : UUID,
         orderedSeededPlayers    : List <PlayerProperties>,
@@ -255,7 +254,7 @@ object TournamentGenerator
         tournamentProperties    : TournamentProperties
     ): Set <MatchProperties>
     {
-        val indexedSeeds = IndexedSeedGenerator.getIndexedSeedArray( builder.totalPlayersSize(), SortType.INDEX_ASCENDING )
+        val indexedSeeds = IndexedSeedGenerator.getIndexedSeedArray( builder.playersSize(), SortType.INDEX_ASCENDING )
         if ( indexedSeeds.sortType != SortType.INDEX_ASCENDING ) {
             indexedSeeds.sortBySeedAscending()
         }

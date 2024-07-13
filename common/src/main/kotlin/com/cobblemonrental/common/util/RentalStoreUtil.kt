@@ -10,13 +10,7 @@ import com.cobblemonrental.common.api.storage.team.RentalTeamStore
 import com.google.gson.Gson
 import com.google.gson.JsonObject
 import net.minecraft.nbt.CompoundTag
-import net.minecraft.server.MinecraftServer
-import net.minecraft.world.level.storage.LevelResource
 import java.io.BufferedReader
-import java.io.File
-import java.io.FileReader
-import java.io.InputStream
-import java.nio.file.Path
 import java.util.*
 
 class RentalStoreUtil
@@ -40,7 +34,7 @@ class RentalStoreUtil
     fun initializeFactory(rootFolder: String): FileBackedPokemonStoreFactory<CompoundTag>
     {
         return FileBackedPokemonStoreFactory(
-                NBTStoreAdapter(rootFolder,useNestedFolders = false,folderPerClass = false),
+                NBTStoreAdapter(rootFolder,useNestedFolders = true,folderPerClass = true),
                 true)
     }
 

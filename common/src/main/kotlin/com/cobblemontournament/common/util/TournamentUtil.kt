@@ -11,25 +11,41 @@ import java.util.UUID
 
 object TournamentUtil
 {
-    private val errorFormated               = formatEnum( TournamentStatus.ERROR.name )
-    private val unknownFormated             = formatEnum( TournamentStatus.UNKNOWN.name )
-    private val notReadyFormated            = formatEnum( TournamentStatus.NOT_READY.name )
-    private val pendingFormated             = formatEnum( TournamentStatus.PENDING.name )
-    private val readyFormated               = formatEnum( TournamentStatus.READY.name )
-    private val completeFormated            = formatEnum( TournamentStatus.COMPLETE.name )
-    private val inProgressFormated          = formatEnum( TournamentStatus.IN_PROGRESS.name )
-    private val finalizedFormated           = formatEnum( TournamentStatus.FINALIZED.name )
+//    private val errorFormated               = formatEnum( TournamentStatus.ERROR.name )
+//    private val unknownFormated             = formatEnum( TournamentStatus.UNKNOWN.name )
+//    private val notReadyFormated            = formatEnum( TournamentStatus.NOT_READY.name )
+//    private val pendingFormated             = formatEnum( TournamentStatus.PENDING.name )
+//    private val readyFormated               = formatEnum( TournamentStatus.READY.name )
+//    private val completeFormated            = formatEnum( TournamentStatus.COMPLETE.name )
+//    private val inProgressFormated          = formatEnum( TournamentStatus.IN_PROGRESS.name )
+//    private val finalizedFormated           = formatEnum( TournamentStatus.FINALIZED.name )
+//
+//    private val singleEliminationFormated   = formatEnum( TournamentType.SINGLE_ELIMINATION.name )
+//    private val doubleEliminationFormated   = formatEnum( TournamentType.DOUBLE_ELIMINATION.name )
+//    private val roundRobinFormated          = formatEnum( TournamentType.ROUND_ROBIN.name )
+//    private val vgcFormated                 = formatEnum( TournamentType.VGC.name )
+//
+//    private val standard6v6Formated         = formatEnum( ChallengeFormat.STANDARD_6V6.name )
+//
+//    private val playerFormated              = formatEnum( ActorType.PLAYER.name )
+//    private val npcFormated                 = formatEnum( ActorType.NPC.name )
+//    private val wildFormated                = formatEnum( ActorType.WILD.name )
 
-    private val singleEliminationFormated   = formatEnum( TournamentType.SINGLE_ELIMINATION.name )
-    private val doubleEliminationFormated   = formatEnum( TournamentType.DOUBLE_ELIMINATION.name )
-    private val roundRobinFormated          = formatEnum( TournamentType.ROUND_ROBIN.name )
-    private val vgcFormated                 = formatEnum( TournamentType.VGC.name )
+    private val tournamentStatusMap = createEnumMap( TournamentStatus::class.java )
+    private val tournamentTypeMap   = createEnumMap( TournamentType::class.java )
+    private val challengeFormatMap  = createEnumMap( ChallengeFormat::class.java )
+    private val actorTypeMap        = createEnumMap( ActorType::class.java )
 
-    private val standard6v6Formated         = formatEnum( ChallengeFormat.STANDARD_6V6.name )
-
-    private val playerFormated              = formatEnum( ActorType.PLAYER.name )
-    private val npcFormated                 = formatEnum( ActorType.NPC.name )
-    private val wildFormated                = formatEnum( ActorType.WILD.name )
+    private fun <E: Enum<E>> createEnumMap(
+        enumClass : Class<E>
+    ): Map<String,E>
+    {
+        val map = mutableMapOf <String,E>()
+        for (constant in enumClass.enumConstants) {
+            map[formatEnum(constant.name)] = constant
+        }
+        return map
+    }
 
     /** [value] .[filterNot] `{ ' ' || '_' || '-' }` .[lowercase] */
     private fun formatEnum(
@@ -38,24 +54,6 @@ object TournamentUtil
         return value.filterNot { it == ' ' || it == '_' || it == '-' }.lowercase()
     }
 
-    /** Compares [value] .[formatEnum] to all [TournamentType] .entries .[formatEnum]
-     *
-     * if `match found` -> returns `TournamentType`
-     *
-     * if `no match found` -> returns `null`
-     */
-    fun getTournamentTypeOrNull(
-        value: String
-    ): TournamentType?
-    {
-        return when ( formatEnum( value ) ) {
-            singleEliminationFormated   -> TournamentType.SINGLE_ELIMINATION
-            doubleEliminationFormated   -> TournamentType.DOUBLE_ELIMINATION
-            roundRobinFormated          -> TournamentType.ROUND_ROBIN
-            vgcFormated                 -> TournamentType.VGC
-            else                        -> null
-        }
-    }
 
     /** Compares [value] .[formatEnum] to all [TournamentStatus] .entries .[formatEnum]
      *
@@ -63,22 +61,28 @@ object TournamentUtil
      *
      * if `no match found` -> returns `null`
      */
-    fun getTournamentStatusOrNull(
-        value: String
-    ): TournamentStatus?
-    {
-        return when ( formatEnum( value ) ) {
-            errorFormated       -> TournamentStatus.ERROR
-            unknownFormated     -> TournamentStatus.UNKNOWN
-            notReadyFormated    -> TournamentStatus.NOT_READY
-            pendingFormated     -> TournamentStatus.PENDING
-            readyFormated       -> TournamentStatus.READY
-            completeFormated    -> TournamentStatus.COMPLETE
-            inProgressFormated  -> TournamentStatus.IN_PROGRESS
-            finalizedFormated   -> TournamentStatus.FINALIZED
-            else                -> null
-        }
-    }
+    fun getTournamentStatusOrNull( value: String ) = tournamentStatusMap[ formatEnum( value ) ]
+
+    /** Compares [value] .[formatEnum] to all [TournamentType] .entries .[formatEnum]
+     *
+     * if `match found` -> returns `TournamentType`
+     *
+     * if `no match found` -> returns `null`
+     */
+    fun getTournamentTypeOrNull( value: String ) = tournamentTypeMap[ formatEnum( value ) ]
+//    fun getTournamentTypeOrNull(
+//        value: String
+//    ): TournamentType?
+//    {
+//        return when ( formatEnum( value ) ) {
+//            singleEliminationFormated   -> TournamentType.SINGLE_ELIMINATION
+//            doubleEliminationFormated   -> TournamentType.DOUBLE_ELIMINATION
+//            roundRobinFormated          -> TournamentType.ROUND_ROBIN
+//            vgcFormated                 -> TournamentType.VGC
+//            else                        -> null
+//        }
+//    }
+
 
     /** Compares [value] .[formatEnum] to all [ChallengeFormat] .entries .[formatEnum]
      *
@@ -86,15 +90,17 @@ object TournamentUtil
      *
      * if `no match found` -> returns `null`
      */
-    fun getChallengeFormatOrNull(
-        value: String
-    ): ChallengeFormat?
-    {
-        return when ( formatEnum( value ) ) {
-            standard6v6Formated     -> ChallengeFormat.STANDARD_6V6
-            else                    -> null
-        }
-    }
+    fun getChallengeFormatOrNull( value: String ) = challengeFormatMap[ formatEnum( value ) ]
+
+//    fun getChallengeFormatOrNull(
+//        value: String
+//    ): ChallengeFormat?
+//    {
+//        return when ( formatEnum( value ) ) {
+//            standard6v6Formated     -> ChallengeFormat.STANDARD_6V6
+//            else                    -> null
+//        }
+//    }
 
     /** Compares [value] .[formatEnum] to all [ActorType] .entries .[formatEnum]
      *
@@ -102,17 +108,18 @@ object TournamentUtil
      *
      * if `no match found` -> returns `null`
      */
-    fun getActorTypeOrNull(
-        value: String
-    ): ActorType?
-    {
-        return when ( formatEnum( value) ) {
-            playerFormated          -> ActorType.PLAYER
-            npcFormated             -> ActorType.NPC
-            wildFormated            -> ActorType.WILD
-            else                    -> null
-        }
-    }
+    fun getActorTypeOrNull( value: String ) = actorTypeMap[ formatEnum( value ) ]
+//    fun getActorTypeOrNull(
+//        value: String
+//    ): ActorType?
+//    {
+//        return when ( formatEnum( value) ) {
+//            playerFormated          -> ActorType.PLAYER
+//            npcFormated             -> ActorType.NPC
+//            wildFormated            -> ActorType.WILD
+//            else                    -> null
+//        }
+//    }
 
     fun shallowRoundsCopy(
         matchMap: Map <UUID,TournamentRound>

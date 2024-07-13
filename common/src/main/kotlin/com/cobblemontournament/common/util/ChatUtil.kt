@@ -8,6 +8,7 @@ import net.minecraft.network.chat.Style
 import net.minecraft.server.level.ServerPlayer
 import java.util.UUID
 
+@Suppress( names = ["unused", "MemberVisibilityCanBePrivate"] )
 object ChatUtil
 {
     val aqua    = ChatFormatting.AQUA .toString()
@@ -48,17 +49,57 @@ object ChatUtil
     @JvmStatic
     fun formatTextBracketed(
         text            : String,
-        color           : String  = white, // text specifically
-        bracketColor    : String  = white,
-        bold            : Boolean = false,
-        italic          : Boolean = false,
-        underlined      : Boolean = false,
-        strikethrough   : Boolean = false,
-        obfuscated      : Boolean = false
-    ): MutableComponent {
-        val component = formatText( text = "[", color = bracketColor, bold = bold )
-        component.append( formatText( text = text, color = color, bold = bold ) )
-        component.append( formatText( text = "]", color = bracketColor, bold = bold ) )
+        color           : String    = white, // text specifically
+        bracketColor    : String    = white,
+        spacingBefore   : String    = "",
+        spacingAfter    : String    = "",
+        bold            : Boolean   = false,
+        italic          : Boolean   = false,
+        underlined      : Boolean   = false,
+        strikethrough   : Boolean   = false,
+        obfuscated      : Boolean   = false
+    ): MutableComponent
+    {
+        val component = formatText(
+            text = "${spacingBefore}[",
+            color = bracketColor,
+            bold = bold )
+        component.append( formatText(
+            text = text,
+            color = color,
+            bold = bold ) )
+        component.append( formatText(
+            text = "]${spacingAfter}",
+            color = bracketColor,
+            bold = bold ) )
+        return setStyle( component, bold, italic, underlined, strikethrough, obfuscated )
+    }
+
+    fun formatTextQuoted(
+        text            : String,
+        color           : String    = white, // text specifically
+        quotationColor  : String    = white,
+        spacingBefore   : String    = "",
+        spacingAfter    : String    = "",
+        bold            : Boolean   = false,
+        italic          : Boolean   = false,
+        underlined      : Boolean   = false,
+        strikethrough   : Boolean   = false,
+        obfuscated      : Boolean   = false
+    ): MutableComponent
+    {
+        val component = formatText(
+            text    = "${spacingBefore}\"",
+            color   = quotationColor,
+            bold    = bold )
+        component.append( formatText(
+            text    = text,
+            color   = color,
+            bold    = bold ) )
+        component.append( formatText(
+            text    = "\"$spacingAfter",
+            color   = quotationColor,
+            bold    = bold ) )
         return setStyle( component, bold, italic, underlined, strikethrough, obfuscated )
     }
 

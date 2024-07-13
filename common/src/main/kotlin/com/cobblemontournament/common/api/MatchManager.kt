@@ -1,6 +1,9 @@
 package com.cobblemontournament.common.api
 
 import com.cobblemon.mod.common.api.events.battles.BattleVictoryEvent
+import com.cobblemontournament.common.api.storage.MatchStore
+import com.cobblemontournament.common.api.storage.PlayerStore
+import com.cobblemontournament.common.api.storage.TournamentStore
 import com.cobblemontournament.common.util.CommandUtil
 import com.cobblemontournament.common.match.MatchStatus
 import com.cobblemontournament.common.match.TournamentMatch
@@ -15,7 +18,7 @@ import java.util.UUID
 
 object MatchManager
 {
-    private val watchedMatches = mutableSetOf<TournamentMatch>()
+    private val watchedMatches = mutableSetOf <TournamentMatch>()
 
     fun handlePlayerLogoutEvent( player: ServerPlayer ) {
         watchedMatches.removeIf { it.containsPlayer( player.uuid ) }
@@ -25,6 +28,12 @@ object MatchManager
         player: ServerPlayer )
     {
         val tournaments = getTournamentsWithPlayer( player.uuid )
+        if (tournaments.isEmpty()) {
+            ChatUtil.displayInPlayerChat(
+                player = player,
+                text = "${player.name.string} is not registered for any active tournaments.")
+            return
+        }
         for ( tournament in tournaments ) {
             handleMatchChallengeRequest( tournament, player )
         }
@@ -33,26 +42,21 @@ object MatchManager
     private fun getTournamentsWithPlayer(
         playerID: UUID
     ): Set <Tournament> {
-        val tournaments = mutableSetOf <Tournament>()
-        val tournamentStore = TournamentStoreManager.getTournamentStore() ?: return tournaments // TODO log?
-        for ( tournament in tournamentStore ) {
-            if ( tournament.containsPlayerID( playerID ) ) {
-                tournaments.add( tournament)
-            }
-        }
-        return tournaments
+        return TournamentStoreManager.getValuesFromStore(
+            storeClass  = TournamentStore::class.java,
+            storeID     = TournamentStoreManager.activeStoreKey,
+            predicate   = { t -> t.containsPlayerID( playerID ) },
+            action      = { t -> t } )
     }
 
     private fun getMatchesWithPlayer(
         playerID: UUID
     ): Set <TournamentMatch> {
-        val matches = mutableSetOf <TournamentMatch>()
-        val tournamentStore = TournamentStoreManager.getTournamentStore() ?: return matches // TODO log?
-        for ( tournament in tournamentStore ) {
-            val match = tournament.getCurrentMatch( playerID ) ?: continue
-            matches.add( match )
-        }
-        return matches
+        return TournamentStoreManager.getValuesFromStore(
+            storeClass  = TournamentStore::class.java,
+            storeID     = TournamentStoreManager.activeStoreKey,
+            predicate   = { t -> t.getCurrentMatch( playerID ) != null },
+            action      = { t -> t.getCurrentMatch( playerID )!! } ) // safe -> null check in method
     }
 
     fun handleBattleVictoryEvent( event: BattleVictoryEvent )
@@ -75,7 +79,7 @@ object MatchManager
         // TODO handle doubles & other match types when implemented
         //  - should just be one for now
         if ( validMatches.isEmpty() ) {
-            val player = PlayerManager.getServerPlayer(event.winners.first().uuid)
+            val player = PlayerManager.getServerPlayer( event.winners.first().uuid )
                 ?: return Util.report( "Failed to get victor ServerPlayer for current match." )
             return ChatUtil.displayInPlayerChat(
                 player = player,
@@ -97,9 +101,12 @@ object MatchManager
     fun handleMatchChallengeRequest(
         tournament      : Tournament,
         challenger      : ServerPlayer,
-        nullableMatch   : TournamentMatch? = null)
+        nullableMatch   : TournamentMatch? = null )
     {
-        val player = TournamentStoreManager.getPlayer( tournament.tournamentID, challenger.uuid )
+        val player = TournamentStoreManager.getInstance(
+            storeClass  = PlayerStore::class.java,
+            storeID     = tournament.tournamentID,
+            instanceID  = challenger.uuid )
 
         if ( player != null && player.currentMatchID == null ) {
             val text = ChatUtil.formatText(  text = "${player.name} ", ChatUtil.aqua )
@@ -113,11 +120,14 @@ object MatchManager
             return
         }
 
-        var match = nullableMatch
+        var match: TournamentMatch? = null
         var playerTwoName = "[opponent]"
         var insert: MutableComponent? = null
         if ( player != null ) {
-            match = TournamentStoreManager.getMatch( tournament.tournamentID, player.currentMatchID!! )
+            match = nullableMatch ?: TournamentStoreManager.getInstance(
+                storeClass  = MatchStore::class.java,
+                storeID     = tournament.tournamentID,
+                instanceID  = player.currentMatchID!! )
             if ( match != null ) {
                 // TODO handle NPCs
                 val playerMap = match.playerEntrySet()

@@ -1,10 +1,9 @@
 package com.cobblemontournament.forge
 
-import com.cobblemontournament.common.CTModImplementation
+import com.cobblemontournament.common.TournamentModImplementation
 import com.cobblemontournament.common.CobblemonTournament
 import com.cobblemontournament.common.commands.TournamentCommands
 import com.cobblemontournament.forge.config.TournamentConfigForge
-import com.turtlehoarder.cobblemonchallenge.common.event.ChallengeEventHandler
 import net.minecraftforge.common.ForgeConfigSpec
 import net.minecraftforge.common.MinecraftForge
 import net.minecraftforge.event.RegisterCommandsEvent
@@ -15,7 +14,7 @@ import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext
 
 @Mod(CobblemonTournament.MOD_ID)
-object CobblemonTournamentForge: CTModImplementation
+object CobblemonTournamentForge: TournamentModImplementation
 {
     private val config: TournamentConfigForge
     private val commonSpec: ForgeConfigSpec
@@ -49,7 +48,6 @@ object CobblemonTournamentForge: CTModImplementation
     }
 
     override fun registerEvents() {
-        ChallengeEventHandler.registerEvents()
         // ?? old ??
         //DistExecutor.safeCallWhenOn(Dist.DEDICATED_SERVER,() -> ChallengeEventHandler::registerEvents);
         //{
@@ -63,6 +61,8 @@ object CobblemonTournamentForge: CTModImplementation
 //        }
     }
 
-    fun commands(e: RegisterCommandsEvent) = TournamentCommands::register
+    fun commands( e: RegisterCommandsEvent ) {
+        TournamentCommands.register( e.dispatcher, e.buildContext, e.commandSelection )
+    }
 
 }

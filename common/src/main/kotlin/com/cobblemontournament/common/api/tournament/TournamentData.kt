@@ -1,6 +1,9 @@
 package com.cobblemontournament.common.api.tournament
 
 import com.cobblemontournament.common.api.TournamentStoreManager
+import com.cobblemontournament.common.api.storage.MatchStore
+import com.cobblemontournament.common.api.storage.PlayerStore
+import com.cobblemontournament.common.api.storage.TournamentStore
 import com.cobblemontournament.common.match.TournamentMatch
 import com.cobblemontournament.common.player.TournamentPlayer
 import com.cobblemontournament.common.round.TournamentRound
@@ -21,13 +24,26 @@ data class TournamentData(
     }
 
     private fun sendTournamentToManager() {
-        TournamentStoreManager.addTournament( tournament )
+        TournamentStoreManager.addInstance(
+            storeClass  = TournamentStore::class.java,
+            storeID     = TournamentStoreManager.activeStoreKey,
+            instance    = tournament )
     }
     private fun sendMatchesToManager() {
-        matches.forEach { TournamentStoreManager.addMatch( it ) }
+        matches.forEach {
+            TournamentStoreManager.addInstance(
+                storeClass  = MatchStore::class.java,
+                storeID     = tournament.tournamentID,
+                instance    = it )
+        }
     }
     private fun sendPlayersToManager() {
-        players.forEach { TournamentStoreManager.addPlayer( it ) }
+        players.forEach {
+            TournamentStoreManager.addInstance(
+                storeClass  = PlayerStore::class.java,
+                storeID     = tournament.tournamentID,
+                instance    = it )
+        }
     }
 
     fun printTournamentDataDebug()

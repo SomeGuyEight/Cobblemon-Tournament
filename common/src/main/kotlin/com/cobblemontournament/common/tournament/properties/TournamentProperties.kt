@@ -23,6 +23,8 @@ class TournamentProperties : Properties <TournamentProperties>
         fun loadFromNBT( nbt: CompoundTag ) = HELPER.loadFromNBTHelper( nbt )
     }
 
+    constructor( uuid: UUID = UUID.randomUUID() ) : this ( tournamentID = uuid )
+
     constructor(
         name            : String            = DEFAULT_TOURNAMENT_NAME,
         tournamentID    : UUID              = UUID.randomUUID(),
@@ -38,7 +40,7 @@ class TournamentProperties : Properties <TournamentProperties>
         rounds          : MutableMap <UUID,TournamentRound>  = mutableMapOf(),
         matches         : MutableMap <UUID,TournamentMatch>  = mutableMapOf(),
         players         : MutableMap <UUID,TournamentPlayer> = mutableMapOf(),
-    ) : super()
+    ) : super ()
     {
         this.name               = name
         this.tournamentID       = tournamentID
@@ -114,6 +116,10 @@ class TournamentProperties : Properties <TournamentProperties>
 
     fun displaySlimInChat( player: ServerPlayer ) {
         helper.displaySlimInChatHelper( properties = this, player = player )
+    }
+
+    fun displayResultsInChat( player: ServerPlayer ) {
+        helper.displayResultsInChatHelper( properties = this, player = player )
     }
 
 }

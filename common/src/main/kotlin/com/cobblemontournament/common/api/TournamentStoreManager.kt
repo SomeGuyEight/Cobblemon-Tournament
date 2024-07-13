@@ -1,23 +1,16 @@
 package com.cobblemontournament.common.api
 
 import com.cobblemon.mod.common.api.Priority
-import com.cobblemontournament.common.api.storage.MatchStore
-import com.cobblemontournament.common.match.TournamentMatch
-import com.cobblemontournament.common.api.storage.PlayerStore
-import com.cobblemontournament.common.player.TournamentPlayer
 import com.cobblemontournament.common.tournament.Tournament
-import com.cobblemontournament.common.api.tournament.TournamentData
 import com.cobblemontournament.common.api.storage.TournamentStore
 import com.cobblemontournament.common.tournamentbuilder.TournamentBuilder
 import com.cobblemontournament.common.api.storage.TournamentBuilderStore
 import com.cobblemontournament.common.api.storage.DataKeys
-import com.cobblemontournament.common.tournament.TournamentStatus
 import com.google.gson.GsonBuilder
 import com.someguy.storage.StoreManager
 import com.someguy.storage.adapter.flatfile.NBTStoreAdapter
 import com.someguy.storage.classstored.ClassStored
 import com.someguy.storage.factory.FileBackedStoreFactory
-import com.someguy.storage.position.simple.UuidPosition
 import com.someguy.storage.store.DefaultStore
 import com.someguy.storage.util.StoreUtil.getFile
 import com.someguy.storage.util.StoreUtil.getUuidKey
@@ -64,143 +57,69 @@ object TournamentStoreManager: StoreManager()
         registerFactory( Priority.NORMAL, FileBackedStoreFactory( adapter, CREATE_IF_MISSING ) )
     }
 
-    fun getTournamentBuilderStore(
-        storeKey: UUID = activeStoreKey,
-    ): TournamentBuilderStore? {
-        return getStore( TournamentBuilderStore::class.java, uuid = storeKey )
+    fun <C: ClassStored,St: DefaultStore<C>> getInstance(
+        storeClass  : Class<St>,
+        storeID     : UUID,
+        instanceID  : UUID
+    ): C? {
+        val store =  getStore( storeClass, storeID ) ?: return null
+        return store[instanceID]
     }
 
-    fun getTournamentStore(
-        storeKey: UUID = activeStoreKey
-    ): TournamentStore? {
-        return getStore( TournamentStore::class.java, uuid = storeKey )
+    fun <C: ClassStored,St: DefaultStore<C>> getStoreIterator(
+        storeClass      : Class<out St>,
+        storeID         : UUID
+    ): Iterator <C> {
+        val store =  getStore( storeClass, storeID ) ?: return emptySequence <C>().iterator()
+        return store.iterator()
     }
 
-    private fun getMatchStore(
-        tournamentID: UUID,
-    ): MatchStore? {
-        return getStore( MatchStore::class.java, tournamentID )
-    }
-
-    private fun getPlayerStore(
-        tournamentID: UUID,
-    ): PlayerStore? {
-        return getStore( PlayerStore::class.java, tournamentID )
-    }
-
-    fun getTournamentBuilder(
-        builderID: UUID,
-    ): TournamentBuilder? {
-        return getTournamentBuilderStore()?.get( UuidPosition( builderID ) )
-    }
-
-    fun getTournament(
-        tournamentID: UUID,
-    ): Tournament? {
-        return getTournamentStore()?.get( UuidPosition( tournamentID ) )
-    }
-
-    fun getMatch(
-        tournamentID    : UUID,
-        matchID         : UUID,
-    ): TournamentMatch? {
-        return getMatchStore( tournamentID )?.get( UuidPosition( matchID ) )
-    }
-
-    fun getPlayer(
-        tournamentID    : UUID,
-        playerID        : UUID,
-    ): TournamentPlayer? {
-        return getPlayerStore( tournamentID )?.get( UuidPosition( playerID ) )
-    }
-
-    fun addTournamentData(
-        data: TournamentData
-    ):  Pair <Boolean,String>
+    /**
+     * This is meant to filter [ClassStored] by any [predicate] input.
+     * If the predicate == true then the [action] will be performed on the ClassStored instance.
+     * If the action output is not null it will be added to the returned set.
+     *
+     * [T] is whatever type the action outputs.
+     *
+     *      If the action output is nullable it will still be safe to assert not null.
+     *      This function will not add any null values to the Set<T> being returned.
+     */
+    fun <T, C: ClassStored, St: DefaultStore<C>> getValuesFromStore(
+        storeClass: Class<St>,
+        storeID: UUID,
+        predicate: (C) -> Boolean = { _ -> true },
+        action: (C) -> T,
+    ): Set<T>
     {
-        val result = addTournament( data.tournament )
-        if ( !result.first ) {
-            return result
+        val set = mutableSetOf<T>()
+        for ( instance in getStoreIterator( storeClass, storeID ) ) {
+            if ( predicate( instance ) ) {
+                val value = action( instance ) ?: continue
+                set.add( value )
+            }
         }
-        data.matches.forEach { addMatch ( it ) }
-        data.players.forEach { addPlayer( it ) }
-        return result
+        return set
     }
 
     /**
-     * [builder], [TournamentBuilder], [TournamentBuilderStore]
+     * [ClassStored], [instance], [DefaultStore]
      *
-     *      if successfully added [builder] to an empty [TournamentBuilderStore] position ->
+     *      if successfully added [instance] to an empty [DefaultStore] < [ClassStored] > position ->
      *          returns null
-     *      if successfully added [builder] to an occupied [TournamentBuilderStore] position ->
-     *          returns the replaced [TournamentBuilder]
-     *      if failed to add b/c [TournamentBuilderStore] was null or store was full ->
-     *          * returns [builder] parameter
+     *      if successfully added instance to an occupied DefaultStore position ->
+     *          returns the replaced ClassStored
+     *      if failed to add b/c DefaultStore was null or store was full ->
+     *          * returns ClassStored parameter
      *
      *      * - ( message will specify if store was null or store was full )
      */
-    fun addTournamentBuilder(
-        builder: TournamentBuilder
+    fun <C: ClassStored,St: DefaultStore<C>> addInstance(
+        storeClass  : Class<St>,
+        storeID     : UUID,
+        instance    : C
     ):  Pair <Boolean,String> {
-        val tournamentBuilderStore = getTournamentBuilderStore() ?: return Pair( true, FAILED_TO_GET_STORE )
-        return addInstance( tournamentBuilderStore, builder )
-    }
-
-    /**
-     * [tournament], [Tournament], [TournamentStore]
-     *
-     *      if successfully added [tournament] to an empty [TournamentStore] position ->
-     *          returns null
-     *      if successfully added [tournament] to an occupied [TournamentStore] position ->
-     *          returns the replaced [Tournament]
-     *      if failed to add b/c [TournamentStore] was null or store was full ->
-     *          * returns [tournament] parameter
-     *
-     *      * ( message will specify if store was null or store was full )
-     */
-    fun addTournament(
-        tournament: Tournament
-    ):  Pair <Boolean,String> {
-        val tournamentStore = getTournamentStore() ?: return Pair( false, FAILED_TO_GET_STORE )
-        return addInstance( tournamentStore, tournament )
-    }
-
-    /**
-     * [match], [TournamentMatch], [MatchStore]
-     *
-     *      if successfully added [match] to an empty [MatchStore] position ->
-     *          returns null
-     *      if successfully added [match] to an occupied [MatchStore] position ->
-     *          returns the replaced [TournamentMatch]
-     *      if failed to add b/c [MatchStore] was null or store was full ->
-     *          * returns [match] parameter
-     *
-     *      * - ( message will specify if store was null or store was full )
-     */
-    fun addMatch(
-        match: TournamentMatch
-    ): Pair <Boolean,String> {
-        val matchStore = getMatchStore( match.tournamentID ) ?: return Pair( false, FAILED_TO_GET_STORE )
-        return addInstance( matchStore, match )
-    }
-
-    /**
-     * [player], [TournamentPlayer], [PlayerStore]
-     *
-     *      if successfully added [player] to an empty [PlayerStore] position ->
-     *          returns null
-     *      if successfully added [player] to an occupied [PlayerStore] position ->
-     *          returns the replaced [TournamentPlayer]
-     *      if failed to add b/c [PlayerStore] was null or store was full ->
-     *          * returns [player] parameter
-     *
-     *      * - ( message will specify if store was null or store was full )
-     */
-    fun addPlayer(
-        player: TournamentPlayer
-    ):  Pair <Boolean,String> {
-        val playerStore = getPlayerStore( player.tournamentID ) ?: return Pair( false, FAILED_TO_GET_STORE )
-        return addInstance( playerStore, player )
+        val store = getStore( storeClass, storeID ) ?: return Pair( true, FAILED_TO_GET_STORE )
+        return addInstance( store, instance )
     }
 
     private fun <C: ClassStored> addInstance(
@@ -214,24 +133,43 @@ object TournamentStoreManager: StoreManager()
     }
 
     /**
-     * [TournamentBuilder], [name], [String]
+     * [ClassStored], [name], [String], [DefaultStore], [UUID]
      *
-     *      if [TournamentBuilder] with [name] exists
-     *          returns builder & empty [String]
-     *      if [TournamentBuilder] with [name] exists
+     *      if a [DefaultStore] with [storeID] does not exist
+     *          or
+     *      if [ClassStored] with [name] does not exist in the [DefaultStore] with [storeID]
      *          returns null & [String] with explanation
+     *
+     *      if [ClassStored] with [name] exists
+     *          returns [ClassStored] & empty [String]
      */
-    fun getTournamentBuilderByName(
+    fun <C: ClassStored,St: DefaultStore<C>> getInstanceByName(
         name: String,
-    ) : Pair <TournamentBuilder?,String>
+        storeClass: Class<St>,
+        storeID: UUID
+    ) : Pair <C?,String>
     {
-        val store = getTournamentBuilderStore() ?: return Pair( null, FAILED_TO_GET_STORE )
-        for ( b in store.iterator() ) {
-            if ( b.name == name ) {
-                return Pair( b, "" )
+        for ( instance in getStoreIterator( storeClass, storeID ) ) {
+            if ( instance.name == name ) {
+                return Pair( instance, "" )
             }
         }
         return Pair( null, NO_INSTANCE_WITH_NAME )
+    }
+
+    fun <C: ClassStored,St: DefaultStore<C>> deactivateInstance(
+        storeClass  : Class<St>,
+        instance    : C,
+        predicate   : (C) -> Boolean = { _ -> true }
+    ): Boolean
+    {
+        if ( !predicate( instance ) ) {
+            return false // TODO log?
+        }
+        getStore( storeClass, activeStoreKey )?.remove( instance )
+        val inactiveStore = getStore( storeClass, inactiveStoreKey )
+            ?: return false // TODO log?
+        return inactiveStore.add( instance )
     }
 
     /**
@@ -251,15 +189,15 @@ object TournamentStoreManager: StoreManager()
         playerID    : UUID? = null,
     ): Set <String>
     {
-        val names = mutableSetOf <String>()
-        val store = getTournamentBuilderStore( storeID ) ?: return names
-        for ( instance in store.iterator() ) {
-            if ( playerID != null && !instance.containsPlayerID( playerID ) ) {
-                continue
-            }
-            names.add( instance.name )
-        }
-        return names
+        val containsPlayerID: ( TournamentBuilder ) -> Boolean = if ( playerID != null ) {
+            { instance ->  instance.containsPlayerID( playerID ) }
+        } else { _ -> true }
+
+        return getValuesFromStore(
+            storeClass  = TournamentBuilderStore::class.java,
+            storeID     = storeID,
+            predicate   = containsPlayerID,
+            action      = { instance ->  instance.name } )
     }
 
     /**
@@ -279,50 +217,15 @@ object TournamentStoreManager: StoreManager()
         playerID    : UUID? = null,
     ): Set <String>
     {
-        val names = mutableSetOf <String>()
-        val store = getTournamentStore( storeID ) ?: return names
-        if ( playerID != null ) {
-            for ( instance in store.iterator() ) {
-                if ( instance.containsPlayerID( playerID ) ) {
-                    names.add( instance.name )
-                }
-            }
-        } else {
-            for ( instance in store.iterator() ) {
-                names.add( instance.name )
-            }
-        }
-        return names
-    }
+        val containsPlayerID: ( Tournament ) -> Boolean = if ( playerID != null ) {
+            { instance ->  instance.containsPlayerID( playerID ) }
+        } else { _ -> true }
 
-    /**
-     * [Tournament], [name], [String]
-     *
-     *      if [Tournament] with [name] exists
-     *          returns builder & empty [String]
-     *      if [Tournament] with [name] exists
-     *          returns null & [String] with explanation
-     */
-    fun getTournamentByName(
-        name    : String,
-        storeID : UUID = activeStoreKey
-    ): Pair <Tournament?,String>
-    {
-        val store = getTournamentStore( storeID ) ?: return Pair( null, FAILED_TO_GET_STORE )
-        for ( b in store.iterator() ) {
-            if ( b.name == name ) {
-                return Pair( b, "" )
-            }
-        }
-        return Pair( null, NO_INSTANCE_WITH_NAME )
-    }
-
-    fun deactivateTournament( tournament: Tournament )
-    {
-        if ( tournament.tournamentStatus != TournamentStatus.FINALIZED ) return // TODO log?
-        getTournamentStore(activeStoreKey)?.remove(tournament)
-        val inactiveStore = getTournamentStore(activeStoreKey) ?: TODO() // log?
-        inactiveStore.add( tournament )
+        return getValuesFromStore(
+            storeClass  = TournamentStore::class.java,
+            storeID     = storeID,
+            predicate   = containsPlayerID,
+            action      = { instance ->  instance.name } )
     }
 
 }

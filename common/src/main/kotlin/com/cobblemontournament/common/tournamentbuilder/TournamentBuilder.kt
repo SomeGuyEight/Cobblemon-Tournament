@@ -5,12 +5,12 @@ import com.cobblemon.mod.common.api.reactive.Observable
 import com.cobblemon.mod.common.api.reactive.SettableObservable
 import com.cobblemon.mod.common.api.reactive.SimpleObservable
 import com.cobblemontournament.common.generator.TournamentGenerator
-import com.cobblemontournament.common.api.TournamentStoreManager
 import com.cobblemontournament.common.player.properties.PlayerProperties
 import com.cobblemontournament.common.tournamentbuilder.properties.TournamentBuilderProperties
 import com.cobblemontournament.common.api.tournament.TournamentData
 import com.cobblemontournament.common.tournament.properties.TournamentProperties
 import com.cobblemontournament.common.api.storage.DataKeys
+import com.cobblemontournament.common.player.properties.PlayerPropertiesHelper
 import com.cobblemontournament.common.util.ChatUtil
 import com.google.gson.JsonObject
 import com.someguy.storage.classstored.ClassStored
@@ -18,13 +18,21 @@ import com.someguy.storage.coordinates.StoreCoordinates
 import net.minecraft.nbt.CompoundTag
 import net.minecraft.server.level.ServerPlayer
 import java.util.UUID
-import java.util.function.Predicate
 
-open class TournamentBuilder( uuid: UUID ): ClassStored
+open class TournamentBuilder : ClassStored
 {
-    constructor(): this( UUID.randomUUID() )
+    companion object {
+        fun loadFromNBT( nbt: CompoundTag ): TournamentBuilder {
+            return TournamentBuilder( TournamentBuilderProperties.loadFromNBT( nbt.getCompound( DataKeys.TOURNAMENT_BUILDER_PROPERTIES ) ) )
+        }
+    }
 
-    protected val properties = TournamentBuilderProperties()
+    constructor( uuid: UUID = UUID.randomUUID() ) : this ( TournamentBuilderProperties( uuid ) )
+    constructor( properties: TournamentBuilderProperties ) {
+        this.properties = properties
+    }
+
+    protected val properties: TournamentBuilderProperties
 
     override var name
         get() = properties.name
@@ -68,9 +76,6 @@ open class TournamentBuilder( uuid: UUID ): ClassStored
         get() = properties.tournamentProperties.showPreview
         set( value ) { properties.tournamentProperties.showPreview = value }
 
-    protected val seededPlayers     get() = properties.seededPlayers
-    protected val unseededPlayers   get() = properties.unseededPlayers
-
     fun getTournamentProperties(
         name            : String,
         tournamentID    : UUID = UUID.randomUUID()
@@ -83,54 +88,48 @@ open class TournamentBuilder( uuid: UUID ): ClassStored
     }
 
     override fun printProperties() = properties.logDebug()
-    fun printPropertiesInChat( player: ServerPlayer ) = properties.displayInChat( player )
+    fun displayPropertiesInChat(player: ServerPlayer ) = properties.displayInChat( player )
+    fun displayPropertiesInChatSlim( player: ServerPlayer ) = properties.displayInChatSlim( player )
 
     fun printPlayerInfo() {
-        seededPlayers.forEach { it.logDebug() }
-        unseededPlayers.forEach { it.logDebug() }
+        for ( player in properties.getPlayersSortedBy { it.seed } ) {
+            player.logDebug()
+        }
     }
 
-    fun printPlayerInfoInChat(player: ServerPlayer)
+    fun displayPlayerInfoInChat(
+        player              : ServerPlayer,
+        spacing             : String = "",
+        displaySeed         : Boolean = false,
+        displayPokemon      : Boolean = false,
+        displayCurrentMatch : Boolean = false,
+        displayPlacement    : Boolean = false )
     {
-        ChatUtil.displayInPlayerChat(
-            player  = player,
-            text    = "Players for Tournament Builder \"$name\":", ChatUtil.yellow,
-            bold    = true )
-        if ( seededPlayers.isNotEmpty() ) {
-            ChatUtil.displayInPlayerChat(
-                player = player,
-                text = "(Seeded Players)",
-                color = ChatUtil.yellow )
-            seededPlayers.forEach { it.displayInChat( player ) }
-        }
-        if ( unseededPlayers.isNotEmpty() ) {
+        if ( properties.getPlayersSize() != 0 ) {
             ChatUtil.displayInPlayerChat(
                 player  = player,
-                text    = "(Unseeded Players)",
-                color   = ChatUtil.yellow )
-            unseededPlayers.forEach { it.displayInChat( player ) }
+                text    = "Players for Tournament Builder \"$name\":", ChatUtil.yellow,
+                bold    = true )
+            for ( playerProps in properties.getPlayersSortedBy { it.seed } ) {
+                PlayerPropertiesHelper.displayInChatOptionalHelper(
+                    properties          = playerProps,
+                    player              = player,
+                    spacing             = spacing,
+                    displaySeed         = displaySeed,
+                    displayPokemon      = displayPokemon,
+                    displayCurrentMatch = displayCurrentMatch,
+                    displayPlacement    = displayPlacement )
+            }
+        } else {
+            ChatUtil.displayInPlayerChat( player, "No players registered for Tournament Builder \"$name\"." )
         }
     }
 
-    fun getPropertiesCopy() = properties.deepCopy()
+    fun containsPlayerID( playerID: UUID ) = properties.containsPlayerID( playerID )
 
-    fun containsPlayerID(
-        playerID: UUID
-    ): Boolean {
-        return if ( seededPlayers.firstOrNull { it.playerID == playerID } != null ) {
-            true
-        } else unseededPlayers.firstOrNull { it.playerID == playerID } != null
-    }
-
-    fun getSeededPlayers()          = seededPlayers.toList()
-    fun getUnseededPlayers()        = unseededPlayers.toList()
-
-    fun getMutableSeededPlayers()   = seededPlayers.toMutableList()
-    fun getMutableUnseededPlayers() = unseededPlayers.toMutableList()
-
-    fun seededPlayersSize()         = seededPlayers.size
-    fun unseededPlayersSize()       = unseededPlayers.size
-    fun totalPlayersSize()          = seededPlayers.size + unseededPlayers.size
+    fun getSeededPlayers()          = properties.getSeededPlayers()
+    fun getUnseededPlayers()        = properties.getUnseededPlayers()
+    fun playersSize()               = properties.getPlayersSize()
 
     override fun initialize(): TournamentBuilder {
         registerObservable( properties.getChangeObservable() )
@@ -144,57 +143,32 @@ open class TournamentBuilder( uuid: UUID ): ClassStored
         seed        : Int? = null
     ): Boolean
     {
-        val predicate: Predicate <in PlayerProperties? > =
-            Predicate { it!!.playerID === playerID; }
-        if ( containsPlayerWith( seededPlayers, predicate ) || containsPlayerWith( unseededPlayers, predicate ) ) {
-            return false
-        }
-        val playerProps =  PlayerProperties(
-            name            = playerName,
-            actorType       = actorType ?: ActorType.PLAYER,
-            playerID        = playerID,
-            tournamentID    = uuid,
-            seed            = seed ?: -1 )
-        val success = if ( seed != null && seed > 0 ) {
-            properties.seededPlayers.add( playerProps )
+        return if ( properties.containsPlayerID( playerID ) ) {
+             false
         } else {
-            unseededPlayers.add( playerProps )
+            properties.addPlayer(
+                playerProps = PlayerProperties(
+                    name            = playerName,
+                    actorType       = actorType ?: ActorType.PLAYER,
+                    playerID        = playerID,
+                    tournamentID    = uuid,
+                    seed            = seed ?: -1 ) )
         }
-        return if ( success ) {
-            emitChange()
-            registerObservable( properties.getChangeObservable() )
-            true
-        } else false
     }
 
-    fun getPlayer(
-        playerID: UUID
-    ): PlayerProperties?
-    {
-        var playerProps = seededPlayers.firstOrNull { it.playerID == playerID }
-        if ( playerProps == null ) {
-            playerProps = unseededPlayers.firstOrNull { it.playerID == playerID }
-        }
-        return playerProps
-    }
+    protected fun addPlayer( playerProps: PlayerProperties ) = properties.addPlayer( playerProps )
 
-    fun getPlayer(
-        name: String
-    ): PlayerProperties?
-    {
-        var playerProps = seededPlayers.firstOrNull { it.name == name }
-        if ( playerProps == null ) {
-            playerProps = unseededPlayers.firstOrNull { it.name == name }
-        }
-        return playerProps
-    }
+    fun getPlayer( playerID: UUID ) = properties.getPlayer( playerID )
 
-    fun getPlayerNames(): Set<String>
+    fun getPlayer( name: String ) = properties.getPlayer( name )
+
+    fun getPlayerNames(): Set <String>
     {
-        val set = mutableSetOf<String>()
-        seededPlayers.forEach { p -> set.add( p.name) }
-        unseededPlayers.forEach { p -> set.add( p.name) }
-        return set
+        val names = mutableSetOf <String>()
+        for ( playerProps in properties.getPlayersIterator() ) {
+            names.add( playerProps.name )
+        }
+        return names
     }
 
     fun updatePlayer(
@@ -203,81 +177,30 @@ open class TournamentBuilder( uuid: UUID ): ClassStored
         seed        : Int?
     ): Boolean
     {
-        val player = getPlayer( playerID ) ?: return false
+        val playerProps = getPlayer( playerID ) ?: return false
 
-        val updatedActorType = if ( actorType != null ) {
-            player.actorType = actorType
+        val updated = if ( actorType != null ) {
+            playerProps.actorType = actorType
             true
         } else false
 
-        val updatedSeed = if ( seed != null && seed != player.seed ) {
-            player.seed = seed
-            player.originalSeed = seed
+        return if ( seed != null && seed != playerProps.seed ) {
+            playerProps.seed = seed
+            playerProps.originalSeed = seed
             true
-        } else false
-
-        return if ( updatedSeed || updatedActorType ) {
-            emitChange()
-        } else false
+        } else updated
     }
 
-    fun removePlayer(
-        playerID: UUID
-    ): Boolean
-    {
-        var player = seededPlayers.firstOrNull { it.playerID == playerID }
-        if ( player != null ) {
-            return if ( seededPlayers.remove( player ) ) {
-                emitChange()
-            } else false
-        }
-        player = unseededPlayers.firstOrNull { it.playerID == playerID } ?: return false
+    fun removePlayer( playerID: UUID ) = properties.removePlayer( playerID )
 
-        return if ( unseededPlayers.remove( player ) ) {
-            emitChange()
-        } else false
-    }
-
-    fun removePlayerByName(
-        name: String
-    ): Boolean
-    {
-        var id: UUID? = null
-        run loop@ { seededPlayers.forEach {
-            if ( it.name == name ) {
-                id = it.playerID
-                return@loop // solution to exit loop early b/c 'break' is not like c# break
-            }
-        } }
-        if (id != null && removePlayer( id!! )) {
-            return emitChange()
-        }
-        run loop@ { unseededPlayers.forEach {
-            if ( it.name == name ) {
-                id = it.playerID
-                return@loop
-            }
-        } }
-        return if ( id != null && removePlayer( id!! ) ) {
-            emitChange()
-        } else false
-    }
-
-    private fun containsPlayerWith(
-        collection  : MutableSet <PlayerProperties>,
-        predicate   : Predicate <in PlayerProperties ? >
-    ): Boolean {
-        return collection.stream().anyMatch( predicate )
-    }
+    fun removePlayerByName( name: String ) = properties.removePlayer( name )
 
     fun toTournament(
         name: String
     ): TournamentData?
     {
         val tournamentData = TournamentGenerator.toTournament( name = name, builder = this )
-        if (tournamentData != null) {
-                TournamentStoreManager.addTournamentData( tournamentData )
-        }
+        tournamentData?.sendAllToManager()
         return tournamentData
     }
 
@@ -302,15 +225,14 @@ open class TournamentBuilder( uuid: UUID ): ClassStored
     private val observables = mutableListOf <Observable <*> >()
     val anyChangeObservable = SimpleObservable <TournamentBuilder>()
 
-    private fun emitChange(): Boolean = anyChangeObservable.emit( values = arrayOf( this ) ) == Unit
     fun getAllObservables() = observables.asIterable()
     override fun getChangeObservable() = anyChangeObservable
 
     protected fun registerObservable(
-        observable: SimpleObservable <*>
-    ) : SimpleObservable <*>
+        observable: Observable <*>
+    ) : Observable <*>
     {
-        observables.add(observable)
+        observables.add( observable )
         observable.subscribe { anyChangeObservable.emit( values = arrayOf( this ) ) }
         return observable
     }

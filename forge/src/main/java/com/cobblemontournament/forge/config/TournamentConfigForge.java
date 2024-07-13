@@ -1,67 +1,58 @@
 package com.cobblemontournament.forge.config;
 
 import com.cobblemontournament.common.CobblemonTournament;
-import com.cobblemontournament.common.config.TournamentConfig;
-import com.cobblemontournament.common.tournament.TournamentType;
-import com.turtlehoarder.cobblemonchallenge.common.battle.ChallengeFormat;
+import com.cobblemontournament.common.config.Config;
 import net.minecraftforge.common.ForgeConfigSpec;
 
-import java.util.HashMap;
-
-@SuppressWarnings("unused")
-public final class TournamentConfigForge extends TournamentConfig
+@SuppressWarnings( { "unused", "MemberVisibilityCanBePrivate", } )
+public final class TournamentConfigForge
 {
-    
-    public HashMap<String, ForgeConfigSpec.ConfigValue<?>> configMap = new HashMap<>();
-    
+    @SuppressWarnings("")
     public TournamentConfigForge(ForgeConfigSpec.Builder builder)
     {
-        CobblemonTournament.LOGGER.info("Loading Tournament Configs");
-        builder.push("cobblemontournament");
+        // no need to pass to ConfigProvider, b/c Forge handles the config properties file internally
+        CobblemonTournament.INSTANCE.getLOGGER().info("Loading Tournament Configs");
+        builder.push(Config.CONFIG_FILE_NAME);
         
-        var DEFAULT_TOURNAMENT_TYPE     = builder.comment("(TODO)")
-                                                 .define("defaultTournamentType",TournamentType.SingleElimination);
-        var DEFAULT_GROUP_SIZE          = builder.comment("(TODO)")
-                                                 .define("defaultGroupSize",4);
-        var DEFAULT_MAX_PLAYER_COUNT    = builder.comment("(TODO)")
-                                                 .define("defaultMaxParticipants",32);
-        var DEFAULT_CHALLENGE_FORMAT    = builder.comment("(TODO)")
-                                                 .define("defaultChallengeFormat",ChallengeFormat.STANDARD_6V6);
-        var DEFAULT_CHALLENGE_MIN_LEVEL = builder.comment("(TODO)")
-                                                 .define("defaultMinLevel",50);
-        var DEFAULT_CHALLENGE_MAX_LEVEL = builder.comment("(TODO)")
-                                                 .define("defaultMaxLevel",50);
-        var DEFAULT_SHOW_PREVIEW        = builder.comment("(TODO)")
-                                                 .define("defaultShowPreview",true);
+        var type            = Config.INSTANCE.defaultTournamentType();
+        var format          = Config.INSTANCE.defaultChallengeFormat();
+        var maxParticipants = Config.INSTANCE.defaultMaxParticipants();
+        var teamSize        = Config.INSTANCE.defaultTeamSize();
+        var groupSize       = Config.INSTANCE.defaultGroupSize();
+        var minLevel        = Config.INSTANCE.defaultMinLevel();
+        var maxLevel        = Config.INSTANCE.defaultMaxLevel();
+        var showPreview     = Config.INSTANCE.defaultShowPreview();
+        var saveIntervalSec = Config.INSTANCE.saveIntervalSeconds();
         
-        configMap.put(TournamentConfig.DEFAULT_TOURNAMENT_TYPE_CONFIG_NAME  ,DEFAULT_TOURNAMENT_TYPE    );
-        configMap.put(TournamentConfig.DEFAULT_GROUP_SIZE_CONFIG_NAME       ,DEFAULT_GROUP_SIZE         );
-        configMap.put(TournamentConfig.DEFAULT_MAX_PARTICIPANTS_CONFIG_NAME ,DEFAULT_MAX_PLAYER_COUNT   );
-        configMap.put(TournamentConfig.DEFAULT_CHALLENGE_FORMAT_CONFIG_NAME ,DEFAULT_CHALLENGE_FORMAT   );
-        configMap.put(TournamentConfig.DEFAULT_MIN_LEVEL_CONFIG_NAME        ,DEFAULT_CHALLENGE_MIN_LEVEL);
-        configMap.put(TournamentConfig.DEFAULT_MAX_LEVEL_CONFIG_NAME        ,DEFAULT_CHALLENGE_MAX_LEVEL);
-        configMap.put(TournamentConfig.DEFAULT_SHOW_PREVIEW_CONFIG_NAME     ,DEFAULT_SHOW_PREVIEW       );
+        String comment;
+        comment = "Tournament type description...";
+        type = builder.comment(comment).define(Config.TOURNAMENT_TYPE_KEY,type).get();
         
-    }
-    
-    public int getIntConfig(String name)
-    {
-        return Integer.parseInt(configMap.get(name).get().toString());
-    }
-    
-    public boolean getBooleanConfig(String name)
-    {
-        return Boolean.parseBoolean(configMap.get(name).get().toString());
-    }
-    
-    public TournamentType getTournamentTypeConfig(String name)
-    {
-        return (TournamentType)configMap.get(name).get();
-    }
-    
-    public ChallengeFormat getChallengeFormatConfig(String name)
-    {
-        return (ChallengeFormat)configMap.get(name).get();
+        comment = "Challenge format description...";
+        format = builder.comment(comment).define(Config.CHALLENGE_FORMAT_KEY,format).get();
+        
+        comment = "Max participants description...";
+        maxParticipants = builder.comment(comment).define(Config.MAX_PARTICIPANTS_KEY,maxParticipants).get();
+        
+        comment = "Team size description...";
+        teamSize = builder.comment(comment).define(Config.TEAM_SIZE_KEY,teamSize).get();
+        
+        comment = "Group size description...";
+        groupSize = builder.comment(comment).define(Config.GROUP_SIZE_KEY,groupSize).get();
+        
+        comment = "Min level description...";
+        minLevel = builder.comment(comment).define(Config.MIN_LEVEL_KEY,minLevel).get();
+        
+        comment = "Max level description...";
+        maxLevel = builder.comment(comment).define(Config.MAX_LEVEL_KEY,maxLevel).get();
+        
+        comment = "Show preview description...";
+        showPreview = builder.comment(comment).define(Config.SHOW_PREVIEW_KEY,showPreview).get();
+        
+        comment = "Save interval seconds description...";
+        saveIntervalSec = builder.comment(comment).define(Config.SAVE_INTERVAL_SECONDS_KEY,saveIntervalSec).get();
+        
+        //Config.initialize(type,format,maxParticipants,teamSize,groupSize,minLevel,maxLevel,showPreview,saveIntervalSec);
     }
     
 }

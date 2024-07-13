@@ -1,8 +1,6 @@
 package com.cobblemontournament.common.commands.builder
 
 import com.cobblemontournament.common.commands.nodes.builder.ActiveBuilderNode
-import com.cobblemontournament.common.commands.suggestions.ChallengeFormatSuggestionProvider
-import com.cobblemontournament.common.commands.suggestions.TournamentTypeSuggestionProvider
 import com.cobblemontournament.common.util.CommandUtil
 import com.cobblemontournament.common.commands.nodes.NodeKeys.ACTIVE
 import com.cobblemontournament.common.commands.nodes.NodeKeys.BUILDER
@@ -27,10 +25,8 @@ import com.mojang.brigadier.arguments.BoolArgumentType
 import com.mojang.brigadier.arguments.IntegerArgumentType
 import com.mojang.brigadier.arguments.StringArgumentType
 import com.mojang.brigadier.context.CommandContext
-import net.minecraft.commands.CommandBuildContext
 import net.minecraft.commands.CommandSourceStack
 import net.minecraft.commands.Commands
-import net.minecraft.commands.Commands.CommandSelection
 import net.minecraft.network.chat.MutableComponent
 import org.slf4j.helpers.Util
 
@@ -54,9 +50,9 @@ object UpdateBuilderCommand
     @JvmStatic
     @Suppress("DuplicatedCode")
     fun register(
-        dispatcher  : CommandDispatcher <CommandSourceStack>,
-        registry    : CommandBuildContext,
-        selection   : CommandSelection )
+        dispatcher  : CommandDispatcher <CommandSourceStack>, )
+//        registry    : CommandBuildContext,
+//        selection   : CommandSelection )
     {
         dispatcher.register(
             ActiveBuilderNode.node(
@@ -66,40 +62,46 @@ object UpdateBuilderCommand
                             .executes {
                                 ctx -> updateBuilderProperties( ctx = ctx )
                             } ) )
-                    .then(Commands.literal(TOURNAMENT_TYPE)
-                        .then( Commands.argument( "$NEW$TOURNAMENT_TYPE", StringArgumentType.string() )
-                            .suggests( TournamentTypeSuggestionProvider() )
-                            .executes {
-                                ctx -> updateBuilderProperties( ctx = ctx )
-                            } ) )
-                    .then( Commands.literal( CHALLENGE_FORMAT )
-                        .then( Commands.argument( "$NEW$CHALLENGE_FORMAT", StringArgumentType.string() )
-                            .suggests( ChallengeFormatSuggestionProvider() )
-                            .executes {
-                                ctx -> updateBuilderProperties( ctx = ctx )
-                            } ) )
+//                    .then(Commands.literal(TOURNAMENT_TYPE)
+//                        .then( Commands.argument( "$NEW$TOURNAMENT_TYPE", StringArgumentType.string() )
+//                            .suggests( TournamentTypeSuggestionProvider() )
+//                            .executes {
+//                                ctx -> updateBuilderProperties( ctx = ctx )
+//                            } ) )
+//                    .then( Commands.literal( CHALLENGE_FORMAT )
+//                        .then( Commands.argument( "$NEW$CHALLENGE_FORMAT", StringArgumentType.string() )
+//                            .suggests( ChallengeFormatSuggestionProvider() )
+//                            .executes {
+//                                ctx -> updateBuilderProperties( ctx = ctx )
+//                            } ) )
                     .then( Commands.literal( MAX_PARTICIPANTS )
                         .then( Commands.argument( "$NEW$MAX_PARTICIPANTS", IntegerArgumentType.integer() )
                             .executes {
                                 ctx -> updateBuilderProperties( ctx = ctx )
                             } ) )
-                    .then( Commands.literal( TEAM_SIZE )
-                        .then( Commands.argument( "$NEW$TEAM_SIZE", IntegerArgumentType.integer() )
-                            .executes {
-                                ctx -> updateBuilderProperties( ctx = ctx )
-                            } ) )
-                    .then( Commands.literal( GROUP_SIZE )
-                        .then( Commands.argument( "$NEW$GROUP_SIZE", IntegerArgumentType.integer() )
-                            .executes {
-                                ctx -> updateBuilderProperties( ctx = ctx )
-                            } ) )
+//                    .then( Commands.literal( TEAM_SIZE )
+//                        .then( Commands.argument( "$NEW$TEAM_SIZE", IntegerArgumentType.integer() )
+//                            .executes {
+//                                ctx -> updateBuilderProperties( ctx = ctx )
+//                            } ) )
+//                    .then( Commands.literal( GROUP_SIZE )
+//                        .then( Commands.argument( "$NEW$GROUP_SIZE", IntegerArgumentType.integer() )
+//                            .executes {
+//                                ctx -> updateBuilderProperties( ctx = ctx )
+//                            } ) )
                     .then( Commands.literal( LEVEL )
-                        .then( Commands.argument( "$NEW$MIN_LEVEL", IntegerArgumentType.integer() )
-                            .then( Commands.argument( "$NEW$MAX_LEVEL", IntegerArgumentType.integer() )
-                                .executes {
-                                    ctx -> updateBuilderProperties( ctx = ctx )
-                                }
-                            ) ) )
+                        .then( Commands.argument( "$NEW$LEVEL", IntegerArgumentType.integer() )
+                            .executes {
+                                ctx -> updateBuilderProperties( ctx = ctx )
+                            }
+                        ) )
+//                    .then( Commands.literal( LEVEL )
+//                        .then( Commands.argument( "$NEW$MIN_LEVEL", IntegerArgumentType.integer() )
+//                            .then( Commands.argument( "$NEW$MAX_LEVEL", IntegerArgumentType.integer() )
+//                                .executes {
+//                                    ctx -> updateBuilderProperties( ctx = ctx )
+//                                }
+//                            ) ) )
                     .then( Commands.literal( SHOW_PREVIEW )
                         .then( Commands.argument( "$NEW$SHOW_PREVIEW", BoolArgumentType.bool() )
                             .executes {
@@ -119,16 +121,19 @@ object UpdateBuilderCommand
             when ( entry.key ) {
                 "$NEW$BUILDER_NAME"     -> tournamentBuilder?.name = entry.value
                 "$NEW$TOURNAMENT_TYPE"  -> {
-                    tournamentBuilder?.tournamentType = TournamentUtil.getTournamentTypeOrNull( entry.value ) ?: continue
+                    tournamentBuilder?.tournamentType = TournamentUtil.getTournamentTypeOrNull( entry.value )
+                        ?: continue
                 }
                 "$NEW$CHALLENGE_FORMAT" -> {
-                    tournamentBuilder?.challengeFormat = TournamentUtil.getChallengeFormatOrNull( entry.value ) ?: continue
+                    tournamentBuilder?.challengeFormat = TournamentUtil.getChallengeFormatOrNull( entry.value )
+                        ?: continue
                 }
                 "$NEW$MAX_PARTICIPANTS" -> tournamentBuilder?.maxParticipants = Integer.parseInt( entry.value )
                 "$NEW$TEAM_SIZE"   -> tournamentBuilder?.teamSize  = Integer.parseInt( entry.value )
                 "$NEW$GROUP_SIZE"  -> tournamentBuilder?.groupSize = Integer.parseInt( entry.value )
                 "$NEW$MIN_LEVEL"   -> tournamentBuilder?.minLevel  = Integer.parseInt( entry.value )
-                "$NEW$MAX_LEVEL"   -> tournamentBuilder?.maxLevel  = Integer.parseInt( entry.value )
+                // "$NEW$LEVEL" is temporary until level range is released for CobblemonChallenge
+                "$NEW$MAX_LEVEL", "$NEW$LEVEL" -> tournamentBuilder?.maxLevel  = Integer.parseInt( entry.value )
                 "$NEW$SHOW_PREVIEW" -> {
                     val showPreview = entry.value.toBooleanStrictOrNull()
                     if ( showPreview != null ) {

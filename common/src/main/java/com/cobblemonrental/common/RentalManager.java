@@ -13,6 +13,7 @@ import com.cobblemonrental.common.util.RentalDataKeys;
 import com.cobblemonrental.common.util.RentalStoreUtil;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.MinecraftServer;
@@ -23,6 +24,7 @@ import java.io.*;
 import java.nio.file.Path;
 import java.util.UUID;
 
+@SuppressWarnings({"unused","UNUSED_PARAMETER"})
 public class RentalManager
 {
     public static final RentalManager instance = new RentalManager();
@@ -133,7 +135,7 @@ public class RentalManager
     
     private File getFile(String subFolderInsert)
     {
-        var file = savePath.resolve("rentalData/" + subFolderInsert + "/").toFile();
+        var file = savePath.resolve("rental-data/" + subFolderInsert + "/").toFile();
         file.mkdirs();
         return file;
     }
@@ -166,9 +168,12 @@ public class RentalManager
         var json = rentalStoreUtil().getJSON(gson,br);
         
         UUID id;
+        JsonElement idElement = null;
         if (json != null) {
             // cast to UUID & return
-            var idElement = json.get(RentalDataKeys.RENTAL_POKEMON_STORE_KEY);
+            idElement = json.get(RentalDataKeys.RENTAL_POKEMON_STORE_KEY);
+        }
+        if (idElement != null) {
             var element = idElement.toString();
             Util.report("Element: " + element + " :: UUID: " + element.substring(1,37));
             // 1,37 b/c "" are included -> maybe fix in future?

@@ -1,6 +1,7 @@
 package com.cobblemontournament.common.commands.builder
 
 import com.cobblemontournament.common.api.TournamentStoreManager
+import com.cobblemontournament.common.api.storage.TournamentBuilderStore
 import com.cobblemontournament.common.commands.nodes.builder.CreateBuilderNode
 import com.cobblemontournament.common.util.CommandUtil
 import com.cobblemontournament.common.commands.nodes.NodeKeys.BUILDER
@@ -13,10 +14,8 @@ import com.cobblemontournament.common.tournamentbuilder.TournamentBuilder
 import com.mojang.brigadier.Command
 import com.mojang.brigadier.CommandDispatcher
 import com.mojang.brigadier.context.CommandContext
-import net.minecraft.commands.CommandBuildContext
 import net.minecraft.commands.CommandSourceStack
 import net.minecraft.commands.Commands
-import net.minecraft.commands.Commands.CommandSelection
 import net.minecraft.network.chat.MutableComponent
 import org.slf4j.helpers.Util
 
@@ -36,16 +35,19 @@ object CreateTournamentBuilderCommand
      */
     @JvmStatic
     fun register(
-        dispatcher  : CommandDispatcher <CommandSourceStack>,
-        registry    : CommandBuildContext,
-        selection   : CommandSelection )
+        dispatcher  : CommandDispatcher <CommandSourceStack>, )
+//        registry    : CommandBuildContext,
+//        selection   : CommandSelection )
     {
         dispatcher.register(
             CreateBuilderNode.createBuilder(
                 Commands.literal( EXECUTE )
-                    .executes { ctx: CommandContext <CommandSourceStack> ->
+                    .executes { ctx ->
                         createNewBuilder( ctx = ctx )
-                    } )
+                    }
+            ).executes { ctx ->
+                createNewBuilder( ctx = ctx )
+            }
         )
         // TODO add more optional properties to assign
     }
@@ -62,15 +64,36 @@ object CreateTournamentBuilderCommand
         val nodeEntries = CommandUtil.getNodeEntries( ctx.nodes, ctx.input )
         for ( entry in nodeEntries ) {
             when ( entry.key ) {
+                // TODO clean up
+                //  - maybe add method in store manager to check multiple stores by ID
+                // keep in switch b/c will add setting properties simultaneously in the future
                 "$NEW$BUILDER_NAME" -> {
                     name = entry.value
-                    val ( builder, _ ) = TournamentStoreManager.getTournamentBuilderByName( entry.value )
-                    if ( builder != null ) {
+                    tournamentBuilder = TournamentStoreManager.getInstanceByName(
+                        name        = entry.value,
+                        storeClass  = TournamentBuilderStore::class.java,
+                        storeID     = TournamentStoreManager.activeStoreKey
+                    ).first ?: TournamentStoreManager.getInstanceByName(
+                        name        = entry.value,
+                        storeClass  = TournamentBuilderStore::class.java,
+                        storeID     = TournamentStoreManager.inactiveStoreKey
+                    ).first
+
+                    if ( tournamentBuilder != null ) {
                         exists = true
-                    } else {
-                        tournamentBuilder = TournamentBuilder()
-                        tournamentBuilder.name = entry.value
-                        TournamentStoreManager.addTournamentBuilder( builder = tournamentBuilder )
+                        continue
+                    }
+
+                    tournamentBuilder = TournamentBuilder()
+                    tournamentBuilder.name = entry.value
+                    val success = TournamentStoreManager.addInstance(
+                        storeClass  = TournamentBuilderStore::class.java,
+                        storeID     = TournamentStoreManager.activeStoreKey,
+                        instance    = tournamentBuilder
+                    ).first
+
+                    if ( !success ) {
+                        tournamentBuilder = null
                     }
                 }
             }
