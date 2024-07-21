@@ -1,4 +1,3 @@
 package com.cobblemonrental.fabric;
 
-public class CobblemonRentalTeamFabric
-{}
+public class CobblemonRentalTeamFabric { }

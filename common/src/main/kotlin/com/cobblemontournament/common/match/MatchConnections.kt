@@ -35,7 +35,7 @@ class MatchConnections
         emitChange()
     }
 
-    fun deepCopy() = MatchConnections( victorNextMatch, defeatedNextMatch, TournamentUtil.copy( previousMatchesMap ))
+    fun deepCopy() = MatchConnections( victorNextMatch, defeatedNextMatch, TournamentUtil.shallowCopy( previousMatchesMap ))
 
     fun setFromConnections(
         connections: MatchConnections

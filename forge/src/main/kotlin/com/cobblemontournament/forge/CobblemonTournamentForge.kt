@@ -1,68 +1,35 @@
 package com.cobblemontournament.forge
 
-import com.cobblemontournament.common.TournamentModImplementation
 import com.cobblemontournament.common.CobblemonTournament
-import com.cobblemontournament.common.commands.TournamentCommands
 import com.cobblemontournament.forge.config.TournamentConfigForge
+import com.someguy.api.PlatformModImplementation
 import net.minecraftforge.common.ForgeConfigSpec
-import net.minecraftforge.common.MinecraftForge
-import net.minecraftforge.event.RegisterCommandsEvent
 import net.minecraftforge.fml.ModLoadingContext
 import net.minecraftforge.fml.common.Mod
 import net.minecraftforge.fml.config.ModConfig
-import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent
-import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext
 
-@Mod(CobblemonTournament.MOD_ID)
-object CobblemonTournamentForge: TournamentModImplementation
+@Suppress("unused")
+@Mod(CobblemonTournament.COMPANION.MOD_ID)
+object CobblemonTournamentForge : PlatformModImplementation( common = CobblemonTournament )
 {
-    private val config: TournamentConfigForge
     private val commonSpec: ForgeConfigSpec
 
     init
     {
-        val pair = ForgeConfigSpec.Builder().configure {
-            builder: ForgeConfigSpec.Builder -> TournamentConfigForge( builder)
+        val ( _ , commonSpec ) = ForgeConfigSpec.Builder().configure {
+            builder -> TournamentConfigForge.initialize( builder )
         }
-        config = pair.left
-        commonSpec = pair.right
-        ModLoadingContext.get().registerConfig( ModConfig.Type.COMMON, commonSpec)
-        FMLJavaModLoadingContext.get().modEventBus.addListener {
-                event: FMLCommonSetupEvent -> this.serverInitialize( event)
-        }
-        MinecraftForge.EVENT_BUS.addListener {
-                event: RegisterCommandsEvent -> this.commands( event)
-        }
+        this.commonSpec = commonSpec
+        initialize()
     }
 
-    fun serverInitialize(
-        event: FMLCommonSetupEvent
-    ) {
-        event.enqueueWork { CobblemonTournament.initialize( implementation = this) }
-    }
+    // no platform specific initialization needed at this time
+    override fun initialize() = initializeCommon()
 
     override fun initializeConfig() {
-//        FMLJavaModLoadingContext.get().modEventBus.addListener {
-//                event: FMLCommonSetupEvent -> this.serverInitialize( event)
-//        }
+        ModLoadingContext.get().registerConfig( ModConfig.Type.COMMON, commonSpec )
     }
 
-    override fun registerEvents() {
-        // ?? old ??
-        //DistExecutor.safeCallWhenOn(Dist.DEDICATED_SERVER,() -> ChallengeEventHandler::registerEvents);
-        //{
-        CobblemonTournament.registerEvents()
-        //}
-    }
-
-    override fun registerCommands() {
-//        MinecraftForge.EVENT_BUS.addListener {
-//                event: RegisterCommandsEvent -> this.commands( event)
-//        }
-    }
-
-    fun commands( e: RegisterCommandsEvent ) {
-        TournamentCommands.register( e.dispatcher, e.buildContext, e.commandSelection )
-    }
-
+    // no platform specific events to register at this time
+    override fun registerEvents() { }
 }

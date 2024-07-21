@@ -1,26 +1,23 @@
 package com.cobblemontournament.common.api
 
 import com.cobblemon.mod.common.api.Priority
-import com.cobblemontournament.common.tournament.Tournament
-import com.cobblemontournament.common.api.storage.TournamentStore
-import com.cobblemontournament.common.tournamentbuilder.TournamentBuilder
-import com.cobblemontournament.common.api.storage.TournamentBuilderStore
 import com.cobblemontournament.common.api.storage.DataKeys
 import com.google.gson.GsonBuilder
 import com.someguy.storage.StoreManager
 import com.someguy.storage.adapter.flatfile.NBTStoreAdapter
 import com.someguy.storage.classstored.ClassStored
 import com.someguy.storage.factory.FileBackedStoreFactory
+import com.someguy.storage.position.StorePosition
 import com.someguy.storage.store.DefaultStore
-import com.someguy.storage.util.StoreUtil.getFile
-import com.someguy.storage.util.StoreUtil.getUuidKey
+import com.someguy.storage.store.Store
+import com.someguy.storage.store.StoreUtil.getFile
+import com.someguy.storage.store.StoreUtil.getUuidKey
 import net.minecraft.server.MinecraftServer
 import net.minecraft.world.level.storage.LevelResource
 import java.io.File
 import java.nio.file.Path
 import java.util.UUID
 
-@Suppress("MemberVisibilityCanBePrivate")
 object TournamentStoreManager: StoreManager()
 {
     private const val ROOT_DIR_NAME         = "tournament"
@@ -57,7 +54,7 @@ object TournamentStoreManager: StoreManager()
         registerFactory( Priority.NORMAL, FileBackedStoreFactory( adapter, CREATE_IF_MISSING ) )
     }
 
-    fun <C: ClassStored,St: DefaultStore<C>> getInstance(
+    fun <P: StorePosition,C: ClassStored,St: Store<P,C>> getInstance(
         storeClass  : Class<St>,
         storeID     : UUID,
         instanceID  : UUID
@@ -66,39 +63,12 @@ object TournamentStoreManager: StoreManager()
         return store[instanceID]
     }
 
-    fun <C: ClassStored,St: DefaultStore<C>> getStoreIterator(
+    fun <P: StorePosition,C: ClassStored,St: Store<P,C>> getStoreIterator(
         storeClass      : Class<out St>,
         storeID         : UUID
     ): Iterator <C> {
         val store =  getStore( storeClass, storeID ) ?: return emptySequence <C>().iterator()
         return store.iterator()
-    }
-
-    /**
-     * This is meant to filter [ClassStored] by any [predicate] input.
-     * If the predicate == true then the [action] will be performed on the ClassStored instance.
-     * If the action output is not null it will be added to the returned set.
-     *
-     * [T] is whatever type the action outputs.
-     *
-     *      If the action output is nullable it will still be safe to assert not null.
-     *      This function will not add any null values to the Set<T> being returned.
-     */
-    fun <T, C: ClassStored, St: DefaultStore<C>> getValuesFromStore(
-        storeClass: Class<St>,
-        storeID: UUID,
-        predicate: (C) -> Boolean = { _ -> true },
-        action: (C) -> T,
-    ): Set<T>
-    {
-        val set = mutableSetOf<T>()
-        for ( instance in getStoreIterator( storeClass, storeID ) ) {
-            if ( predicate( instance ) ) {
-                val value = action( instance ) ?: continue
-                set.add( value )
-            }
-        }
-        return set
     }
 
     /**
@@ -113,7 +83,7 @@ object TournamentStoreManager: StoreManager()
      *
      *      * - ( message will specify if store was null or store was full )
      */
-    fun <C: ClassStored,St: DefaultStore<C>> addInstance(
+    fun <P: StorePosition,C: ClassStored,St: Store<P,C>> addInstance(
         storeClass  : Class<St>,
         storeID     : UUID,
         instance    : C
@@ -122,11 +92,10 @@ object TournamentStoreManager: StoreManager()
         return addInstance( store, instance )
     }
 
-    private fun <C: ClassStored> addInstance(
-        store: DefaultStore<C>,
+    private fun <P: StorePosition,C: ClassStored,St: Store<P,C>> addInstance(
+        store: St,
         value: C
-    ): Pair <Boolean,String>
-    {
+    ): Pair <Boolean,String> {
         return if ( store.add( value ) ) {
             Pair( true, "" )
         } else Pair( false, FAILED_INSIDE_STORE )
@@ -143,7 +112,7 @@ object TournamentStoreManager: StoreManager()
      *      if [ClassStored] with [name] exists
      *          returns [ClassStored] & empty [String]
      */
-    fun <C: ClassStored,St: DefaultStore<C>> getInstanceByName(
+    fun <P: StorePosition,C: ClassStored,St: Store<P,C>> getInstanceByName(
         name: String,
         storeClass: Class<St>,
         storeID: UUID
@@ -157,75 +126,97 @@ object TournamentStoreManager: StoreManager()
         return Pair( null, NO_INSTANCE_WITH_NAME )
     }
 
-    fun <C: ClassStored,St: DefaultStore<C>> deactivateInstance(
+    fun <P: StorePosition,C: ClassStored,St: Store<P,C>> transferInstance(
         storeClass  : Class<St>,
         instance    : C,
-        predicate   : (C) -> Boolean = { _ -> true }
+        storeID     : UUID,
+        newStoreID  : UUID,
+        predicate   : ( C ) -> Boolean = { _ -> true }
     ): Boolean
     {
         if ( !predicate( instance ) ) {
             return false // TODO log?
         }
-        getStore( storeClass, activeStoreKey )?.remove( instance )
-        val inactiveStore = getStore( storeClass, inactiveStoreKey )
+        getStore( storeClass, storeID ) ?.remove( instance )
+        val inactiveStore = getStore( storeClass, newStoreID )
             ?: return false // TODO log?
         return inactiveStore.add( instance )
     }
 
-    /**
-     * [TournamentBuilder], [storeID], [playerID]
-     *
-     *      if [storeID] != null
-     *          returns builder names from the storeID
-     *      if [storeID] == null
-     *          returns builder names from the server store key
-     *      if [playerID] != null
-     *          returns only builders with the playerID registered
-     *      if [playerID] == null
-     *          returns all builder names
-     */
-    fun getTournamentBuilderNames(
-        storeID     : UUID = activeStoreKey,
-        playerID    : UUID? = null,
-    ): Set <String>
-    {
-        val containsPlayerID: ( TournamentBuilder ) -> Boolean = if ( playerID != null ) {
-            { instance ->  instance.containsPlayerID( playerID ) }
-        } else { _ -> true }
-
-        return getValuesFromStore(
-            storeClass  = TournamentBuilderStore::class.java,
-            storeID     = storeID,
-            predicate   = containsPlayerID,
-            action      = { instance ->  instance.name } )
+    fun <P: StorePosition,C: ClassStored,St: Store<P,C>> deleteInstance(
+        storeClass  : Class<St>,
+        storeID     : UUID,
+        instance    : C
+    ): Boolean {
+        return getStore( storeClass, storeID ) ?.remove( instance ) == true
     }
 
     /**
-     * [TournamentBuilder], [storeID], [playerID]
+     * This is meant to filter [ClassStored] by any [predicate] input.
      *
-     *      if [storeID] != null
-     *          returns tournament names from the storeID
-     *      if [storeID] == null
-     *          returns tournament names from the server store key
-     *      if [playerID] != null
-     *          returns only tournaments with the playerID registered
-     *      if [playerID] == null
-     *          returns all tournament names
+     *      if the predicate.invoke( instance: C ) == true
+     *          the [action] will be performed on the instance to get the value of [T]
+     *          * Note: If the output value is null -> it will not be added to the set.
+     *          *       It is safe to assert not null on the returned [Set] & it's values
+     *      else the instance is skipped
+     *
+     * @param T The class of the [action] output & class contained in the returned [Set].
+     * @param action The block of code performed on each [C] instance
+     * @return Set of [T]
      */
-    fun getTournamentNames(
-        storeID     : UUID = activeStoreKey,
-        playerID    : UUID? = null,
+    fun <T, P: StorePosition,C: ClassStored,St: Store<P,C>>  getValuesFromStore(
+        storeClass  : Class<St>,
+        storeID     : UUID,
+        predicate   : (C) -> Boolean = { _ -> true },
+        action      : (C) -> T,
+    ): Set<T>
+    {
+        val set = mutableSetOf <T>()
+        for ( instance in getStoreIterator( storeClass, storeID ) ) {
+            if ( predicate( instance ) ) {
+                val value = action( instance ) ?: continue
+                set.add( value )
+            }
+        }
+        return set
+    }
+
+    /**
+     * @param storeClass The store class holding the targeted [ClassStored] type
+     * @param predicate If not specified predicate will always be true
+     * @return [ClassStored] names that pass the [predicate] from the [storeID]
+     */
+    fun <P: StorePosition,C: ClassStored,St: Store<P,C>> getInstanceNames(
+        storeClass  : Class <out St>,
+        storeID     : UUID,
+        predicate   : ( C ) -> Boolean = { _ -> true }
     ): Set <String>
     {
-        val containsPlayerID: ( Tournament ) -> Boolean = if ( playerID != null ) {
-            { instance ->  instance.containsPlayerID( playerID ) }
-        } else { _ -> true }
-
         return getValuesFromStore(
-            storeClass  = TournamentStore::class.java,
+            storeClass  = storeClass,
             storeID     = storeID,
-            predicate   = containsPlayerID,
+            predicate   = predicate,
             action      = { instance ->  instance.name } )
     }
 
+    fun <C: ClassStored> getNameWithIndex(
+        currentInstance: C
+    ): String? {
+        val store = currentInstance.storeCoordinates.get()?.store ?: return null
+        val currentName = currentInstance.name
+        if ( store.firstOrNull { it.name == currentName } != null ) {
+            return currentName
+        }
+        val getNewName: (Int) -> String = { "$currentName ($it)" }
+        return run loop@ {
+            // just hard coding to 100 for now... TODO ?? is the 'magic' 100 really that bad here ??
+            for (index in 0 until 100) {
+                val indexedName = getNewName( index )
+                if ( store.firstOrNull { it.name == indexedName } != null ) {
+                    return@loop indexedName
+                }
+            }
+            return@loop null
+        }
+    }
 }

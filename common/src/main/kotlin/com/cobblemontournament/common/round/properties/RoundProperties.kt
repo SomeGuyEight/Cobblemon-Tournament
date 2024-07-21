@@ -12,7 +12,7 @@ import java.util.UUID
 class RoundProperties : Properties <RoundProperties>
 {
     companion object {
-        val HELPER = RoundPropertiesHelper
+        private val HELPER = RoundPropertiesHelper
         /** Returns a new RoundProperties instance loaded from the CompoundTag */
         fun loadFromNBT( nbt: CompoundTag ) = HELPER.loadFromNBTHelper( nbt )
     }

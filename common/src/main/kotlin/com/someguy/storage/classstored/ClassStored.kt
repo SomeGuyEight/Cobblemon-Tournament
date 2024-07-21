@@ -13,6 +13,7 @@ interface ClassStored
     val name: String
     val storeCoordinates: SettableObservable<StoreCoordinates<*,*>?>
 
+    /** Initializes & returns a reference to itself */
     fun initialize(): ClassStored
     fun getChangeObservable(): Observable <*>
     fun printProperties()

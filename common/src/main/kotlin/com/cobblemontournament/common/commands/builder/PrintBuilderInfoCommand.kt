@@ -1,5 +1,7 @@
 package com.cobblemontournament.common.commands.builder
 
+import com.cobblemontournament.common.commands.ExecutableCommand
+import com.cobblemontournament.common.commands.nodes.ExecutionNode
 import com.cobblemontournament.common.commands.nodes.builder.ActiveBuilderInfoNode
 import com.cobblemontournament.common.util.CommandUtil
 import com.cobblemontournament.common.commands.nodes.NodeKeys.ACTIVE
@@ -10,6 +12,7 @@ import com.cobblemontournament.common.commands.nodes.NodeKeys.INFO
 import com.cobblemontournament.common.commands.nodes.NodeKeys.OVERVIEW
 import com.cobblemontournament.common.commands.nodes.NodeKeys.PLAYER_PROPERTIES
 import com.cobblemontournament.common.commands.nodes.NodeKeys.TOURNAMENT
+import com.cobblemontournament.common.commands.nodes.builder.BuilderHistoryInfoNode
 import com.mojang.brigadier.Command
 import com.mojang.brigadier.CommandDispatcher
 import com.mojang.brigadier.context.CommandContext
@@ -17,56 +20,51 @@ import net.minecraft.commands.CommandSourceStack
 import net.minecraft.commands.Commands
 import org.slf4j.helpers.Util
 
-object PrintBuilderInfoCommand
+/**
+ * [TOURNAMENT] - [BUILDER] - [ACTIVE] - [BUILDER_NAME] - [INFO] -
+ *
+ * * arguments -> [printInfo]
+ *
+ *      literal     [TOURNAMENT]    ->
+ *      literal     [BUILDER]       ->
+ *      literal     [ACTIVE]        ->
+ *      argument    [BUILDER_NAME] , StringType ->
+ *      literal     [INFO]          ->
+ *      * arguments                 ->
+ *      function    [printInfo]
+ *
+ *      * arguments fork
+ */
+object PrintBuilderInfoCommand : ExecutableCommand
 {
-    /**
-     * [TOURNAMENT] - [BUILDER] - [ACTIVE] - [BUILDER_NAME] - [INFO] -
-     *
-     * * arguments -> [printInfo]
-     *
-     *      literal     [TOURNAMENT]    ->
-     *      literal     [BUILDER]       ->
-     *      literal     [ACTIVE]        ->
-     *      argument    [BUILDER_NAME] , StringType ->
-     *      literal     [INFO]          ->
-     *      * arguments                 ->
-     *      function    [printInfo]
-     *
-     *      * arguments fork
-     */
+    override val executionNode get() = ExecutionNode { printInfo( ctx = it ) }
+
     @JvmStatic
-    fun register(
-        dispatcher  : CommandDispatcher <CommandSourceStack>, )
-//        registry    : CommandBuildContext,
-//        selection   : CommandSelection )
+    fun register( dispatcher: CommandDispatcher <CommandSourceStack> )
     {
-        dispatcher.register(
-            ActiveBuilderInfoNode.getInfo(
-                Commands.literal( PLAYER_PROPERTIES )
-                    .executes {
-                        ctx -> printInfo( ctx )
-                    }
-            ) )
+        val overviewStack = Commands
+            .literal( OVERVIEW )
+            .executes( this.executionNode.node )
 
-        dispatcher.register(
-            ActiveBuilderInfoNode.getInfo(
-                Commands.literal( BUILDER_PROPERTIES )
-                    .executes {
-                        ctx -> printInfo( ctx )
-                    }
-            ) )
+        val builderPropertiesStack = Commands
+            .literal( BUILDER_PROPERTIES )
+            .executes( this.executionNode.node )
 
-        dispatcher.register(
-            ActiveBuilderInfoNode.getInfo(
-                Commands.literal( OVERVIEW )
-                    .executes {
-                        ctx -> printInfo( ctx )
-                    }
-            ) )
+        val playerPropertiesStack = Commands
+            .literal( PLAYER_PROPERTIES )
+            .executes( this.executionNode.node )
+
+        dispatcher.register( ActiveBuilderInfoNode.nest( overviewStack ) )
+        dispatcher.register( ActiveBuilderInfoNode.nest( builderPropertiesStack ) )
+        dispatcher.register( ActiveBuilderInfoNode.nest( playerPropertiesStack ) )
+
+        dispatcher.register( BuilderHistoryInfoNode.nest( overviewStack ) )
+        dispatcher.register( BuilderHistoryInfoNode.nest( builderPropertiesStack ) )
+        dispatcher.register( BuilderHistoryInfoNode.nest( playerPropertiesStack ) )
     }
 
     @JvmStatic
-    private fun printInfo(
+    fun printInfo(
         ctx: CommandContext <CommandSourceStack>
     ): Int
     {
@@ -74,7 +72,11 @@ object PrintBuilderInfoCommand
         var printPlayerInfo     = false
         var printOverview       = false
 
-        val ( nodeEntries, tournamentBuilder ) = CommandUtil.getNodesAndTournamentBuilder( ctx )
+        val ( nodeEntries, tournamentBuilder ) = CommandUtil
+            .getNodesAndTournamentBuilder(
+                ctx = ctx,
+                storeID = null )
+
         for ( entry in nodeEntries ) {
             when ( entry.key ) {
                 BUILDER_PROPERTIES -> printBuilderInfo = true
@@ -119,5 +121,4 @@ object PrintBuilderInfoCommand
         }
         return 0
     }
-
 }

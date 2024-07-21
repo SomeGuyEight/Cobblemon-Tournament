@@ -20,15 +20,15 @@ package com.someguy.storage.factory
  */
 
 import com.cobblemon.mod.common.api.reactive.Observable.Companion.emitWhile
-import com.cobblemon.mod.common.platform.events.PlatformEvents
 import com.cobblemon.mod.common.util.subscribeOnServer
 import com.cobblemontournament.common.CobblemonTournament.LOGGER
-import com.cobblemontournament.common.config.Config
+import com.cobblemontournament.common.config.TournamentConfig
 import com.someguy.storage.store.Store
 import com.someguy.storage.position.StorePosition
 import com.someguy.storage.classstored.ClassStored
 import com.someguy.storage.adapter.SerializedStore
 import com.someguy.storage.adapter.flatfile.FileStoreAdapter
+import dev.architectury.event.events.common.TickEvent
 import java.util.UUID
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
@@ -38,42 +38,46 @@ import java.util.concurrent.Executors
  * for saving, as well as simple map cache.
  */
 // Eight's implementation
-@Suppress("MemberVisibilityCanBePrivate")
 open class FileBackedStoreFactory<Ser> (
-    protected val adapter: FileStoreAdapter<Ser>,
-    protected val createIfMissing: Boolean
+    private val adapter: FileStoreAdapter<Ser>,
+    private val createIfMissing: Boolean
 ): StoreFactory
 {
-    var passedTicks = 0
-    protected val saveSubscription = PlatformEvents.SERVER_TICK_PRE.subscribe {
+    private val saveIntervalTicks = TournamentConfig.saveIntervalSeconds() * 20
+    private var passedTicks = 0
+
+    @Suppress("unused")
+    private val saveSubscription = TickEvent.Server.SERVER_PRE.register {
         passedTicks++
-        if (passedTicks > 20 * Config.saveIntervalSeconds()) {
+        if ( passedTicks > saveIntervalTicks ) {
             saveAll()
             passedTicks = 0
         }
     }
 
-    protected var saveExecutor: ExecutorService = Executors.newSingleThreadExecutor()
-    protected val storeCaches = mutableMapOf<Class<out Store<*,*>>, StoreCache<*,*,*>>()
-    private val dirtyStores = mutableSetOf<Store<*,*>>()
+    private var saveExecutor: ExecutorService = Executors.newSingleThreadExecutor()
+    private val storeCaches = mutableMapOf <Class<out Store<*,*>>, StoreCache <*,*,*>>()
+    private val dirtyStores = mutableSetOf <Store<*,*>>()
 
     protected inner class StoreCache <P: StorePosition,C: ClassStored,St: Store<P,C>> {
-        val cacheMap = mutableMapOf<UUID,St>()
+        val cacheMap = mutableMapOf <UUID,St>()
     }
 
-    fun <P: StorePosition,C: ClassStored> isCached(
+    private fun <P: StorePosition,C: ClassStored> isCached(
         store: Store<P,C>
     ): Boolean {
-        return storeCaches[store::class.java]?.cacheMap?.containsKey(store.storeID) == true
+        return storeCaches[store::class.java]?.cacheMap?.containsKey( store.storeID ) == true
     }
 
-    @Suppress("UNCHECKED_CAST")
-    protected fun <P: StorePosition,C: ClassStored,St: Store<P,C>> getStoreCache(
+    private fun <P: StorePosition,C: ClassStored,St: Store<P,C>> getStoreCache(
         storeClass: Class<out St>
     ): StoreCache<P,C,St>
     {
-        val cache: StoreCache<*,*,*> = storeCaches.getOrPut(storeClass) { StoreCache<P,C,St>() }
+        val cache: StoreCache<*,*,*> = storeCaches.getOrPut( storeClass ) {
+            StoreCache<P,C,St>()
+        }
         // 'safe' unchecked cast b/c types confirmed by type parameters & getOrPut
+        @Suppress("UNCHECKED_CAST")
         return cache as StoreCache<P,C,St>
     }
 
@@ -81,31 +85,31 @@ open class FileBackedStoreFactory<Ser> (
         storeClass: Class<St>,
         storeID: UUID
     ): St? {
-        return getStoreInner(storeClass,storeID)
+        return getStoreInner( storeClass, storeID )
     }
 
-    protected fun <P: StorePosition,C: ClassStored,St: Store<P, C>> getStoreInner(
+    private fun <P: StorePosition,C: ClassStored,St: Store<P,C>> getStoreInner(
         storeClass: Class<out St>,
         storeID: UUID,
-        constructor: ((UUID) -> St) = { storeClass.getConstructor(UUID::class.java).newInstance(it) }
+        constructor: ( ( UUID ) -> St ) = {
+            storeClass.getConstructor( UUID::class.java ).newInstance( it )
+        }
     ): St?
     {
-        val cache = getStoreCache(storeClass)
+        val cache = getStoreCache( storeClass )
         val cached = cache.cacheMap[storeID]
         if (cached != null) {
             return cached
         } else {
-            //var newStore = false
-            val loaded = adapter.load(storeClass, storeID)
+            val loaded = adapter.load( storeClass, storeID )
                 ?: run {
-                    if (createIfMissing) {
-                        //newStore = true
-                        return@run constructor(storeID)
+                    if ( createIfMissing ) {
+                        return@run constructor( storeID )
                     } else {
                         return@run null
                     }
-                }?: return null
-            //if (newStore) dirtyStores.add(loaded)
+                }
+                ?: return null
             loaded.initialize()
             track(loaded)
             cache.cacheMap[storeID] = loaded
@@ -113,38 +117,51 @@ open class FileBackedStoreFactory<Ser> (
         }
     }
 
-    fun track(
-        store: Store<*,*>
-    ) {
+    private fun track(store: Store <*,*> ) {
         store.getAnyChangeObservable()
-            .pipe(emitWhile { isCached(store) })
-            .subscribeOnServer { dirtyStores.add(store) }
+            .pipe( emitWhile { isCached( store ) } )
+            .subscribeOnServer { dirtyStores.add( store ) }
     }
 
-    fun save(
-        store: Store<*,*>
-    )
+    fun save( store: Store <*,*> )
     {
-        val serialized = SerializedStore(store::class.java, store.storeID, adapter.serialize(store))
-        dirtyStores.remove(store)
-        saveExecutor.submit { adapter.save(serialized.storeClass, serialized.uuid, serialized.serializedForm) }
-    }
-
-    fun saveAll()
-    {
-            LOGGER.debug( "Serializing ${dirtyStores.size} stores." )
-        val serializedStores = dirtyStores.map { SerializedStore(it.javaClass, it.storeID, adapter.serialize(it)) }
-        dirtyStores.clear()
-        LOGGER.debug("Queueing save.")
+        val serialized = SerializedStore(
+            storeClass      = store::class.java,
+            uuid            = store.storeID,
+            serializedForm  = adapter.serialize( store ) )
         saveExecutor.submit {
-            serializedStores.forEach { adapter.save(it.storeClass, it.uuid, it.serializedForm) }
-            LOGGER.debug("Saved ${serializedStores.size} stores.")
+            adapter.save(
+                storeClass  = serialized.storeClass,
+                uuid        = serialized.uuid,
+                serialized  = serialized.serializedForm )
+        }
+        dirtyStores.remove( store )
+    }
+
+    private fun saveAll()
+    {
+        LOGGER.debug( "Serializing ${ dirtyStores.size } stores." )
+        val serializedStores = dirtyStores.map {
+            SerializedStore(
+                storeClass      = it.javaClass,
+                uuid            = it.storeID,
+                serializedForm  = adapter.serialize( it ) )
+        }
+        dirtyStores.clear()
+
+        LOGGER.debug( "Queueing save." )
+        saveExecutor.submit {
+            serializedStores.forEach {
+                adapter.save(
+                    storeClass  = it.storeClass,
+                    uuid        = it.uuid,
+                    serialized  = it.serializedForm )
+            }
+            LOGGER.debug( "Saved ${ serializedStores.size } stores." )
         }
     }
 
-    override fun shutdown()
-    {
-        saveSubscription.unsubscribe()
+    override fun shutdown() {
         saveAll()
         saveExecutor.shutdown()
     }

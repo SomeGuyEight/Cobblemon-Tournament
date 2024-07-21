@@ -11,16 +11,19 @@ import com.someguy.storage.coordinates.StoreCoordinates
 import net.minecraft.nbt.CompoundTag
 import java.util.UUID
 
-// Important: (UUID) constructor is needed for serialization method
+/** &#9888; (UUID) constructor is needed for serialization method */
 open class TournamentRound : ClassStored
 {
     companion object {
+        /** &#9888; Observables will be broken if [initialize] is not called after construction */
         fun loadFromNBT( nbt: CompoundTag ): TournamentRound {
             return TournamentRound( RoundProperties.loadFromNBT( nbt.getCompound( DataKeys.ROUND_PROPERTIES ) ) )
         }
     }
 
+    /** &#9888; Observables will be broken if [initialize] is not called after construction */
     constructor ( uuid: UUID = UUID.randomUUID() ) : this ( RoundProperties( uuid ) )
+    /** &#9888; Observables will be broken if [initialize] is not called after construction */
     constructor ( properties: RoundProperties) {
         this.properties = properties
     }
@@ -35,16 +38,21 @@ open class TournamentRound : ClassStored
 
     override var storeCoordinates: SettableObservable <StoreCoordinates <*,*>? > = SettableObservable( value = null )
 
-    val tournamentID    get()   = properties.tournamentID
-    val roundIndex      get()   = properties.roundIndex
-    val roundType       get()   = properties.roundType
-    val matchMapSize    get()   = properties.indexedMatchMap.size
+    val tournamentID        get()   = properties.tournamentID
+    val roundIndex          get()   = properties.roundIndex
+    private val roundType   get()   = properties.roundType
+    val matchMapSize        get()   = properties.indexedMatchMap.size
 
     fun getMatchID( roundMatchIndex: Int ) = properties.indexedMatchMap[roundMatchIndex]
 
     override fun printProperties() = properties.logDebug()
     // fun copyProperties() = properties.deepCopy()
 
+    /**
+     *  Initializes & returns a reference to itself
+     *
+     * &#9888; Observables will be broken if [initialize] is not called after construction
+     */
     override fun initialize(): TournamentRound {
         registerObservable( properties.anyChangeObservable )
         return this
@@ -57,6 +65,7 @@ open class TournamentRound : ClassStored
         return nbt
     }
 
+    /** &#9888; Observables will be broken if [initialize] is not called after construction */
     override fun loadFromNBT(
         nbt: CompoundTag
     ) : TournamentRound {
@@ -65,6 +74,8 @@ open class TournamentRound : ClassStored
     }
 
     override fun saveToJSON( json: JsonObject ): JsonObject { TODO("Not yet implemented") }
+
+    /** &#9888; Observables will be broken if [initialize] is not called after construction */
     override fun loadFromJSON( json: JsonObject ): ClassStored { TODO("Not yet implemented") }
 
     private val observables = mutableListOf <Observable <*>>()
@@ -73,7 +84,7 @@ open class TournamentRound : ClassStored
     fun getAllObservables() = observables.asIterable()
     override fun getChangeObservable() = anyChangeObservable
 
-    protected fun registerObservable(
+    private fun registerObservable(
         observable: Observable <*>
     ): Observable <*>
     {

@@ -40,7 +40,8 @@ dependencies {
     implementation "thedarkcolour:kotlinforforge:${rootProject.kotlin_for_forge_version}"
     modApi "dev.architectury:architectury-forge:${rootProject.architectury_version}"
     modImplementation "com.cobblemon:forge:${rootProject.cobblemon_version}"
-    implementation "curse.maven:cobblemon-challenge-908215:5339596"
+    //implementation "curse.maven:cobblemon-challenge-908215:5339596"
+    modImplementation "curse.maven:cobblemon-challenge-908215:5339596"
 
     mappings loom.layered() {
         officialMojangMappings()

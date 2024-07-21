@@ -19,15 +19,19 @@ import net.minecraft.nbt.CompoundTag
 import net.minecraft.server.level.ServerPlayer
 import java.util.UUID
 
+/** &#9888; (UUID) constructor is needed for serialization method */
 open class TournamentBuilder : ClassStored
 {
     companion object {
+        /** &#9888; Observables will be broken if [initialize] is not called after construction */
         fun loadFromNBT( nbt: CompoundTag ): TournamentBuilder {
             return TournamentBuilder( TournamentBuilderProperties.loadFromNBT( nbt.getCompound( DataKeys.TOURNAMENT_BUILDER_PROPERTIES ) ) )
         }
     }
 
+    /** &#9888; Observables will be broken if [initialize] is not called after construction */
     constructor( uuid: UUID = UUID.randomUUID() ) : this ( TournamentBuilderProperties( uuid ) )
+    /** &#9888; Observables will be broken if [initialize] is not called after construction */
     constructor( properties: TournamentBuilderProperties ) {
         this.properties = properties
     }
@@ -131,6 +135,11 @@ open class TournamentBuilder : ClassStored
     fun getUnseededPlayers()        = properties.getUnseededPlayers()
     fun playersSize()               = properties.getPlayersSize()
 
+    /**
+     *  Initializes & returns a reference to itself
+     *
+     * &#9888; Observables will be broken if [initialize] is not called after construction
+     */
     override fun initialize(): TournamentBuilder {
         registerObservable( properties.getChangeObservable() )
         return this
@@ -228,7 +237,7 @@ open class TournamentBuilder : ClassStored
     fun getAllObservables() = observables.asIterable()
     override fun getChangeObservable() = anyChangeObservable
 
-    protected fun registerObservable(
+    private fun registerObservable(
         observable: Observable <*>
     ) : Observable <*>
     {

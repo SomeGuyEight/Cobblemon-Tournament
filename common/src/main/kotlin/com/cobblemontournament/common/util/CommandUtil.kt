@@ -11,28 +11,17 @@ import com.cobblemontournament.common.tournamentbuilder.TournamentBuilder
 import com.mojang.brigadier.Command
 import com.mojang.brigadier.context.CommandContext
 import com.mojang.brigadier.context.ParsedCommandNode
+import com.someguy.storage.classstored.ClassStored
+import com.someguy.storage.position.StorePosition
+import com.someguy.storage.store.Store
 import net.minecraft.commands.CommandSourceStack
 import net.minecraft.network.chat.MutableComponent
 import net.minecraft.server.level.ServerPlayer
 import org.slf4j.helpers.Util
+import java.util.UUID
 
 object CommandUtil
 {
-    @JvmStatic
-    fun getNodeEntries(
-        nodes   : List <ParsedCommandNode <*>>,
-        input   : String
-    ): List <NodeEntry>
-    {
-        val list = mutableListOf <NodeEntry>()
-        for ( parsedNode in nodes ) {
-            val range = parsedNode.range
-            val value = input.subSequence( range.start, range.end )
-            list.add( NodeEntry( parsedNode.node.name, value.toString() ) )
-        }
-        return list
-    }
-
     @JvmStatic
     fun tryGetNodeInput(
         nodes   : List <ParsedCommandNode <*>>,
@@ -50,36 +39,86 @@ object CommandUtil
     }
 
     @JvmStatic
-    fun getNodesAndTournament(
+    fun getNodeEntries(
         ctx: CommandContext <CommandSourceStack>
-    ): Pair < List <NodeEntry>, Tournament? >
+    ): List <NodeEntry> {
+        return getNodeEntries( ctx.nodes, ctx.input )
+    }
+
+    @JvmStatic
+    fun getNodeEntries(
+        nodes   : List <ParsedCommandNode <*>>,
+        input   : String
+    ): List <NodeEntry>
     {
-        val nodeEntries = getNodeEntries( ctx.nodes, ctx.input )
+        val list = mutableListOf <NodeEntry>()
+        for ( parsedNode in nodes ) {
+            val range = parsedNode.range
+            val value = input.subSequence( range.start, range.end )
+            list.add( NodeEntry( parsedNode.node.name, value.toString() ) )
+        }
+        return list
+    }
+
+    @JvmStatic
+    fun getNodesAndTournament(
+        ctx     : CommandContext <CommandSourceStack>,
+        storeID : UUID?
+    ): Pair <List<NodeEntry>, Tournament?>
+    {
+        val nodeEntries = getNodeEntries( ctx )
         val entry = nodeEntries.firstOrNull { it.key == TOURNAMENT_NAME }
+        val storeClass = TournamentStore::class.java
         val tournament = if ( entry != null ) {
-            TournamentStoreManager.getInstanceByName(
-                name        = entry.value,
-                storeClass  = TournamentStore::class.java,
-                storeID     = TournamentStoreManager.activeStoreKey
-            ).first
+            tryGetInstance( storeClass, storeID, entry.value )
+                ?: tryGetInstance(
+                    storeClass      = storeClass,
+                    storeID         = TournamentStoreManager.activeStoreKey,
+                    instanceName    = entry.value )
+                ?: tryGetInstance(
+                    storeClass      = storeClass,
+                    storeID         = TournamentStoreManager.inactiveStoreKey,
+                    instanceName    = entry.value )
         } else null
         return Pair( nodeEntries, tournament )
     }
 
     @JvmStatic
     fun getNodesAndTournamentBuilder(
-        ctx: CommandContext <CommandSourceStack>
-    ): Pair < List <NodeEntry>, TournamentBuilder? >
+        ctx     : CommandContext <CommandSourceStack>,
+        storeID : UUID?
+    ): Pair <List<NodeEntry>, TournamentBuilder?>
     {
-        val nodeEntries = getNodeEntries( ctx.nodes, ctx.input )
+        val nodeEntries = getNodeEntries( ctx )
         val entry = nodeEntries.firstOrNull { it.key == BUILDER_NAME }
-        val ( builder, _ ) = if ( entry != null ) {
-            TournamentStoreManager.getInstanceByName(
-                name        = entry.value,
-                storeClass  = TournamentBuilderStore::class.java,
-                storeID     = TournamentStoreManager.activeStoreKey )
-        } else Pair( null, null )
+        val storeClass = TournamentBuilderStore::class.java
+        val builder = if ( entry != null ) {
+            tryGetInstance( storeClass, storeID, entry.value )
+                ?: tryGetInstance(
+                    storeClass      = storeClass,
+                    storeID         = TournamentStoreManager.activeStoreKey,
+                    instanceName    = entry.value )
+                ?: tryGetInstance(
+                    storeClass      = storeClass,
+                    storeID         = TournamentStoreManager.inactiveStoreKey,
+                    instanceName    = entry.value )
+        } else null
         return Pair( nodeEntries, builder )
+    }
+
+    @JvmStatic
+    private fun <P: StorePosition,C: ClassStored,St: Store<P, C>> tryGetInstance(
+        storeClass      : Class<out St>,
+        storeID         : UUID?,
+        instanceName    : String
+    ): C? {
+        return if ( storeID != null ) {
+            TournamentStoreManager.getInstanceByName(
+                name        = instanceName,
+                storeClass  = storeClass,
+                storeID     = storeID
+            ).first
+        } else null
     }
 
     @JvmStatic

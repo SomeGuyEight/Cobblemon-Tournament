@@ -13,17 +13,19 @@ import net.minecraft.nbt.CompoundTag
 import net.minecraft.server.level.ServerPlayer
 import java.util.UUID
 
-// Important: (UUID) constructor is needed for serialization method
-@Suppress( names = ["unused"] )
+/** &#9888; (UUID) constructor is needed for serialization method */
 open class TournamentPlayer : ClassStored
 {
     companion object {
+        /** &#9888; Observables will be broken if [initialize] is not called after construction */
         fun loadFromNBT( nbt: CompoundTag ): TournamentPlayer {
             return TournamentPlayer( PlayerProperties.loadFromNBT( nbt.getCompound( DataKeys.PLAYER_PROPERTIES ) ) )
         }
     }
 
+    /** &#9888; Observables will be broken if [initialize] is not called after construction */
     constructor ( uuid: UUID = UUID.randomUUID() ) : this ( PlayerProperties( uuid ) )
+    /** &#9888; Observables will be broken if [initialize] is not called after construction */
     constructor ( properties: PlayerProperties) {
         this.properties = properties
     }
@@ -38,11 +40,11 @@ open class TournamentPlayer : ClassStored
 
     override var storeCoordinates: SettableObservable <StoreCoordinates <*,*>? > = SettableObservable( value = null )
 
-    val tournamentID        get() = properties.tournamentID
-    val actorType           get() = properties.actorType
-    val seed                get() = properties.seed
-    val originalSeed        get() = properties.originalSeed
-    val lockPokemonOnSet    get() = properties.lockPokemonOnSet
+    val tournamentID                get() = properties.tournamentID
+    private val actorType           get() = properties.actorType
+    val seed                        get() = properties.seed
+    val originalSeed                get() = properties.originalSeed
+    private val lockPokemonOnSet    get() = properties.lockPokemonOnSet
 
     var currentMatchID
         get() = properties.currentMatchID
@@ -52,9 +54,9 @@ open class TournamentPlayer : ClassStored
         get() = properties.finalPlacement
         set( value ) { properties.finalPlacement = value }
 
-    var pokemonTeamID: UUID? = null
+    private var pokemonTeamID: UUID? = null
         get() = properties.pokemonTeamID
-        protected set( value ) {
+        set( value ) {
             if ( field != null && !properties.pokemonFinal ) {
                 return
             }
@@ -68,6 +70,11 @@ open class TournamentPlayer : ClassStored
         get() = properties.pokemonFinal
         protected set( value ) { properties.pokemonFinal = value }
 
+    /**
+     *  Initializes & returns a reference to itself
+     *
+     * &#9888; Observables will be broken if [initialize] is not called after construction
+     */
     override fun initialize(): TournamentPlayer {
         registerObservable( properties.anyChangeObservable )
         return this
@@ -80,6 +87,7 @@ open class TournamentPlayer : ClassStored
         return nbt
     }
 
+    /** &#9888; Observables will be broken if [initialize] is not called after construction */
     override fun loadFromNBT(
         nbt: CompoundTag
     ): TournamentPlayer {
@@ -89,6 +97,7 @@ open class TournamentPlayer : ClassStored
 
     override fun saveToJSON( json: JsonObject ): JsonObject { TODO("Not yet implemented") }
 
+    /** &#9888; Observables will be broken if [initialize] is not called after construction */
     override fun loadFromJSON( json: JsonObject ): ClassStored { TODO("Not yet implemented") }
 
     private val observables = mutableListOf <Observable <*>>()
@@ -97,7 +106,7 @@ open class TournamentPlayer : ClassStored
     fun getAllObservables() = observables.asIterable()
     override fun getChangeObservable() = anyChangeObservable
 
-    protected fun registerObservable(
+    private fun registerObservable(
         observable: Observable <*>
     ) : Observable <*>
     {

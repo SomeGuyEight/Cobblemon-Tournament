@@ -17,17 +17,19 @@ import net.minecraft.nbt.CompoundTag
 import net.minecraft.server.level.ServerPlayer
 import java.util.UUID
 
-// Important: (UUID) constructor is needed for serialization method
-@Suppress( names = ["unused"] )
+/** &#9888; (UUID) constructor is needed for serialization method */
 open class Tournament : ClassStored
 {
     companion object {
+        /** &#9888; Observables will be broken if [initialize] is not called after construction */
         fun loadFromNBT( nbt: CompoundTag ): Tournament {
             return Tournament( TournamentProperties.loadFromNBT( nbt.getCompound( DataKeys.TOURNAMENT_PROPERTIES ) ) )
         }
     }
 
+    /** &#9888; Observables will be broken if [initialize] is not called after construction */
     constructor ( uuid: UUID = UUID.randomUUID() ) : this ( TournamentProperties( uuid ) )
+    /** &#9888; Observables will be broken if [initialize] is not called after construction */
     constructor ( properties: TournamentProperties ) {
         this.properties = properties
     }
@@ -39,27 +41,27 @@ open class Tournament : ClassStored
 
     override var uuid
         get() = properties.tournamentID
-        protected set(value) { properties.tournamentID = value }
+        protected set( value ) { properties.tournamentID = value }
 
     override var storeCoordinates: SettableObservable <StoreCoordinates <*,*>? > = SettableObservable( value = null )
 
-    val tournamentID        get() = properties.tournamentID
-    var tournamentStatus    get() = properties.tournamentStatus
-        protected set( value ) { properties.tournamentStatus = value }
-    val tournamentType      get() = properties.tournamentType
-    val challengeFormat     get() = properties.challengeFormat
-    val maxParticipants     get() = properties.maxParticipants
-    val teamSize            get() = properties.teamSize
-    val groupSize           get() = properties.groupSize
-    val minLevel            get() = properties.minLevel
-    val maxLevel            get() = properties.maxLevel
-    val showPreview         get() = properties.showPreview
-    val totalRounds         get() = properties.rounds.size
-    val totalMatches        get() = properties.matches.size
-    val totalPlayers        get() = properties.players.size
-    protected val rounds    get() = properties.rounds
-    protected val matches   get() = properties.matches
-    protected val players   get() = properties.players
+    val tournamentID                get() = properties.tournamentID
+    private var tournamentStatus    get() = properties.tournamentStatus
+        set( value ) { properties.tournamentStatus = value }
+    private val tournamentType      get() = properties.tournamentType
+    val challengeFormat             get() = properties.challengeFormat
+    val maxParticipants             get() = properties.maxParticipants
+    val teamSize                    get() = properties.teamSize
+    val groupSize                   get() = properties.groupSize
+    val minLevel                    get() = properties.minLevel
+    val maxLevel                    get() = properties.maxLevel
+    val showPreview                 get() = properties.showPreview
+    val totalRounds                 get() = properties.rounds.size
+    val totalMatches                get() = properties.matches.size
+    val totalPlayers                get() = properties.players.size
+    private val rounds            get() = properties.rounds
+    private val matches           get() = properties.matches
+    protected val players           get() = properties.players
 
     override fun printProperties() = properties.logDebug()
     fun displayOverviewInChat(player: ServerPlayer ) = properties.displayInChat( player )
@@ -71,9 +73,13 @@ open class Tournament : ClassStored
 
     fun containsPlayerID( playerID: UUID ) = players.contains(playerID)
     fun containsPlayerName( name: String ) = players.firstNotNullOfOrNull { it.value.name == name } != null
-    fun getPlayerNames()    = players.values.toSet()
-    fun getPlayerSet()      = players.keys.toSet()
+    fun getPlayerSet()      = players.values.toSet()
 
+    /**
+     *  Initializes & returns a reference to itself
+     *
+     * &#9888; Observables will be broken if [initialize] is not called after construction
+     */
     override fun initialize(): Tournament {
         registerObservable( properties.anyChangeObservable )
         return this
@@ -113,8 +119,10 @@ open class Tournament : ClassStored
 
     private fun finalize() {
         tournamentStatus = TournamentStatus.FINALIZED
-        TournamentStoreManager.deactivateInstance(
+        TournamentStoreManager.transferInstance(
             storeClass  = TournamentStore::class.java,
+            storeID     = TournamentStoreManager.activeStoreKey,
+            newStoreID  = TournamentStoreManager.inactiveStoreKey,
             instance    = this )
     }
 
@@ -125,6 +133,7 @@ open class Tournament : ClassStored
         return nbt
     }
 
+    /** &#9888; Observables will be broken if [initialize] is not called after construction */
     override fun loadFromNBT(
         nbt: CompoundTag
     ): Tournament {
@@ -134,6 +143,7 @@ open class Tournament : ClassStored
 
     override fun saveToJSON( json: JsonObject ): JsonObject { TODO("Not yet implemented") }
 
+    /** &#9888; Observables will be broken if [initialize] is not called after construction */
     override fun loadFromJSON( json: JsonObject ): ClassStored { TODO("Not yet implemented") }
 
     private val observables = mutableListOf <Observable <*>>()
@@ -142,7 +152,7 @@ open class Tournament : ClassStored
     fun getAllObservables() = observables.asIterable()
     override fun getChangeObservable() = anyChangeObservable
 
-    protected fun registerObservable(
+    private fun registerObservable(
         observable: Observable <*>
     ): Observable <*>
     {

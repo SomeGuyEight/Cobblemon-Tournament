@@ -2,7 +2,10 @@ package com.cobblemontournament.common.commands.builder
 
 import com.cobblemon.mod.common.api.battles.model.actor.ActorType
 import com.cobblemontournament.common.api.PlayerManager
-import com.cobblemontournament.common.commands.nodes.builder.ActivePlayersBuilderNode
+import com.cobblemontournament.common.api.TournamentStoreManager
+import com.cobblemontournament.common.commands.ExecutableCommand
+import com.cobblemontournament.common.commands.nodes.ExecutionNode
+import com.cobblemontournament.common.commands.nodes.builder.ActiveBuilderPlayersNode
 import com.cobblemontournament.common.commands.suggestions.PlayerNameSuggestionProvider
 import com.cobblemontournament.common.util.CommandUtil
 import com.cobblemontournament.common.commands.nodes.NodeKeys.ACTOR_TYPE
@@ -26,49 +29,47 @@ import net.minecraft.commands.CommandSourceStack
 import net.minecraft.commands.Commands
 import net.minecraft.network.chat.MutableComponent
 import org.slf4j.helpers.Util
-import java.util.*
+import java.util.UUID
 
-object UpdatePlayerCommand
+/**
+ * [TOURNAMENT] - [BUILDER] - [BUILDER_NAME] - [PLAYER]
+ * [UPDATE] - [PLAYER_NAME] - * arguments -> [updatePlayer]
+ *
+ *      literal     [TOURNAMENT]        ->
+ *      literal     [BUILDER]           ->
+ *      argument    [BUILDER_NAME] , StringType ->
+ *      literal     [PLAYER]            ->
+ *      literal     [UPDATE]            ->
+ *      argument    [PLAYER_NAME] , StringType ->
+ *      * arguments
+ *      method      [updatePlayer]
+ *
+ *      * - optional
+ */
+object UpdatePlayerCommand : ExecutableCommand
 {
-    /**
-     * [TOURNAMENT] - [BUILDER] - [BUILDER_NAME] - [PLAYER]
-     * [UPDATE] - [PLAYER_NAME] - * arguments -> [updatePlayer]
-     *
-     *      literal     [TOURNAMENT]        ->
-     *      literal     [BUILDER]           ->
-     *      argument    [BUILDER_NAME] , StringType ->
-     *      literal     [PLAYER]            ->
-     *      literal     [UPDATE]            ->
-     *      argument    [PLAYER_NAME] , StringType ->
-     *      * arguments
-     *      method      [updatePlayer]
-     *
-     *      * - optional
-     */
+    override val executionNode get() = ExecutionNode { updatePlayer( ctx = it ) }
+
     @JvmStatic
-    fun register(
-        dispatcher: CommandDispatcher<CommandSourceStack>, )
-//        registry: CommandBuildContext,
-//        selection: CommandSelection )
+    fun register( dispatcher: CommandDispatcher<CommandSourceStack> )
     {
         dispatcher.register(
-            ActivePlayersBuilderNode.player(
-                Commands.literal(UPDATE)
-                    .then(Commands.argument(PLAYER_NAME, StringArgumentType.string())
+            ActiveBuilderPlayersNode.nest(
+                Commands.literal( UPDATE )
+                    .then( Commands.argument( PLAYER_NAME, StringArgumentType.string() )
                         .suggests { ctx, builder ->
-                            PlayerNameSuggestionProvider().getSuggestions(ctx,builder)
+                            PlayerNameSuggestionProvider().getSuggestions( ctx, builder )
                         }
 //                        .then(Commands.literal(ACTOR_TYPE)
 //                            .then( Commands.argument("$NEW$ACTOR_TYPE",StringArgumentType.string())
 //                                .suggests(ActorTypeSuggestionProvider())
 //                                .executes { ctx -> updatePlayer( ctx = ctx) }
 //                            ))
-                        .then(Commands.literal(SEED)
-                            .then(Commands.argument("$NEW$PLAYER_SEED", IntegerArgumentType.integer(-1))
-                                .executes { ctx -> updatePlayer( ctx = ctx) }
-                            ))
-                    ))
-        )
+                        .then( Commands.literal( SEED )
+                            .then( Commands.argument( "$NEW$PLAYER_SEED", IntegerArgumentType.integer( -1 ) )
+                                .executes( this.executionNode.node )
+                            ) )
+                    ) ) )
     }
 
     @JvmStatic
@@ -76,11 +77,14 @@ object UpdatePlayerCommand
         ctx: CommandContext <CommandSourceStack>
     ): Int
     {
+        val ( nodeEntries, tournamentBuilder ) = CommandUtil
+            .getNodesAndTournamentBuilder(
+                ctx = ctx,
+                storeID = TournamentStoreManager.activeStoreKey )
+
         var playerID    : UUID? = null
         var seed        : Int?          = null
         var actorType   : ActorType?    = null
-
-        val ( nodeEntries, tournamentBuilder ) = CommandUtil.getNodesAndTournamentBuilder( ctx )
         for ( entry in nodeEntries ) {
             when ( entry.key ) {
                 PLAYER_NAME -> {
@@ -113,7 +117,7 @@ object UpdatePlayerCommand
         } else {
             tournamentBuilder.updatePlayer( updatedPlayer.uuid, actorType, seed )
             text = CommandUtil.successfulCommand(
-                action = "UPDATED ${updatedPlayer.name} properties in Tournament Builder \"${tournamentBuilder.name}\"" )
+                action = "UPDATED ${updatedPlayer.name.string} properties in Tournament Builder \"${tournamentBuilder.name}\"" )
             success = Command.SINGLE_SUCCESS
         }
 
@@ -131,5 +135,4 @@ object UpdatePlayerCommand
         }
         return success
     }
-
 }

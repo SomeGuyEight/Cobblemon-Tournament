@@ -1,7 +1,10 @@
 package com.cobblemontournament.common.commands.builder
 
 import com.cobblemon.mod.common.api.battles.model.actor.ActorType
-import com.cobblemontournament.common.commands.nodes.builder.ActivePlayersBuilderNode
+import com.cobblemontournament.common.api.TournamentStoreManager
+import com.cobblemontournament.common.commands.ExecutableCommand
+import com.cobblemontournament.common.commands.nodes.ExecutionNode
+import com.cobblemontournament.common.commands.nodes.builder.ActiveBuilderPlayersNode
 import com.cobblemontournament.common.util.CommandUtil
 import com.cobblemontournament.common.commands.nodes.NodeKeys.BUILDER
 import com.cobblemontournament.common.commands.nodes.NodeKeys.BUILDER_NAME
@@ -17,51 +20,45 @@ import com.mojang.brigadier.Command
 import com.mojang.brigadier.CommandDispatcher
 import com.mojang.brigadier.arguments.IntegerArgumentType
 import com.mojang.brigadier.context.CommandContext
-import net.minecraft.commands.CommandBuildContext
 import net.minecraft.commands.CommandSourceStack
 import net.minecraft.commands.Commands
-import net.minecraft.commands.Commands.CommandSelection
 import net.minecraft.commands.arguments.EntityArgument
 import net.minecraft.network.chat.MutableComponent
 import net.minecraft.server.level.ServerPlayer
 import org.slf4j.helpers.Util
 
-object RegisterPlayerCommand
+/**
+ * [TOURNAMENT] - [BUILDER] - [BUILDER_NAME] - [PLAYER]
+ *
+ * [PLAYER_ENTITY] - * arguments -> [registerPlayer]
+ *
+ *      literal     [TOURNAMENT]        ->
+ *      literal     [BUILDER]           ->
+ *      argument    [BUILDER_NAME] , StringType ->
+ *      literal     [PLAYER]            ->
+ *      literal     [REGISTER]          ->
+ *      argument    [PLAYER_ENTITY] , EntityType ->
+ *      * arguments
+ *      method      [registerPlayer]
+ *
+ *      * - optional
+ */
+object RegisterPlayerCommand : ExecutableCommand
 {
-    /**
-     * [TOURNAMENT] - [BUILDER] - [BUILDER_NAME] - [PLAYER]
-     *
-     * [PLAYER_ENTITY] - * arguments -> [registerPlayer]
-     *
-     *      literal     [TOURNAMENT]        ->
-     *      literal     [BUILDER]           ->
-     *      argument    [BUILDER_NAME] , StringType ->
-     *      literal     [PLAYER]            ->
-     *      literal     [REGISTER]          ->
-     *      argument    [PLAYER_ENTITY] , EntityType ->
-     *      * arguments
-     *      method      [registerPlayer]
-     *
-     *      * - optional
-     */
+    override val executionNode get() = ExecutionNode { registerPlayer( ctx = it ) }
+
     @JvmStatic
-    fun register(
-        dispatcher  : CommandDispatcher <CommandSourceStack>, )
-//        registry    : CommandBuildContext,
-//        selection   : CommandSelection )
+    fun register( dispatcher: CommandDispatcher <CommandSourceStack> )
     {
         dispatcher.register(
-            ActivePlayersBuilderNode.player(
+            ActiveBuilderPlayersNode.nest(
                 Commands.literal( REGISTER )
                     .then( Commands.argument( PLAYER_ENTITY, EntityArgument.player() )
-                        .executes {
-                            ctx -> registerPlayer( ctx = ctx)
-                        }
+                        .executes( this.executionNode.node )
                         .then( Commands.literal( SEED )
                             .then( Commands.argument( PLAYER_SEED, IntegerArgumentType.integer( -1 ) )
-                                .executes {
-                                    ctx -> registerPlayer( ctx = ctx )
-                                } ) )
+                                .executes( this.executionNode.node )
+                            ) )
                     ) ) )
     }
 
@@ -70,10 +67,13 @@ object RegisterPlayerCommand
         ctx: CommandContext <CommandSourceStack>
     ): Int
     {
+        val ( nodeEntries, tournamentBuilder ) = CommandUtil
+            .getNodesAndTournamentBuilder(
+                ctx     = ctx,
+                storeID = TournamentStoreManager.activeStoreKey)
+
         var registeredPlayer    : ServerPlayer?         = null
         var playerProperties    : PlayerProperties?     = null
-
-        val ( nodeEntries, tournamentBuilder ) = CommandUtil.getNodesAndTournamentBuilder( ctx )
         for ( entry in nodeEntries ) {
             when ( entry.key ) {
                 PLAYER_ENTITY -> {
@@ -127,5 +127,4 @@ object RegisterPlayerCommand
         }
         return success
     }
-
 }

@@ -18,7 +18,7 @@ import java.util.UUID
 class PlayerProperties : Properties <PlayerProperties>, Comparable<PlayerProperties>
 {
     companion object {
-        val HELPER = PlayerPropertiesHelper
+        private val HELPER = PlayerPropertiesHelper
         fun loadFromNBT( nbt: CompoundTag ) = HELPER.loadFromNBTHelper( nbt )
     }
 

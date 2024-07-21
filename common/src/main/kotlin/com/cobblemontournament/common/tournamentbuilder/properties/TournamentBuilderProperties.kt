@@ -3,7 +3,7 @@ package com.cobblemontournament.common.tournamentbuilder.properties
 import com.cobblemon.mod.common.api.reactive.Observable
 import com.cobblemon.mod.common.api.reactive.SimpleObservable
 import com.cobblemontournament.common.api.challenge.ChallengeFormat
-import com.cobblemontournament.common.config.Config
+import com.cobblemontournament.common.config.TournamentConfig
 import com.cobblemontournament.common.player.properties.PlayerProperties
 import com.cobblemontournament.common.tournament.TournamentType
 import com.cobblemontournament.common.tournament.properties.TournamentProperties
@@ -16,7 +16,7 @@ import java.util.UUID
 class TournamentBuilderProperties : Properties <TournamentBuilderProperties>
 {
     companion object {
-        val HELPER = TournamentBuilderPropertiesHelper
+        private val HELPER = TournamentBuilderPropertiesHelper
         fun loadFromNBT( nbt: CompoundTag ) = HELPER.loadFromNBTHelper( nbt )
     }
 
@@ -25,14 +25,14 @@ class TournamentBuilderProperties : Properties <TournamentBuilderProperties>
     constructor(
         name                    : String            = DEFAULT_TOURNAMENT_BUILDER_NAME,
         tournamentBuilderID     : UUID              = UUID.randomUUID(),
-        tournamentType          : TournamentType    = Config.defaultTournamentType(),
-        challengeFormat         : ChallengeFormat = Config.defaultChallengeFormat(),
-        maxParticipants         : Int               = Config.defaultMaxParticipants(),
-        teamSize                : Int               = Config.defaultTeamSize(),
-        groupSize               : Int               = Config.defaultGroupSize(),
-        minLevel                : Int               = Config.defaultMinLevel(),
-        maxLevel                : Int               = Config.defaultMaxLevel(),
-        showPreview             : Boolean           = Config.defaultShowPreview(),
+        tournamentType          : TournamentType    = TournamentConfig.defaultTournamentType(),
+        challengeFormat         : ChallengeFormat = TournamentConfig.defaultChallengeFormat(),
+        maxParticipants         : Int               = TournamentConfig.defaultMaxParticipants(),
+        teamSize                : Int               = TournamentConfig.defaultTeamSize(),
+        groupSize               : Int               = TournamentConfig.defaultGroupSize(),
+        minLevel                : Int               = TournamentConfig.defaultMinLevel(),
+        maxLevel                : Int               = TournamentConfig.defaultMaxLevel(),
+        showPreview             : Boolean           = TournamentConfig.defaultShowPreview(),
         players                 : MutableSet<PlayerProperties>   = mutableSetOf() )
     {
         this.name                                   = name
@@ -68,7 +68,7 @@ class TournamentBuilderProperties : Properties <TournamentBuilderProperties>
      * */
     val tournamentProperties = TournamentProperties()
 
-    protected var players = mutableSetOf <PlayerProperties>()
+    private var players = mutableSetOf <PlayerProperties>()
         set( value ) { field = value; emitChange() }
 
     fun getPlayersDeepCopy(): MutableSet <PlayerProperties> {
@@ -157,7 +157,7 @@ class TournamentBuilderProperties : Properties <TournamentBuilderProperties>
         return observables
     }
 
-    protected fun registerObservable(
+    private fun registerObservable(
         observable: Observable <*>
     ) : Observable <*>
     {

@@ -27,7 +27,6 @@ object NodeKeys
 
     const val CREATE                = "create"
     const val DELETE                = "delete"
-    const val EXECUTE               = "execute"
     const val UPDATE                = "update"
     const val REGISTER              = "register"
     const val UNREGISTER            = "unregister"

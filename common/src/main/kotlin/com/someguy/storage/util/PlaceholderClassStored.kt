@@ -21,16 +21,23 @@ object PlaceholderClassStored: ClassStored
 
     override fun printProperties() { }
 
+    /**
+     *  Initializes & returns a reference to itself
+     *
+     * &#9888; Observables will be broken if [initialize] is not called after construction
+     */
     override fun initialize(): PlaceholderClassStored = this
 
     override fun getChangeObservable(): Observable<ClassStored> = SimpleObservable()
 
     override fun saveToNBT(nbt: CompoundTag): CompoundTag = CompoundTag()
 
+    /** &#9888; Observables will be broken if [initialize] is not called after construction */
     override fun loadFromNBT(nbt: CompoundTag): ClassStored = this
 
     override fun saveToJSON(json: JsonObject): JsonObject = JsonObject()
 
+    /** &#9888; Observables will be broken if [initialize] is not called after construction */
     override fun loadFromJSON(json: JsonObject): ClassStored = this
 
 }

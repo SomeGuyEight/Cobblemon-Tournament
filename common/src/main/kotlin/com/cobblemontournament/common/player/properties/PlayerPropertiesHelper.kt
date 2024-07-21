@@ -5,8 +5,8 @@ import com.cobblemontournament.common.api.storage.DataKeys
 import com.cobblemontournament.common.util.ChatUtil
 import com.someguy.storage.properties.PropertiesHelper
 import com.someguy.storage.util.StoreDataKeys
-import com.someguy.storage.util.StoreUtil.getNullableUUID
-import com.someguy.storage.util.StoreUtil.putIfNotNull
+import com.someguy.storage.store.StoreUtil.getNullableUUID
+import com.someguy.storage.store.StoreUtil.putIfNotNull
 import net.minecraft.nbt.CompoundTag
 import net.minecraft.server.level.ServerPlayer
 import org.slf4j.helpers.Util
@@ -41,6 +41,7 @@ object PlayerPropertiesHelper : PropertiesHelper <PlayerProperties>
         return props
     }
 
+    @Suppress("DuplicatedCode")
     override fun setFromPropertiesHelper(
         mutable: PlayerProperties,
         from: PlayerProperties,
@@ -59,6 +60,7 @@ object PlayerPropertiesHelper : PropertiesHelper <PlayerProperties>
         mutable.lockPokemonOnSet        = from.lockPokemonOnSet
         return mutable
     }
+
     override fun setFromNBTHelper(
         mutable: PlayerProperties,
         nbt: CompoundTag
@@ -149,59 +151,66 @@ object PlayerPropertiesHelper : PropertiesHelper <PlayerProperties>
         displayCurrentMatch : Boolean = false,
         displayPlacement    : Boolean = false )
     {
-        val text0 = ChatUtil.formatText(  text = "${ spacing }Player \"" )
-        text0.append( ChatUtil.formatText( text = properties.name, ChatUtil.aqua  ) )
-        text0.append( ChatUtil.formatText( text = "\" " ) )
-        text0.append( ChatUtil.formatTextBracketed(
+        val titleText = ChatUtil.formatTextBracketed(
+            text            = "${properties.actorType}",
+            spacingBefore   = spacing,
+            spacingAfter    = " ",)
+        titleText.append( ChatUtil.formatTextQuoted(
+            text            = properties.name,
+            color           = ChatUtil.aqua,
+            spacingAfter    = " ") )
+        titleText.append( ChatUtil.formatTextBracketed(
             text    = ChatUtil.shortUUID( properties.playerID ),
             color   = ChatUtil.aqua,
             bold    = true ) )
-        player.displayClientMessage( text0 ,false )
+        player.displayClientMessage( titleText ,false )
 
         if ( displaySeed ) {
-            val text1 = ChatUtil.formatText(  text = "$spacing  Seed " )
-            text1.append( ChatUtil.formatTextBracketed(
+            val seedText = ChatUtil.formatText(  text = "$spacing  Seed " )
+            seedText.append( ChatUtil.formatTextBracketed(
                 text    = "${ properties.seed }",
                 color   = ChatUtil.yellow,
                 bold    = true ) )
-            text1.append( ChatUtil.formatText( text = " Original " ) )
-            text1.append( ChatUtil.formatTextBracketed(
+            seedText.append( ChatUtil.formatText( text = " Original " ) )
+            seedText.append( ChatUtil.formatTextBracketed(
                 text    = "${ properties.originalSeed }",
                 color   = ChatUtil.yellow,
                 bold    = true ) )
-            player.displayClientMessage( text1 ,false )
+            player.displayClientMessage( seedText ,false )
         }
-        if ( displayPokemon ) {
-            val text2 = ChatUtil.formatText( text = "$spacing  Pokemon Team ID " )
-            text2.append(
-                ChatUtil.formatTextBracketed(
-                    text = ChatUtil.shortUUID( properties.pokemonTeamID ),
-                    color = ChatUtil.yellow,
-                    bold = true ) )
-            text2.append(ChatUtil.formatText( text = " Team Final " ) )
-            text2.append(
-                ChatUtil.formatTextBracketed(
-                    text = "${ properties.pokemonFinal }",
-                    color = ChatUtil.yellow,
-                    bold = true ) )
-            player.displayClientMessage( text2 ,false )
-        }
+
+//        if ( displayPokemon ) {
+            // TODO uncomment out when saving pokemon or rental teams are implemented
+//            val pokemonText = ChatUtil.formatText( text = "$spacing  Pokemon Team ID " )
+//            pokemonText.append(
+//                ChatUtil.formatTextBracketed(
+//                    text = ChatUtil.shortUUID( properties.pokemonTeamID ),
+//                    color = ChatUtil.yellow,
+//                    bold = true ) )
+//            pokemonText.append(ChatUtil.formatText( text = " Team Final " ) )
+//            pokemonText.append(
+//                ChatUtil.formatTextBracketed(
+//                    text = "${ properties.pokemonFinal }",
+//                    color = ChatUtil.yellow,
+//                    bold = true ) )
+//            player.displayClientMessage( pokemonText ,false )
+//        }
         if ( displayCurrentMatch ) {
-            val text3 = ChatUtil.formatText(text = "$spacing  Current Match ")
-            text3.append(
+            val matchText = ChatUtil.formatText(text = "$spacing  Current Match ")
+            matchText.append(
                 ChatUtil.formatTextBracketed(
                     text = ChatUtil.shortUUID( properties.currentMatchID ),
                     color = ChatUtil.yellow,
                     bold = true ) )
-            player.displayClientMessage(text3, false)
+            player.displayClientMessage(matchText, false)
         }
         if (displayPlacement && properties.finalPlacement > 0) {
-            val text4 = ChatUtil.formatText( text = "$spacing  Final Placement " )
-            text4.append( ChatUtil.formatTextBracketed(
+            val placementText = ChatUtil.formatText( text = "$spacing  Final Placement " )
+            placementText.append( ChatUtil.formatTextBracketed(
                 text    = "${ properties.finalPlacement }",
                 color   = ChatUtil.yellow,
                 bold    = true ) )
-            player.displayClientMessage( text4 ,false )
+            player.displayClientMessage( placementText ,false )
         }
     }
 

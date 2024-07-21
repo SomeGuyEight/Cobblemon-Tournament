@@ -1,5 +1,7 @@
 package com.cobblemontournament.common.commands.nodes.builder
 
+import com.cobblemontournament.common.commands.nodes.ExecutionNode
+import com.cobblemontournament.common.commands.nodes.NestedNode
 import com.cobblemontournament.common.commands.nodes.TournamentRootNode
 import com.cobblemontournament.common.commands.nodes.NodeKeys.BUILDER
 import com.cobblemontournament.common.commands.nodes.NodeKeys.TOURNAMENT
@@ -9,52 +11,32 @@ import com.mojang.brigadier.builder.RequiredArgumentBuilder
 import net.minecraft.commands.CommandSourceStack
 import net.minecraft.commands.Commands
 
-object BuilderNode
+/**
+ * [TOURNAMENT] - [BUILDER]
+ *
+ *      literal     [TOURNAMENT]    ->
+ *      literal     [BUILDER]       ->
+ *      _
+ */
+object BuilderNode : NestedNode()
 {
-    /**
-     * [TOURNAMENT] - [BUILDER]
-     *
-     *      literal     [TOURNAMENT]    ->
-     *      literal     [BUILDER]       ->
-     *      _
-     */
-    @JvmStatic
-    fun initialNode(
-        literal: LiteralArgumentBuilder<CommandSourceStack>
-    ): LiteralArgumentBuilder<CommandSourceStack> {
-        return inner(literal = literal, argument = null)
+    override val executionNode get() = ExecutionNode {
+        CommandUtil.displayNoArgument(
+            player  = it.source.player,
+            nodeKey = "$TOURNAMENT $BUILDER" )
     }
 
-    /**
-     * [TOURNAMENT] - [BUILDER]
-     *
-     *      literal     [TOURNAMENT]    ->
-     *      literal     [BUILDER]       ->
-     *      _
-     */
-    @JvmStatic
-    fun initialNode(
-        argument: RequiredArgumentBuilder<CommandSourceStack, *>
-    ): LiteralArgumentBuilder<CommandSourceStack> {
-        return inner(literal = null, argument = argument)
-    }
-
-    @JvmStatic
-    private fun inner(
-        literal: LiteralArgumentBuilder<CommandSourceStack>? = null,
-        argument: RequiredArgumentBuilder<CommandSourceStack,*>? = null
-    ): LiteralArgumentBuilder<CommandSourceStack>
+    override fun inner(
+        literal     : LiteralArgumentBuilder <CommandSourceStack>?,
+        argument    : RequiredArgumentBuilder <CommandSourceStack,*>?,
+        execution   : ExecutionNode?
+    ): LiteralArgumentBuilder <CommandSourceStack>
     {
-        val builder = literal?: argument
-        return TournamentRootNode.initialNode(
-            Commands.literal(BUILDER)
-                .executes { ctx ->
-                    CommandUtil.displayNoArgument(
-                        player  = ctx.source.player,
-                        nodeKey = BUILDER)
-                }
-                .then( builder)
+        val stack = literal?: argument
+        return TournamentRootNode.nest(
+            Commands.literal( BUILDER )
+                .executes( ( execution ?: this.executionNode ).node )
+                .then( stack )
         )
     }
-
 }

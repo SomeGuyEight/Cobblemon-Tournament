@@ -1,6 +1,5 @@
 package com.cobblemonrental.common;
 
-import com.cobblemon.mod.common.api.Priority;
 import com.cobblemon.mod.common.api.storage.PokemonStoreManager;
 import com.cobblemon.mod.common.api.storage.factory.FileBackedPokemonStoreFactory;
 import com.cobblemon.mod.common.pokemon.Pokemon;
@@ -12,14 +11,11 @@ import com.cobblemonrental.common.api.storage.team.RentalTeamStore;
 import com.cobblemonrental.common.util.RentalDataKeys;
 import com.cobblemonrental.common.util.RentalStoreUtil;
 import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.world.level.storage.LevelResource;
 import org.slf4j.helpers.Util;
-
 import java.io.*;
 import java.nio.file.Path;
 import java.util.UUID;
@@ -56,25 +52,25 @@ public class RentalManager
     
     public void initialize(MinecraftServer server)
     {
-        this.server = server;
-        savePath = server.getWorldPath(LevelResource.ROOT);
-        var keyRootFile = getFile("rentalKey");
-        var pokemonRootFile = getFile("pokemonStore");
-        var teamRootFile = getFile("teamStore");
-        var gson = new GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create();
-        
-        rentalPokemonStoreID = getKey(savePath.resolve(getFileString(keyRootFile,"pokemonStoreKey","json")).toFile(),gson);
-        rentalTeamStoreID = getKey(savePath.resolve(getFileString(keyRootFile,"teamStoreKey","json")).toFile(),gson);
-        
-        rentalPokemonFactory = rentalStoreUtil().initializeFactory(pokemonRootFile.toString());
-        rentalTeamFactory = rentalStoreUtil().initializeFactory(teamRootFile.toString());
-        var rentalPokemonStore = rentalStoreUtil().initializePokemonStore(rentalPokemonStoreID,null);
-        var rentalTeamStore = rentalStoreUtil().initializeTeamStore(rentalTeamStoreID,null);
-        rentalPokemonFactory.track(rentalPokemonStore);
-        rentalPokemonFactory.track(rentalTeamStore);
-        
-        // TODO ?? which priority level is best for this implementation ??
-        rentalStoreUtil().registerFactory(Priority.NORMAL,rentalPokemonFactory);
+//        this.server = server;
+//        savePath = server.getWorldPath(LevelResource.ROOT);
+//        var keyRootFile = getFile("rentalKey");
+//        var pokemonRootFile = getFile("pokemonStore");
+//        var teamRootFile = getFile("teamStore");
+//        var gson = new GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create();
+//
+//        rentalPokemonStoreID = getKey(savePath.resolve(getFileString(keyRootFile,"pokemonStoreKey","json")).toFile(),gson);
+//        rentalTeamStoreID = getKey(savePath.resolve(getFileString(keyRootFile,"teamStoreKey","json")).toFile(),gson);
+//
+//        rentalPokemonFactory = rentalStoreUtil().initializeFactory(pokemonRootFile.toString());
+//        rentalTeamFactory = rentalStoreUtil().initializeFactory(teamRootFile.toString());
+//        var rentalPokemonStore = rentalStoreUtil().initializePokemonStore(rentalPokemonStoreID,null);
+//        var rentalTeamStore = rentalStoreUtil().initializeTeamStore(rentalTeamStoreID,null);
+//        rentalPokemonFactory.track(rentalPokemonStore);
+//        rentalPokemonFactory.track(rentalTeamStore);
+//
+//        // TODO ?? which priority level is best for this implementation ??
+//        rentalStoreUtil().registerFactory(Priority.NORMAL,rentalPokemonFactory);
     }
     
     

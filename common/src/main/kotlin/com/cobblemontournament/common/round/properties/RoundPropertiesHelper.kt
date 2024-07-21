@@ -25,7 +25,7 @@ object RoundPropertiesHelper: PropertiesHelper<RoundProperties>
             tournamentID    = properties.tournamentID,
             roundIndex      = properties.roundIndex,
             roundType       = properties.roundType,
-            indexedMatchMap = TournamentUtil.copy( properties.indexedMatchMap ) )
+            indexedMatchMap = TournamentUtil.shallowCopy( properties.indexedMatchMap ) )
     }
 
     override fun setFromPropertiesHelper(
@@ -37,7 +37,7 @@ object RoundPropertiesHelper: PropertiesHelper<RoundProperties>
         mutable.tournamentID    = from.tournamentID
         mutable.roundIndex      = from.roundIndex
         mutable.roundType       = from.roundType
-        mutable.indexedMatchMap = TournamentUtil.copy( from.indexedMatchMap )
+        mutable.indexedMatchMap = TournamentUtil.shallowCopy( from.indexedMatchMap )
         return mutable
     }
 

@@ -20,17 +20,19 @@ import net.minecraft.nbt.CompoundTag
 import org.slf4j.helpers.Util
 import java.util.UUID
 
-// Important: (UUID) constructor is needed for serialization method
-@Suppress( names = ["unused"] )
+/** &#9888; (UUID) constructor is needed for serialization method */
 open class TournamentMatch : ClassStored
 {
     companion object {
+        /** &#9888; Observables will be broken if [initialize] is not called after construction */
         fun loadFromNBT( nbt: CompoundTag ): TournamentMatch {
             return TournamentMatch( MatchProperties.loadFromNBT( nbt.getCompound( DataKeys.MATCH_PROPERTIES ) ) )
         }
     }
 
+    /** &#9888; Observables will be broken if [initialize] is not called after construction */
     constructor ( uuid: UUID = UUID.randomUUID() ) : this ( MatchProperties( uuid ) )
+    /** &#9888; Observables will be broken if [initialize] is not called after construction */
     constructor ( properties: MatchProperties) {
         this.properties = properties
     }
@@ -49,7 +51,7 @@ open class TournamentMatch : ClassStored
     val roundID                     get() = properties.roundID
     val roundIndex                  get() = properties.roundIndex
     val tournamentMatchIndex        get() = properties.tournamentMatchIndex
-    val roundMatchIndex             get() = properties.roundMatchIndex
+    private val roundMatchIndex     get() = properties.roundMatchIndex
     private val matchConnections    get() = properties.connections
 
     /**
@@ -70,7 +72,7 @@ open class TournamentMatch : ClassStored
         }
 
     /** Don't expose [MatchProperties.playerMap] publicly. Use [playerEntrySet] instead. */
-    protected val playerMap get() = properties.playerMap
+    private val playerMap get() = properties.playerMap
 
     override fun printProperties() = getUpdatedProperties().logDebug()
 
@@ -81,16 +83,21 @@ open class TournamentMatch : ClassStored
         return properties
     }
 
-    fun playerEntrySet() = TournamentUtil.copy( playerMap )
+    fun playerEntrySet() = TournamentUtil.shallowCopy( playerMap )
 
     fun playerCount() = playerMap.size
 
+    /**
+     *  Initializes & returns a reference to itself
+     *
+     * &#9888; Observables will be broken if [initialize] is not called after construction
+     */
     override fun initialize() : TournamentMatch {
         registerObservable( properties.anyChangeObservable )
         return this
     }
 
-    protected fun getUpdatedMatchStatus(): MatchStatus
+    private fun getUpdatedMatchStatus(): MatchStatus
     {
         if ( victorID != null ) {
             if (properties.matchStatus != MatchStatus.FINALIZED) {
@@ -227,6 +234,7 @@ open class TournamentMatch : ClassStored
         return nbt
     }
 
+    /** &#9888; Observables will be broken if [initialize] is not called after construction */
     override fun loadFromNBT(
         nbt: CompoundTag
     ): TournamentMatch {
@@ -236,6 +244,7 @@ open class TournamentMatch : ClassStored
 
     override fun saveToJSON( json: JsonObject ): JsonObject { TODO("Not yet implemented") }
 
+    /** &#9888; Observables will be broken if [initialize] is not called after construction */
     override fun loadFromJSON( json: JsonObject ): TournamentMatch { TODO("Not yet implemented") }
 
     private val observables = mutableListOf <Observable <*>>()
@@ -245,7 +254,7 @@ open class TournamentMatch : ClassStored
     fun getAllObservables() = observables.asIterable()
     override fun getChangeObservable() = anyChangeObservable
 
-    protected fun registerObservable(
+    private fun registerObservable(
         observable: Observable <*>
     ): Observable <*>
     {

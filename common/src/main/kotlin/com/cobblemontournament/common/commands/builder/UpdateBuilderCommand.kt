@@ -1,6 +1,8 @@
 package com.cobblemontournament.common.commands.builder
 
-import com.cobblemontournament.common.commands.nodes.builder.ActiveBuilderNode
+import com.cobblemontournament.common.api.TournamentStoreManager
+import com.cobblemontournament.common.commands.ExecutableCommand
+import com.cobblemontournament.common.commands.nodes.ExecutionNode
 import com.cobblemontournament.common.util.CommandUtil
 import com.cobblemontournament.common.commands.nodes.NodeKeys.ACTIVE
 import com.cobblemontournament.common.commands.nodes.NodeKeys.BUILDER
@@ -18,6 +20,7 @@ import com.cobblemontournament.common.commands.nodes.NodeKeys.TEAM_SIZE
 import com.cobblemontournament.common.commands.nodes.NodeKeys.TOURNAMENT
 import com.cobblemontournament.common.commands.nodes.NodeKeys.TOURNAMENT_TYPE
 import com.cobblemontournament.common.commands.nodes.NodeKeys.UPDATE
+import com.cobblemontournament.common.commands.nodes.builder.ActiveBuilderNameNode
 import com.cobblemontournament.common.util.TournamentUtil
 import com.mojang.brigadier.Command
 import com.mojang.brigadier.CommandDispatcher
@@ -30,32 +33,30 @@ import net.minecraft.commands.Commands
 import net.minecraft.network.chat.MutableComponent
 import org.slf4j.helpers.Util
 
-object UpdateBuilderCommand
+/**
+ * [TOURNAMENT] - [BUILDER] - [ACTIVE] - [BUILDER_NAME]
+ *
+ * [UPDATE] - * arguments -> [updateBuilderProperties]
+ *
+ *      literal     [TOURNAMENT]    ->
+ *      literal     [BUILDER]       ->
+ *      literal     [ACTIVE]        ->
+ *      argument    [BUILDER_NAME] , StringType ->
+ *      literal     [UPDATE]        ->
+ *      * arguments
+ *      function    [updateBuilderProperties]
+ *
+ *      * - optional
+ */
+object UpdateBuilderCommand : ExecutableCommand
 {
-    /**
-     * [TOURNAMENT] - [BUILDER] - [ACTIVE] - [BUILDER_NAME]
-     *
-     * [UPDATE] - * arguments -> [updateBuilderProperties]
-     *
-     *      literal     [TOURNAMENT]    ->
-     *      literal     [BUILDER]       ->
-     *      literal     [ACTIVE]        ->
-     *      argument    [BUILDER_NAME] , StringType ->
-     *      literal     [UPDATE]        ->
-     *      * arguments
-     *      function    [updateBuilderProperties]
-     *
-     *      * - optional
-     */
+    override val executionNode get() = ExecutionNode { updateBuilderProperties( ctx = it ) }
+
     @JvmStatic
-    @Suppress("DuplicatedCode")
-    fun register(
-        dispatcher  : CommandDispatcher <CommandSourceStack>, )
-//        registry    : CommandBuildContext,
-//        selection   : CommandSelection )
+    fun register( dispatcher: CommandDispatcher <CommandSourceStack> )
     {
         dispatcher.register(
-            ActiveBuilderNode.node(
+            ActiveBuilderNameNode.nest(
                 Commands.literal( UPDATE )
                     .then( Commands.literal( NAME )
                         .then( Commands.argument( "$NEW$BUILDER_NAME", StringArgumentType.string() )
@@ -111,12 +112,15 @@ object UpdateBuilderCommand
     }
 
     @JvmStatic
-    @Suppress("DuplicatedCode")
     private fun updateBuilderProperties(
         ctx: CommandContext <CommandSourceStack>
     ): Int
     {
-        val ( nodeEntries, tournamentBuilder ) = CommandUtil.getNodesAndTournamentBuilder( ctx )
+        val ( nodeEntries, tournamentBuilder ) = CommandUtil
+            .getNodesAndTournamentBuilder(
+                ctx = ctx,
+                storeID = TournamentStoreManager.activeStoreKey )
+
         for ( entry in nodeEntries ) {
             when ( entry.key ) {
                 "$NEW$BUILDER_NAME"     -> tournamentBuilder?.name = entry.value
@@ -162,5 +166,4 @@ object UpdateBuilderCommand
         }
         return success
     }
-
 }

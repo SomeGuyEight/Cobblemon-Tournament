@@ -2,56 +2,40 @@ package com.cobblemontournament.common
 
 import com.cobblemon.mod.common.api.Priority
 import com.cobblemon.mod.common.api.events.CobblemonEvents
-import com.cobblemon.mod.common.platform.events.PlatformEvents.SERVER_STARTING
-import com.cobblemon.mod.common.platform.events.PlatformEvents.SERVER_STOPPED
-import com.cobblemonrental.common.CobblemonRental
 import com.cobblemontournament.common.api.MatchManager
 import com.cobblemontournament.common.api.TournamentStoreManager
+import com.cobblemontournament.common.commands.TournamentCommands
+import com.someguy.api.ModImplementation
+import dev.architectury.event.events.common.LifecycleEvent
 import dev.architectury.event.events.common.PlayerEvent
-import net.minecraft.server.MinecraftServer
-import org.slf4j.Logger
-import org.slf4j.LoggerFactory
 import org.slf4j.helpers.Util
 
-object CobblemonTournament
+object CobblemonTournament : ModImplementation(
+    modID           = COMPANION.MOD_ID,
+    commandManager  = TournamentCommands )
 {
-    const val MOD_ID: String = "cobblemontournament"
-    val LOGGER: Logger = LoggerFactory.getLogger("cobblemon-tournament")
-    var implementation: TournamentModImplementation? = null
-    /** Don't call prior to server initialization. Has server ref cached after server starts. */
-    internal var server: MinecraftServer? = null
-
-    @JvmStatic
-    fun initialize(
-        implementation: TournamentModImplementation,
-    )
-    {
-        this.implementation = implementation
-        implementation.registerEvents()
-        implementation.initializeConfig()
-        implementation.registerCommands()
+    object COMPANION {
+        const val MOD_ID = "cobblemontournament"
     }
 
-    @JvmStatic
-    fun registerEvents()
+    override fun registerEvents()
     {
-        SERVER_STARTING.subscribe(Priority.HIGHEST) { event ->
-            server = event.server
-            CobblemonRental.instance.initialize(event.server)
-            TournamentStoreManager.initialize(event.server)
+        super.registerEvents()
+
+        LifecycleEvent.SERVER_STARTING.register {
+            TournamentStoreManager.initialize( it )
         }
 
-        SERVER_STOPPED.subscribe(Priority.HIGHEST) {
-            Util.report("Saving Tournament factories...")
+        LifecycleEvent.SERVER_STOPPED.register {
+            Util.report("Saving Tournament Factories...")
             TournamentStoreManager.unregisterAll()
-            Util.report("Saving Tournament factories Complete.")
+            Util.report("Saving Factories Complete.")
         }
 
-        CobblemonEvents.BATTLE_VICTORY.subscribe(Priority.NORMAL) {
-            event -> MatchManager.handleBattleVictoryEvent( event)
-        }
+        PlayerEvent.PLAYER_QUIT.register( MatchManager::handlePlayerLogoutEvent )
 
-        PlayerEvent.PLAYER_QUIT.register( MatchManager::handlePlayerLogoutEvent)
+        CobblemonEvents.BATTLE_VICTORY.subscribe( Priority.NORMAL ) {
+                MatchManager.handleBattleVictoryEvent( it )
+        }
     }
-
 }

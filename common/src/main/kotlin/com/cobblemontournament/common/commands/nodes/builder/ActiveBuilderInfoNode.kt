@@ -1,5 +1,7 @@
 package com.cobblemontournament.common.commands.nodes.builder
 
+import com.cobblemontournament.common.commands.nodes.ExecutionNode
+import com.cobblemontournament.common.commands.nodes.NestedNode
 import com.cobblemontournament.common.util.CommandUtil
 import com.cobblemontournament.common.commands.nodes.NodeKeys.ACTIVE
 import com.cobblemontournament.common.commands.nodes.NodeKeys.BUILDER
@@ -11,59 +13,35 @@ import com.mojang.brigadier.builder.RequiredArgumentBuilder
 import net.minecraft.commands.CommandSourceStack
 import net.minecraft.commands.Commands
 
-object ActiveBuilderInfoNode
+/**
+ * [TOURNAMENT] - [BUILDER] - [ACTIVE] - [BUILDER_NAME] - [INFO]
+ *
+ *      literal     [TOURNAMENT]    ->
+ *      literal     [BUILDER]       ->
+ *      literal     [ACTIVE]        ->
+ *      argument    [BUILDER_NAME] , StringType ->
+ *      literal     [INFO]          ->
+ *      _
+ */
+object ActiveBuilderInfoNode : NestedNode()
 {
-    /**
-     * [TOURNAMENT] - [BUILDER] - [ACTIVE] - [BUILDER_NAME] - [INFO]
-     *
-     *      literal     [TOURNAMENT]    ->
-     *      literal     [BUILDER]       ->
-     *      literal     [ACTIVE]        ->
-     *      argument    [BUILDER_NAME] , StringType ->
-     *      literal     [INFO]          ->
-     *      _
-     */
-    @JvmStatic
-    fun getInfo(
-        literal: LiteralArgumentBuilder<CommandSourceStack>
-    ): LiteralArgumentBuilder<CommandSourceStack> {
-        return inner(literal = literal, argument = null)
+    override val executionNode = ExecutionNode {
+        CommandUtil.displayNoArgument(
+            player  = it.source.player,
+            nodeKey = "$TOURNAMENT $BUILDER $ACTIVE $BUILDER_NAME $INFO" )
     }
 
-    /**
-     * [TOURNAMENT] - [BUILDER] - [ACTIVE] - [BUILDER_NAME] - [INFO]
-     *
-     *      literal     [TOURNAMENT]    ->
-     *      literal     [BUILDER]       ->
-     *      literal     [ACTIVE]        ->
-     *      argument    [BUILDER_NAME] , StringType ->
-     *      literal     [INFO]          ->
-     *      _
-     */
-    @JvmStatic
-    fun getInfo(
-        argument: RequiredArgumentBuilder<CommandSourceStack,*>
-    ): LiteralArgumentBuilder<CommandSourceStack> {
-        return inner( literal = null, argument = argument)
-    }
-
-    @JvmStatic
-    private fun inner(
-        literal: LiteralArgumentBuilder<CommandSourceStack>? = null,
-        argument: RequiredArgumentBuilder<CommandSourceStack,*>? = null
-    ): LiteralArgumentBuilder<CommandSourceStack>
+    override fun inner(
+        literal     : LiteralArgumentBuilder <CommandSourceStack>?,
+        argument    : RequiredArgumentBuilder <CommandSourceStack,*>?,
+        execution   : ExecutionNode?
+    ): LiteralArgumentBuilder <CommandSourceStack>
     {
-        val builder = literal?: argument
-        return ActiveBuilderNode.node(
-            Commands.literal(INFO)
-                .executes { ctx ->
-                    CommandUtil.displayNoArgument(
-                        player = ctx.source.player,
-                        nodeKey = INFO
-                    )
-                }
-                .then(builder)
+        val stack = literal ?: argument
+        return ActiveBuilderNameNode.nest(
+            Commands.literal( INFO )
+                .executes( ( execution ?: this.executionNode ).node )
+                .then( stack )
         )
     }
-
 }

@@ -14,7 +14,7 @@ import com.cobblemontournament.common.api.storage.PlayerStore
 import com.cobblemontournament.common.api.storage.TournamentStore
 import com.cobblemontournament.common.tournament.TournamentStatus
 import com.cobblemontournament.common.util.ChatUtil
-import com.cobblemontournament.common.util.TournamentUtil
+import com.someguy.storage.classstored.ClassStoredUtil.shallowCopy
 import com.someguy.storage.properties.PropertiesHelper
 import com.someguy.storage.util.StoreDataKeys
 import net.minecraft.nbt.CompoundTag
@@ -24,7 +24,8 @@ import java.util.UUID
 
 object TournamentPropertiesHelper: PropertiesHelper <TournamentProperties>
 {
-    const val DEFAULT_TOURNAMENT_NAME = "Tournament"
+    const val DEFAULT_TOURNAMENT_NAME = "Default-Tournament-Name"
+    val DEFAULT_TOURNAMENT_STATUS = TournamentStatus.UNKNOWN
 
     override fun deepCopyHelper(
         properties: TournamentProperties
@@ -42,12 +43,12 @@ object TournamentPropertiesHelper: PropertiesHelper <TournamentProperties>
             minLevel            = properties.minLevel,
             maxLevel            = properties.maxLevel,
             showPreview         = properties.showPreview,
-            rounds              = TournamentUtil.shallowRoundsCopy( properties.rounds ),
-            matches             = TournamentUtil.shallowMatchesCopy( properties.matches ),
-            players             = TournamentUtil.shallowPlayersCopy( properties.players )
-        )
+            rounds              = properties.rounds.shallowCopy(),
+            matches             = properties.matches.shallowCopy(),
+            players             = properties.players.shallowCopy())
     }
 
+    @Suppress("DuplicatedCode")
     override fun setFromPropertiesHelper(
         mutable: TournamentProperties,
         from: TournamentProperties
@@ -64,9 +65,9 @@ object TournamentPropertiesHelper: PropertiesHelper <TournamentProperties>
         mutable.minLevel          = from.minLevel
         mutable.maxLevel          = from.maxLevel
         mutable.showPreview       = from.showPreview
-        mutable.rounds            = TournamentUtil.shallowRoundsCopy(  from.rounds )
-        mutable.matches           = TournamentUtil.shallowMatchesCopy( from.matches )
-        mutable.players           = TournamentUtil.shallowPlayersCopy( from.players )
+        mutable.rounds            = from.rounds.shallowCopy()
+        mutable.matches           = from.matches.shallowCopy()
+        mutable.players           = from.players.shallowCopy()
         return mutable
     }
 
@@ -293,20 +294,22 @@ object TournamentPropertiesHelper: PropertiesHelper <TournamentProperties>
             text = "${properties.maxParticipants}",
             color = ChatUtil.yellow ) )
         player.displayClientMessage( maxParticipants, false )
-//
-//        val teamSize = ChatUtil.formatText(
-//            text = "  Team Size " )
-//        teamSize.append( ChatUtil.formatTextBracketed(
-//            text = "${properties.teamSize}",
-//            color = ChatUtil.yellow ) )
-//        player.displayClientMessage( teamSize, false )
 
-//        val groupSize = ChatUtil.formatText(
-//            text = "  Group Size " )
-//        groupSize.append( ChatUtil.formatTextBracketed(
-//            text = "${properties.groupSize}",
-//            color = ChatUtil.yellow ) )
-//        player.displayClientMessage( groupSize, false )
+        /*
+        val teamSize = ChatUtil.formatText(
+            text = "  Team Size " )
+        teamSize.append( ChatUtil.formatTextBracketed(
+            text = "${properties.teamSize}",
+            color = ChatUtil.yellow ) )
+        player.displayClientMessage( teamSize, false )
+
+        val groupSize = ChatUtil.formatText(
+            text = "  Group Size " )
+        groupSize.append( ChatUtil.formatTextBracketed(
+            text = "${properties.groupSize}",
+            color = ChatUtil.yellow ) )
+        player.displayClientMessage( groupSize, false )
+         */
 
         // TODO temp until level range is released for CobblemonChallenge
         val level = ChatUtil.formatText(
@@ -316,17 +319,19 @@ object TournamentPropertiesHelper: PropertiesHelper <TournamentProperties>
             color = ChatUtil.yellow ) )
         player.displayClientMessage( level, false )
 
-//        val levelRange = ChatUtil.formatText(
-//            text = "  Level Range: Min " )
-//        levelRange.append( ChatUtil.formatTextBracketed(
-//            text = "${properties.minLevel}",
-//            color = ChatUtil.yellow ) )
-//        levelRange.append( ChatUtil.formatText(
-//            text = " Max " ) )
-//        levelRange.append( ChatUtil.formatTextBracketed(
-//            text = "${properties.maxLevel}",
-//            color = ChatUtil.yellow ) )
-//        player.displayClientMessage( levelRange, false )
+        /*
+        val levelRange = ChatUtil.formatText(
+            text = "  Level Range: Min " )
+        levelRange.append( ChatUtil.formatTextBracketed(
+            text = "${properties.minLevel}",
+            color = ChatUtil.yellow ) )
+        levelRange.append( ChatUtil.formatText(
+            text = " Max " ) )
+        levelRange.append( ChatUtil.formatTextBracketed(
+            text = "${properties.maxLevel}",
+            color = ChatUtil.yellow ) )
+        player.displayClientMessage( levelRange, false )
+        */
 
         val preview = ChatUtil.formatText(
             text = "  Show Preview " )

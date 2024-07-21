@@ -118,7 +118,7 @@ object TournamentBuilderPropertiesHelper : PropertiesHelper <TournamentBuilderPr
 
     override fun logDebugHelper( properties: TournamentBuilderProperties )
     {
-        Util.report("Tournament Builder \"${properties.name}\" [${ChatUtil.shortUUID( properties.tournamentBuilderID )}]")
+        Util.report("Tournament Builder \"${ properties.name }\" [${ ChatUtil.shortUUID( properties.tournamentBuilderID ) }]")
         properties.tournamentProperties.logDebug()
         Util.report("  Players:")
         for ( player in properties.getPlayersSortedBy { it.seed } ) {

@@ -152,7 +152,7 @@ object TestChatFormating
         tournamentProps.players[playerTwo.uuid] = playerTwo
         val tournament = Tournament( tournamentProps )
 
-        val nodeEntries = CommandUtil.getNodeEntries( ctx.nodes, ctx.input )
+        val nodeEntries = CommandUtil.getNodeEntries( ctx )
         for ( entry in nodeEntries ) {
             when ( entry.key ) {
                 "general" -> general( player )

@@ -28,7 +28,7 @@ class PlayerNameSuggestionProvider : SuggestionProvider <CommandSourceStack>
         builder : SuggestionsBuilder,
     ): CompletableFuture <Suggestions>
     {
-        val nodeEntries = CommandUtil.getNodeEntries( ctx.nodes, ctx.input )
+        val nodeEntries = CommandUtil.getNodeEntries( ctx )
         val entry = nodeEntries.firstOrNull { it.key == BUILDER_NAME }
             ?: nodeEntries.firstOrNull { it.key == TOURNAMENT_NAME }
             ?: return builder.buildFuture()
@@ -46,7 +46,7 @@ class PlayerNameSuggestionProvider : SuggestionProvider <CommandSourceStack>
                 storeClass  = TournamentStore::class.java,
                 storeID     = TournamentStoreManager.activeStoreKey
             ).first ?: return builder.buildFuture()
-            tournament.getPlayerNames().forEach { builder.suggest( it.name ) }
+            tournament.getPlayerSet().forEach { builder.suggest( it.name ) }
         }
         return builder.buildFuture()
     }

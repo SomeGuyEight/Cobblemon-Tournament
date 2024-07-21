@@ -7,45 +7,30 @@ import com.mojang.brigadier.builder.RequiredArgumentBuilder
 import net.minecraft.commands.CommandSourceStack
 import net.minecraft.commands.Commands
 
-object TournamentRootNode
+/**
+ * [TOURNAMENT]
+ *
+ *      literal     [TOURNAMENT] ->
+ *      _
+ */
+object TournamentRootNode : NestedNode()
 {
-    /**
-     * [TOURNAMENT]
-     *
-     *      literal     [TOURNAMENT] ->
-     *      _
-     */
-    fun initialNode(
-        literal: LiteralArgumentBuilder<CommandSourceStack>
-    ): LiteralArgumentBuilder<CommandSourceStack> {
-            return inner( literal = literal, argument = null )
+    override val executionNode get() = ExecutionNode {
+        CommandUtil.displayNoArgument(
+            player  = it.source.player,
+            nodeKey = TOURNAMENT )
     }
 
-    /**
-     * [TOURNAMENT]
-     *
-     *      literal     [TOURNAMENT] ->
-     *      _
-     */
-    fun initialNode(
-        argument: RequiredArgumentBuilder <CommandSourceStack, String>
-    ): LiteralArgumentBuilder <CommandSourceStack> {
-        return inner( literal = null, argument = argument )
-    }
-
-    private fun inner(
-        literal: LiteralArgumentBuilder <CommandSourceStack>? = null,
-        argument: RequiredArgumentBuilder <CommandSourceStack, *>? = null
-    ): LiteralArgumentBuilder<CommandSourceStack>
+    override fun inner(
+        literal     : LiteralArgumentBuilder <CommandSourceStack>?,
+        argument    : RequiredArgumentBuilder <CommandSourceStack,*>?,
+        execution   : ExecutionNode?
+    ): LiteralArgumentBuilder <CommandSourceStack>
     {
-        val builder = literal?: argument
+        val stack = literal ?: argument
         return Commands.literal( TOURNAMENT )
-            .executes { ctx ->
-                CommandUtil.displayNoArgument(
-                    player  = ctx.source.player,
-                    nodeKey = TOURNAMENT )
-            }
-            .then( builder )
+            .executes( ( execution ?: this.executionNode ).node )
+            .then( stack )
     }
 
 }

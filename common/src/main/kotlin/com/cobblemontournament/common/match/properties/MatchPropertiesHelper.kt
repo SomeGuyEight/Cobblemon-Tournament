@@ -7,8 +7,8 @@ import com.cobblemontournament.common.util.ChatUtil
 import com.cobblemontournament.common.util.TournamentUtil
 import com.someguy.storage.properties.PropertiesHelper
 import com.someguy.storage.util.StoreDataKeys
-import com.someguy.storage.util.StoreUtil.getNullableUUID
-import com.someguy.storage.util.StoreUtil.putIfNotNull
+import com.someguy.storage.store.StoreUtil.getNullableUUID
+import com.someguy.storage.store.StoreUtil.putIfNotNull
 import net.minecraft.nbt.CompoundTag
 import net.minecraft.server.level.ServerPlayer
 import org.slf4j.helpers.Util
@@ -35,9 +35,10 @@ object MatchPropertiesHelper : PropertiesHelper <MatchProperties>
             connections             = properties.connections.deepCopy(),
             matchStatus             = properties.matchStatus,
             victorID                = properties.victorID,
-            playerMap               = TournamentUtil.copy( properties.playerMap ))
+            playerMap               = TournamentUtil.shallowCopy( properties.playerMap ))
     }
 
+    @Suppress("DuplicatedCode")
     override fun setFromPropertiesHelper(
         mutable: MatchProperties,
         from: MatchProperties
@@ -51,7 +52,7 @@ object MatchPropertiesHelper : PropertiesHelper <MatchProperties>
         mutable.roundMatchIndex         = from.roundMatchIndex
         mutable.matchStatus             = from.matchStatus
         mutable.victorID                = from.victorID
-        mutable.playerMap               = TournamentUtil.copy( from.playerMap )
+        mutable.playerMap               = TournamentUtil.shallowCopy( from.playerMap )
         mutable.connections.setFromConnections( from.connections )
         return mutable
     }

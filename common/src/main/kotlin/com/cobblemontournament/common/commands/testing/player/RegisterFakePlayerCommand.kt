@@ -3,7 +3,7 @@ package com.cobblemontournament.common.commands.testing.player
 import com.cobblemon.mod.common.api.battles.model.actor.ActorType
 import com.cobblemontournament.common.api.TournamentStoreManager
 import com.cobblemontournament.common.api.storage.TournamentBuilderStore
-import com.cobblemontournament.common.commands.nodes.builder.ActivePlayersBuilderNode
+import com.cobblemontournament.common.commands.nodes.builder.ActiveBuilderPlayersNode
 import com.cobblemontournament.common.commands.nodes.NodeKeys.BUILDER
 import com.cobblemontournament.common.commands.nodes.NodeKeys.BUILDER_NAME
 import com.cobblemontournament.common.commands.nodes.NodeKeys.PLAYER
@@ -20,10 +20,8 @@ import com.mojang.brigadier.Command
 import com.mojang.brigadier.CommandDispatcher
 import com.mojang.brigadier.arguments.IntegerArgumentType
 import com.mojang.brigadier.context.CommandContext
-import net.minecraft.commands.CommandBuildContext
 import net.minecraft.commands.CommandSourceStack
 import net.minecraft.commands.Commands
-import net.minecraft.commands.Commands.CommandSelection
 import java.util.*
 
 object RegisterFakePlayerCommand
@@ -45,14 +43,10 @@ object RegisterFakePlayerCommand
      *      * - optional
      */
     @JvmStatic
-    fun register(
-        dispatcher: CommandDispatcher<CommandSourceStack>,
-        registry: CommandBuildContext,
-        selection: CommandSelection
-    )
+    fun register( dispatcher: CommandDispatcher<CommandSourceStack> )
     {
         dispatcher.register(
-            ActivePlayersBuilderNode.player(
+            ActiveBuilderPlayersNode.nest(
                 Commands.literal("$REGISTER-$FAKE")
                     .executes { ctx: CommandContext<CommandSourceStack> ->
                         registerFakePlayer( ctx = ctx)
@@ -72,7 +66,7 @@ object RegisterFakePlayerCommand
         var tournamentBuilder: TournamentBuilder? = null
         var playerProperties: PlayerProperties? = null
 
-        val nodeEntries = CommandUtil.getNodeEntries( ctx.nodes, ctx.input)
+        val nodeEntries = CommandUtil.getNodeEntries( ctx )
         for (entry in nodeEntries) {
             when (entry.key) {
                 BUILDER_NAME -> {
@@ -99,8 +93,8 @@ object RegisterFakePlayerCommand
         }
 
         var success = 0
-        var text = ""
         var color = ChatUtil.yellow
+        val text: String
         if ( tournamentBuilder == null) {
             text = "Failed to REGISTER Fake Player b/c Tournament Builder was null"
         } else if ( playerProperties == null) {

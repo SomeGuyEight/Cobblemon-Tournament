@@ -1,6 +1,5 @@
 package com.cobblemontournament.common.commands.builder
 
-import com.cobblemontournament.common.commands.nodes.builder.ActiveBuilderNode
 import com.cobblemontournament.common.util.CommandUtil
 import com.cobblemontournament.common.commands.nodes.NodeKeys.ACTIVE
 import com.cobblemontournament.common.commands.nodes.NodeKeys.BUILDER
@@ -11,60 +10,62 @@ import com.cobblemontournament.common.commands.nodes.NodeKeys.PRINT_DEBUG
 import com.cobblemontournament.common.commands.nodes.NodeKeys.TOURNAMENT
 import com.cobblemontournament.common.commands.nodes.NodeKeys.TOURNAMENT_NAME
 import com.cobblemontournament.common.api.tournament.TournamentData
+import com.cobblemontournament.common.commands.ExecutableCommand
+import com.cobblemontournament.common.commands.nodes.ExecutionNode
+import com.cobblemontournament.common.commands.nodes.builder.ActiveBuilderNameNode
 import com.mojang.brigadier.Command
 import com.mojang.brigadier.CommandDispatcher
 import com.mojang.brigadier.arguments.StringArgumentType
 import com.mojang.brigadier.context.CommandContext
-import net.minecraft.commands.CommandBuildContext
 import net.minecraft.commands.CommandSourceStack
 import net.minecraft.commands.Commands
-import net.minecraft.commands.Commands.CommandSelection
 import net.minecraft.network.chat.MutableComponent
 import org.slf4j.helpers.Util
 
-object GenerateTournamentCommand
+/**
+ * [TOURNAMENT] - [BUILDER] -  [ACTIVE] - [BUILDER_NAME] - [GENERATE_TOURNAMENT]
+ *
+ * [NEW]+[TOURNAMENT_NAME] - [PRINT_DEBUG]* -> [generateTournament]
+ *
+ *      literal     [TOURNAMENT]            ->
+ *      literal     [BUILDER]               ->
+ *      argument    [ACTIVE] , StringType   ->
+ *      literal     [BUILDER_NAME]          ->
+ *      literal     [GENERATE_TOURNAMENT]   ->
+ *      argument    [NEW]+[TOURNAMENT_NAME] , StringType ->
+ *      * argument  [PRINT_DEBUG] , BooleanType ->
+ *      function    [generateTournament]
+ *
+ *      * == optional
+ */
+object GenerateTournamentCommand : ExecutableCommand
 {
-    /**
-     * [TOURNAMENT] - [BUILDER] -  [ACTIVE] - [BUILDER_NAME] - [GENERATE_TOURNAMENT]
-     *
-     * [NEW]+[TOURNAMENT_NAME] - [PRINT_DEBUG]* -> [generateTournament]
-     *
-     *      literal     [TOURNAMENT]            ->
-     *      literal     [BUILDER]               ->
-     *      argument    [ACTIVE] , StringType   ->
-     *      literal     [BUILDER_NAME]          ->
-     *      literal     [GENERATE_TOURNAMENT]   ->
-     *      argument    [NEW]+[TOURNAMENT_NAME] , StringType ->
-     *      * argument  [PRINT_DEBUG] , BooleanType ->
-     *      function    [generateTournament]
-     *
-     *      * == optional
-     */
+    override val executionNode get() = ExecutionNode { generateTournament( ctx = it ) }
+
     @JvmStatic
-    fun register(
-        dispatcher  : CommandDispatcher <CommandSourceStack>, )
-//        registry    : CommandBuildContext,
-//        selection   : CommandSelection )
+    fun register( dispatcher: CommandDispatcher <CommandSourceStack> )
     {
         dispatcher.register(
-            ActiveBuilderNode.node(
+            ActiveBuilderNameNode.nest(
                 Commands.literal( GENERATE_TOURNAMENT )
                     .then(Commands.argument( "$NEW$TOURNAMENT_NAME", StringArgumentType.string() )
-                        .executes {
-                            ctx -> generateTournament( ctx )
-                        }
-                        //.then() // TODO other optional
-                    ))
+                        .executes( this.executionNode.node )
+                        // TODO other optional parameters
+                    ) )
         )
     }
 
     @JvmStatic
     fun generateTournament(
         ctx : CommandContext <CommandSourceStack>,
-    ): Int {
-        var tournamentData: TournamentData? = null
+    ): Int
+    {
+        val ( nodeEntries, tournamentBuilder ) = CommandUtil
+            .getNodesAndTournamentBuilder(
+                ctx     = ctx,
+                storeID = null )
 
-        val ( nodeEntries, tournamentBuilder ) = CommandUtil.getNodesAndTournamentBuilder( ctx )
+        var tournamentData: TournamentData? = null
         for ( entry in nodeEntries ) {
             when ( entry.key ) {
                 "$NEW$TOURNAMENT_NAME" -> tournamentData = tournamentBuilder?.toTournament( entry.value )
@@ -90,5 +91,4 @@ object GenerateTournamentCommand
         }
         return success
     }
-
 }

@@ -1,4 +1,4 @@
-package com.someguy.storage.util
+package com.someguy.storage.store
 
 import com.cobblemon.mod.common.util.fromJson
 import com.google.gson.Gson
@@ -30,7 +30,7 @@ object StoreUtil
      * @return - target [JsonObject] if found
      * - null if [Exception] thrown from [Gson.fromJson]
      */
-    fun getJsonOrCreateFile(file: File,gson: Gson): JsonObject?
+    private fun getJsonOrCreateFile( file: File, gson: Gson ): JsonObject?
     {
         try {
             file.parentFile.mkdirs()

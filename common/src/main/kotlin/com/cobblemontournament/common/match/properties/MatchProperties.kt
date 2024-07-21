@@ -16,7 +16,7 @@ import java.util.UUID
 class MatchProperties : Properties <MatchProperties>
 {
     companion object {
-        val HELPER = MatchPropertiesHelper
+        private val HELPER = MatchPropertiesHelper
         fun loadFromNBT( nbt: CompoundTag ) = HELPER.loadFromNBTHelper( nbt )
     }
 
@@ -95,7 +95,7 @@ class MatchProperties : Properties <MatchProperties>
     override fun getAllObservables() = observables.asIterable()
     override fun getChangeObservable() = anyChangeObservable
 
-    protected fun registerObservable(
+    private fun registerObservable(
         observable: Observable <*>
     ) : Observable <*>
     {

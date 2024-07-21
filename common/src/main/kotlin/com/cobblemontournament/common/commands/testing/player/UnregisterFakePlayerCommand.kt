@@ -3,10 +3,9 @@ package com.cobblemontournament.common.commands.testing.player
 import com.cobblemontournament.common.api.TournamentStoreManager
 import com.cobblemontournament.common.api.storage.TournamentBuilderStore
 import com.cobblemontournament.common.commands.builder.UnregisterPlayerCommand.unregisterPlayer
-import com.cobblemontournament.common.commands.nodes.builder.ActivePlayersBuilderNode
+import com.cobblemontournament.common.commands.nodes.builder.ActiveBuilderPlayersNode
 import com.cobblemontournament.common.commands.nodes.NodeKeys.BUILDER
 import com.cobblemontournament.common.commands.nodes.NodeKeys.BUILDER_NAME
-import com.cobblemontournament.common.commands.nodes.NodeKeys.EXECUTE
 import com.cobblemontournament.common.commands.nodes.NodeKeys.PLAYER
 import com.cobblemontournament.common.commands.nodes.NodeKeys.PLAYER_ENTITY
 import com.cobblemontournament.common.commands.nodes.NodeKeys.TOURNAMENT
@@ -18,10 +17,8 @@ import com.cobblemontournament.common.util.CommandUtil
 import com.mojang.brigadier.Command
 import com.mojang.brigadier.CommandDispatcher
 import com.mojang.brigadier.context.CommandContext
-import net.minecraft.commands.CommandBuildContext
 import net.minecraft.commands.CommandSourceStack
 import net.minecraft.commands.Commands
-import net.minecraft.commands.Commands.CommandSelection
 
 object UnregisterFakePlayerCommand
 {
@@ -39,17 +36,15 @@ object UnregisterFakePlayerCommand
      *      method      [unregisterFakePlayer]
      */
     @JvmStatic
-    fun register(
-        dispatcher: CommandDispatcher<CommandSourceStack>,
-        registry: CommandBuildContext,
-        selection: CommandSelection)
+    fun register( dispatcher: CommandDispatcher<CommandSourceStack> )
     {
         dispatcher.register(
-            ActivePlayersBuilderNode.player(
-                Commands.literal("$UNREGISTER-$FAKE")
-                    .then(Commands.literal(EXECUTE)
-                        .executes { ctx -> unregisterPlayer( ctx) }
-                    )))
+            ActiveBuilderPlayersNode.nest(
+                Commands.literal( "$UNREGISTER-$FAKE" )
+                    .executes {
+                        ctx -> unregisterPlayer( ctx )
+                    }
+            ) )
     }
 
     @JvmStatic
@@ -60,7 +55,7 @@ object UnregisterFakePlayerCommand
         var tournamentBuilder   : TournamentBuilder? = null
         var removed             : Boolean?           = null
 
-        val nodeEntries = CommandUtil.getNodeEntries( ctx.nodes, ctx.input)
+        val nodeEntries = CommandUtil.getNodeEntries( ctx )
         for (entry in nodeEntries) {
             when (entry.key) {
                 BUILDER_NAME -> {
@@ -70,13 +65,13 @@ object UnregisterFakePlayerCommand
                         storeID     = TournamentStoreManager.activeStoreKey )
                     tournamentBuilder = builder
                 }
-                PLAYER_ENTITY -> removed = tournamentBuilder?.removePlayerByName(entry.value)
+                PLAYER_ENTITY -> removed = tournamentBuilder?.removePlayerByName( entry.value )
             }
         }
 
         var success = 0
-        var text = ""
         var color = ChatUtil.yellow
+        val text: String
         if ( tournamentBuilder == null) {
             text = "Failed to UNREGISTER Fake Player b/c Tournament Builder was null"
         } else if (removed == null || removed == false) {
@@ -95,5 +90,4 @@ object UnregisterFakePlayerCommand
         }
         return success
     }
-
 }
