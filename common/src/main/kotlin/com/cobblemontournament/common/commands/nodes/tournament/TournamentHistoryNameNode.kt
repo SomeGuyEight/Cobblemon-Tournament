@@ -23,30 +23,33 @@ import net.minecraft.commands.Commands
  *      argument    [TOURNAMENT_NAME] , StringType ->
  *      _
  */
-object TournamentHistoryNameNode : NestedNode()
-{
+object TournamentHistoryNameNode : NestedNode() {
+
     override val executionNode get() = ExecutionNode {
         CommandUtil.displayNoArgument(
-            player  = it.source.player,
-            nodeKey = "$TOURNAMENT $TOURNAMENT $HISTORY $TOURNAMENT_NAME" )
+            player = it.source.player,
+            nodeKey = "$TOURNAMENT $TOURNAMENT $HISTORY $TOURNAMENT_NAME",
+            )
     }
 
-    private val suggestionProvider get() = ClassStoredNameSuggestionProvider(
-        storeClass  = TournamentStore::class.java,
-        getActive   = false )
+    private val suggestionProvider by lazy {
+        ClassStoredNameSuggestionProvider(
+            storeClass = TournamentStore::class.java,
+            getActive = false,
+            )
+    }
 
     override fun inner(
-        literal     : LiteralArgumentBuilder <CommandSourceStack>?,
-        argument    : RequiredArgumentBuilder <CommandSourceStack,*>?,
-        execution   : ExecutionNode?
-    ): LiteralArgumentBuilder <CommandSourceStack>
-    {
-        val stack = literal ?: argument
-        return TournamentHistoryNode.nest(
-            Commands.argument( TOURNAMENT_NAME, StringArgumentType.word() )
-                .suggests( suggestionProvider )
-                .executes( ( execution ?: this.executionNode ).node )
-                .then( stack )
-        )
+        literal: LiteralArgumentBuilder<CommandSourceStack>?,
+        argument: RequiredArgumentBuilder<CommandSourceStack, *>?,
+        execution: ExecutionNode?
+    ): LiteralArgumentBuilder<CommandSourceStack> {
+        return TournamentHistoryNode
+            .nest(Commands
+                .argument(TOURNAMENT_NAME, StringArgumentType.word())
+                .suggests(suggestionProvider)
+                .executes((execution ?: this.executionNode).node)
+                .then((literal ?: argument))
+            )
     }
 }

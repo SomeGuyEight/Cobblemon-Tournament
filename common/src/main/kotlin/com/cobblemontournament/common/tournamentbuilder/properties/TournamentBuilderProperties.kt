@@ -13,161 +13,145 @@ import net.minecraft.nbt.CompoundTag
 import net.minecraft.server.level.ServerPlayer
 import java.util.UUID
 
-class TournamentBuilderProperties : Properties <TournamentBuilderProperties>
-{
-    companion object {
-        private val HELPER = TournamentBuilderPropertiesHelper
-        fun loadFromNBT( nbt: CompoundTag ) = HELPER.loadFromNBTHelper( nbt )
-    }
-
-    constructor( uuid: UUID = UUID.randomUUID() ) : this ( tournamentBuilderID = uuid )
-
-    constructor(
-        name                    : String            = DEFAULT_TOURNAMENT_BUILDER_NAME,
-        tournamentBuilderID     : UUID              = UUID.randomUUID(),
-        tournamentType          : TournamentType    = TournamentConfig.defaultTournamentType(),
-        challengeFormat         : ChallengeFormat = TournamentConfig.defaultChallengeFormat(),
-        maxParticipants         : Int               = TournamentConfig.defaultMaxParticipants(),
-        teamSize                : Int               = TournamentConfig.defaultTeamSize(),
-        groupSize               : Int               = TournamentConfig.defaultGroupSize(),
-        minLevel                : Int               = TournamentConfig.defaultMinLevel(),
-        maxLevel                : Int               = TournamentConfig.defaultMaxLevel(),
-        showPreview             : Boolean           = TournamentConfig.defaultShowPreview(),
-        players                 : MutableSet<PlayerProperties>   = mutableSetOf() )
-    {
-        this.name                                   = name
-        this.tournamentBuilderID                    = tournamentBuilderID
-        this.tournamentProperties.tournamentType    = tournamentType
-        this.tournamentProperties.challengeFormat   = challengeFormat
-        this.tournamentProperties.maxParticipants   = maxParticipants
-        this.tournamentProperties.teamSize          = teamSize
-        this.tournamentProperties.groupSize         = groupSize
-        this.tournamentProperties.minLevel          = minLevel
-        this.tournamentProperties.maxLevel          = maxLevel
-        this.tournamentProperties.showPreview       = showPreview
-        this.players.addAll( players )
-
-        for ( player in this.players ) {
-            registerObservable( player.getChangeObservable() )
-        }
-        registerObservable( tournamentProperties.getChangeObservable() )
-    }
+class TournamentBuilderProperties(
+    name: String = DEFAULT_TOURNAMENT_BUILDER_NAME,
+    tournamentBuilderID: UUID = UUID.randomUUID(),
+    tournamentType: TournamentType = TournamentConfig.defaultTournamentType(),
+    challengeFormat: ChallengeFormat = TournamentConfig.defaultChallengeFormat(),
+    maxParticipants: Int = TournamentConfig.defaultMaxParticipants(),
+    teamSize: Int = TournamentConfig.defaultTeamSize(),
+    groupSize: Int = TournamentConfig.defaultGroupSize(),
+    minLevel: Int = TournamentConfig.defaultMinLevel(),
+    maxLevel: Int = TournamentConfig.defaultMaxLevel(),
+    showPreview: Boolean = TournamentConfig.defaultShowPreview(),
+    players: MutableSet<PlayerProperties> = mutableSetOf(),
+) : Properties<TournamentBuilderProperties> {
 
     override val instance = this
+    var name = name
+        set(value) {
+            field = value
+            emitChange()
+        }
+    var tournamentBuilderID: UUID = tournamentBuilderID
+        set(value) {
+            field = value
+            emitChange()
+        }
+    private var players: MutableSet<PlayerProperties> = players.toMutableSet()
+        set(value) {
+            field = value
+            emitChange()
+        }
+    // TODO make getters & setters for properties needed
+    val tournamentProperties = TournamentProperties(
+        tournamentID = tournamentBuilderID,
+        tournamentType = tournamentType,
+        challengeFormat = challengeFormat,
+        maxParticipants = maxParticipants,
+        teamSize = teamSize,
+        groupSize = groupSize,
+        minLevel = minLevel,
+        maxLevel = maxLevel,
+        showPreview = showPreview,
+    )
+
     override val helper = TournamentBuilderPropertiesHelper
+    private val observables = mutableListOf <Observable <*>>()
+    private val anyChangeObservable = SimpleObservable <TournamentBuilderProperties>()
 
-    var name = DEFAULT_TOURNAMENT_BUILDER_NAME
-        set( value ) { field = value; emitChange() }
+    init {
+        for (player in this.players) {
+            registerObservable(observable = player.getChangeObservable() )
+        }
+        registerObservable(observable = tournamentProperties.getChangeObservable() )
+    }
 
-    var tournamentBuilderID: UUID = UUID.randomUUID()
-        set( value ) { field = value; emitChange() }
+    constructor(uuid: UUID = UUID.randomUUID()) : this(tournamentBuilderID = uuid)
 
-    /** This is used to simplify builder properties class by piggybacking off tournament properties:
-     * - getters/setters & observables
-     * - debug logging & display in chat
-     * */
-    val tournamentProperties = TournamentProperties()
+    fun containsPlayerID( playerID: UUID ) = players.firstOrNull { it.playerID == playerID } != null
 
-    private var players = mutableSetOf <PlayerProperties>()
-        set( value ) { field = value; emitChange() }
+    fun getPlayer(playerID: UUID) = players.firstOrNull { it.playerID == playerID }
 
-    fun getPlayersDeepCopy(): MutableSet <PlayerProperties> {
-        val playersCopy = mutableSetOf <PlayerProperties>()
-        for ( player in this.players ) {
-            playersCopy.add( player.deepCopy() )
+    fun getPlayer(name: String) = players.firstOrNull { it.name == name }
+
+    fun getPlayersSize() = players.size
+
+    /** Returns an iterator over all elements of [TournamentBuilderProperties.players] */
+    fun getPlayersIterator() = players.iterator()
+
+    /** Returns a list containing all elements of [TournamentBuilderProperties.players] with a seed > 0 */
+    fun getSeededPlayers() = players.filter { it.seed > 0 }.toList()
+
+    /** Returns a list containing all elements of [TournamentBuilderProperties.players] with a seed < 1 */
+    fun getUnseededPlayers() = players.filter { it.seed < 1 }.toList()
+
+    fun getPlayersDeepCopy(): MutableSet<PlayerProperties> {
+        val playersCopy = mutableSetOf<PlayerProperties>()
+        for (player in this.players) {
+            playersCopy.add(player.deepCopy())
         }
         return playersCopy
     }
 
-    fun containsPlayerID( playerID: UUID ) = players.firstOrNull { it.playerID == playerID } != null
-    fun containsPlayerName( name: String ) = players.firstOrNull { it.name == name } != null
-
-    fun getPlayersSize()        = players.size
-    /** Returns an iterator over all elements of [TournamentBuilderProperties.players] */
-    fun getPlayersIterator()    = players.iterator()
-    /** Returns a list containing all player properties of [TournamentBuilderProperties.players] */
-    fun getPlayers()            = players.toList()
-    /** Returns a list containing all elements of [TournamentBuilderProperties.players] with a seed > 0 */
-    fun getSeededPlayers()      = players.filter { it.seed > 0 }.toList()
-    /** Returns a list containing all elements of [TournamentBuilderProperties.players] with a seed < 1 */
-    fun getUnseededPlayers()    = players.filter { it.seed < 1 }.toList()
-
-    fun getPlayer( playerID: UUID ) = players.firstOrNull { it.playerID == playerID }
-    fun getPlayer( name: String )   = players.firstOrNull { it.name == name }
-
-    fun addPlayer(
-        playerProps: PlayerProperties
-    ): Boolean {
-        return if ( players.add( playerProps ) ) {
-            registerObservable( playerProps.getChangeObservable() )
+    fun addPlayer(playerProps: PlayerProperties): Boolean {
+        return if (players.add(playerProps)) {
+            registerObservable(observable = playerProps.getChangeObservable())
             emitChange()
-        } else false
+            true
+        } else {
+            false
+        }
     }
 
-    fun removePlayer(
-        playerProps: PlayerProperties
-    ): Boolean {
-        return if ( players.remove( playerProps ) ) {
+    fun removePlayer(playerID: UUID): Boolean {
+        return if (players.removeIf { it.playerID == playerID }) {
             emitChange()
-        } else false
+            true
+        } else {
+            false
+        }
     }
 
-    fun removePlayer(
-        playerID: UUID
-    ): Boolean {
-        return if ( players.removeIf { it.playerID == playerID } ) {
+    fun removePlayer(name: String): Boolean {
+        return if (players.removeIf { it.name == name }) {
             emitChange()
-        } else false
-    }
-
-    fun removePlayer(
-        name: String
-    ): Boolean {
-        return if ( players.removeIf { it.name == name } ) {
-            emitChange()
-        } else false
+            true
+        } else {
+            false
+        }
     }
 
     fun <T : Comparable<T>> getPlayersSortedBy(
-        predicate   : (PlayerProperties) -> Boolean = { _ -> true },
-        selector    : (PlayerProperties) -> T
-    ): List <PlayerProperties>
-    {
-        val list = mutableListOf <PlayerProperties>()
-        for ( playerProps in players ) {
-            if ( predicate( playerProps ) ) {
-                list.add( playerProps )
+        predicate: (PlayerProperties) -> Boolean = { true },
+        selector: (PlayerProperties) -> T,
+    ): List<PlayerProperties> {
+        val list = mutableListOf<PlayerProperties>()
+        for (playerProps in players) {
+            if (predicate(playerProps)) {
+                list.add(playerProps)
             }
         }
-        return list.sortedBy { selector( it ) }
+        return list.sortedBy { selector(it) }
     }
 
-    private val observables = mutableListOf <Observable <*>>()
-    private val anyChangeObservable = SimpleObservable <TournamentBuilderProperties>()
-
-    private fun emitChange() = anyChangeObservable.emit( values = arrayOf(this) ) == Unit
-    override fun getAllObservables() = observables.asIterable()
-    override fun getChangeObservable() = anyChangeObservable
-
-    fun getPlayerChangeObservables(): Set <Observable <PlayerProperties>> {
-        val observables = mutableSetOf<Observable <PlayerProperties>>()
-        for (playerProps in players) {
-            observables.add( playerProps.getChangeObservable() )
-        }
-        return observables
-    }
-
-    private fun registerObservable(
-        observable: Observable <*>
-    ) : Observable <*>
-    {
-        observables.add( observable )
-        observable.subscribe { anyChangeObservable.emit( values = arrayOf( this ) ) }
+    private fun registerObservable(observable: Observable<*>): Observable<*> {
+        observables.add(observable)
+        observable.subscribe { anyChangeObservable.emit((this)) }
         return observable
     }
 
-    fun displayInChatSlim( player: ServerPlayer ) {
-        helper.displayInChatSlimHelper( properties = this, player = player )
+    private fun emitChange() = anyChangeObservable.emit((this))
+    override fun getAllObservables() = observables.asIterable()
+    override fun getChangeObservable() = anyChangeObservable
+
+    fun displayInChatSlim(player: ServerPlayer) {
+        helper.displayInChatSlimHelper(properties = this, player = player)
+    }
+
+    companion object {
+        private val HELPER = TournamentBuilderPropertiesHelper
+        fun loadFromNbt(nbt: CompoundTag) = HELPER.loadFromNBTHelper(nbt = nbt)
     }
 
 }

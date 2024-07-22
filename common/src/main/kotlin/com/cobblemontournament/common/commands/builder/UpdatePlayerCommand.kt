@@ -46,93 +46,98 @@ import java.util.UUID
  *
  *      * - optional
  */
-object UpdatePlayerCommand : ExecutableCommand
-{
-    override val executionNode get() = ExecutionNode { updatePlayer( ctx = it ) }
+object UpdatePlayerCommand : ExecutableCommand {
 
-    @JvmStatic
-    fun register( dispatcher: CommandDispatcher<CommandSourceStack> )
-    {
-        dispatcher.register(
-            ActiveBuilderPlayersNode.nest(
-                Commands.literal( UPDATE )
-                    .then( Commands.argument( PLAYER_NAME, StringArgumentType.string() )
-                        .suggests { ctx, builder ->
-                            PlayerNameSuggestionProvider().getSuggestions( ctx, builder )
-                        }
-//                        .then(Commands.literal(ACTOR_TYPE)
-//                            .then( Commands.argument("$NEW$ACTOR_TYPE",StringArgumentType.string())
-//                                .suggests(ActorTypeSuggestionProvider())
-//                                .executes { ctx -> updatePlayer( ctx = ctx) }
-//                            ))
-                        .then( Commands.literal( SEED )
-                            .then( Commands.argument( "$NEW$PLAYER_SEED", IntegerArgumentType.integer( -1 ) )
-                                .executes( this.executionNode.node )
-                            ) )
-                    ) ) )
+    override val executionNode get() = ExecutionNode { updatePlayer(ctx = it) }
+
+    fun register(dispatcher: CommandDispatcher<CommandSourceStack>) {
+        dispatcher.register(ActiveBuilderPlayersNode
+            .nest(Commands
+                .literal(UPDATE)
+                .then(Commands
+                    .argument(PLAYER_NAME, StringArgumentType.string())
+                    .suggests { ctx, builder ->
+                        PlayerNameSuggestionProvider().getSuggestions(ctx = ctx, builder = builder)
+                    }
+//                    .then(Commands
+//                        .literal(ACTOR_TYPE)
+//                        .then(Commands
+//                            .argument("$NEW$ACTOR_TYPE", StringArgumentType.string())
+//                            .suggests(ActorTypeSuggestionProvider())
+//                            .executes(this.executionNode.node)
+//                        )
+//                    )
+                    .then(Commands
+                        .literal(SEED)
+                        .then(Commands
+                            .argument("$NEW$PLAYER_SEED", IntegerArgumentType.integer(-1))
+                            .executes(this.executionNode.node)
+                        )
+                    )
+                )
+            )
+        )
     }
 
-    @JvmStatic
-    fun updatePlayer(
-        ctx: CommandContext <CommandSourceStack>
-    ): Int
-    {
-        val ( nodeEntries, tournamentBuilder ) = CommandUtil
+    private fun updatePlayer(ctx: CommandContext<CommandSourceStack>): Int {
+        val (nodeEntries, tournamentBuilder) = CommandUtil
             .getNodesAndTournamentBuilder(
                 ctx = ctx,
-                storeID = TournamentStoreManager.activeStoreKey )
+                storeID = TournamentStoreManager.ACTIVE_STORE_ID,
+                )
 
-        var playerID    : UUID? = null
-        var seed        : Int?          = null
-        var actorType   : ActorType?    = null
-        for ( entry in nodeEntries ) {
-            when ( entry.key ) {
-                PLAYER_NAME -> {
-                    // round about way of getting playerID from name IF player is registered
-                    playerID = tournamentBuilder?.getPlayer( entry.value )?.playerID
-                }
+        var playerID: UUID? = null
+        var seed: Int? = null
+        var actorType: ActorType? = null
+        for (entry in nodeEntries) {
+            when (entry.key) {
+                PLAYER_NAME -> playerID = tournamentBuilder?.getPlayer(entry.value)?.playerID
                 "$NEW$PLAYER_SEED" -> seed = Integer.parseInt( entry.value )
                 "$NEW$ACTOR_TYPE" -> {
-                    actorType = TournamentUtil.getActorTypeOrNull( entry.value )
-                        ?: continue
+                    TournamentUtil.getActorTypeOrNull(entry.value)
+                        ?.let { actorType = it }
                 }
             }
         }
 
-        val updatedPlayer = if ( playerID != null ) {
-            PlayerManager.getServerPlayer( playerID )
-        } else null
+        val updatedPlayer = if (playerID != null) {
+            PlayerManager.getServerPlayer(playerID)
+        } else {
+            null
+        }
 
         var success = 0
-        val text: MutableComponent
-        if ( tournamentBuilder == null ) {
-            text = CommandUtil.failedCommand(
-                reason = "Tournament Builder was null" )
-        } else if ( updatedPlayer == null ) {
-            text = CommandUtil.failedCommand(
-                reason = "Server Player was null" )
-        } else if ( seed == null && actorType == null ) {
-            text = CommandUtil.failedCommand(
-                reason = "All properties to update were null" )
-        } else {
-            tournamentBuilder.updatePlayer( updatedPlayer.uuid, actorType, seed )
-            text = CommandUtil.successfulCommand(
-                action = "UPDATED ${updatedPlayer.name.string} properties in Tournament Builder \"${tournamentBuilder.name}\"" )
-            success = Command.SINGLE_SUCCESS
+        val text: MutableComponent = when {
+            tournamentBuilder == null -> CommandUtil.failedCommand(reason = "Tournament Builder was null")
+            updatedPlayer == null -> CommandUtil.failedCommand(reason = "Server Player was null")
+            seed == null && actorType == null -> {
+                CommandUtil.failedCommand(reason = "All properties to update were null")
+            }
+            else -> {
+                if (tournamentBuilder.updatePlayer(updatedPlayer.uuid, actorType, seed)) {
+                    success = Command.SINGLE_SUCCESS
+                    CommandUtil.successfulCommand(
+                        text = "UPDATED ${updatedPlayer.name.string} properties in Tournament Builder \"${tournamentBuilder.name}\"",
+                    )
+                } else {
+                    CommandUtil.failedCommand(
+                        reason = "Failed inside of Tournament Builder \"${tournamentBuilder.name}\"",
+                        )
+                }
+            }
         }
 
-        val player = ctx.source.player
-        if ( player != null ) {
-            player.displayClientMessage( text ,false )
-            if ( updatedPlayer != null && updatedPlayer != player && tournamentBuilder != null ) {
+        ctx.source.player?.let { player ->
+            if (updatedPlayer != null && updatedPlayer != player && tournamentBuilder != null) {
                 ChatUtil.displayInPlayerChat(
                     player = updatedPlayer,
-                    text   = "Your properties have been UPDATED in Tournament Builder \"${tournamentBuilder.name}\"!",
-                    color  = ChatUtil.white)
+                    text = "Your properties have been UPDATED in Tournament Builder \"${tournamentBuilder.name}\"!",
+                    color  = ChatUtil.white,
+                    )
             }
-        } else {
-            Util.report( text.string )
-        }
+            player.displayClientMessage(text ,false)
+        } ?: Util.report(text.string)
+
         return success
     }
 }

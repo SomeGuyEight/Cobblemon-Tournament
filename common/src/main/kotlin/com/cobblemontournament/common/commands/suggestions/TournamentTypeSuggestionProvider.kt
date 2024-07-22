@@ -8,16 +8,16 @@ import com.mojang.brigadier.suggestion.SuggestionsBuilder
 import java.util.concurrent.CompletableFuture
 import net.minecraft.commands.CommandSourceStack
 
-class TournamentTypeSuggestionProvider: SuggestionProvider<CommandSourceStack>
-{
+class TournamentTypeSuggestionProvider : SuggestionProvider<CommandSourceStack> {
+
     override fun getSuggestions(
         context: CommandContext<CommandSourceStack>,
         builder: SuggestionsBuilder,
-    ): CompletableFuture<Suggestions>
-    {
+    ): CompletableFuture<Suggestions> {
         for (instance in TournamentType.entries) {
             builder.suggest(instance.name)
         }
         return builder.buildFuture()
     }
+
 }

@@ -1,7 +1,6 @@
 package com.cobblemontournament.common.tournament
 
-enum class TournamentStatus
-{
+enum class TournamentStatus {
     ERROR,
     UNKNOWN,
     PENDING,

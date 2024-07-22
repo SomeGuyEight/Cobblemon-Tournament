@@ -3,6 +3,7 @@ package com.cobblemontournament.common.commands.suggestions
 import com.cobblemontournament.common.api.TournamentStoreManager
 import com.cobblemontournament.common.api.storage.TournamentBuilderStore
 import com.cobblemontournament.common.api.storage.TournamentStore
+import com.cobblemontournament.common.commands.nodes.NodeEntry
 import com.cobblemontournament.common.commands.nodes.NodeKeys.BUILDER_NAME
 import com.cobblemontournament.common.commands.nodes.NodeKeys.TOURNAMENT_NAME
 import com.cobblemontournament.common.tournament.Tournament
@@ -21,32 +22,33 @@ import net.minecraft.commands.CommandSourceStack
  *
  * All names will be suggested if a valid [TournamentBuilder] or [Tournament] is found.
  */
-class PlayerNameSuggestionProvider : SuggestionProvider <CommandSourceStack>
-{
-    override fun getSuggestions(
-        ctx     : CommandContext <CommandSourceStack>,
-        builder : SuggestionsBuilder,
-    ): CompletableFuture <Suggestions>
-    {
-        val nodeEntries = CommandUtil.getNodeEntries( ctx )
-        val entry = nodeEntries.firstOrNull { it.key == BUILDER_NAME }
-            ?: nodeEntries.firstOrNull { it.key == TOURNAMENT_NAME }
-            ?: return builder.buildFuture()
+class PlayerNameSuggestionProvider : SuggestionProvider <CommandSourceStack> {
 
-        if ( entry.key == BUILDER_NAME ) {
+    override fun getSuggestions(
+        ctx: CommandContext<CommandSourceStack>,
+        builder: SuggestionsBuilder,
+    ): CompletableFuture<Suggestions> {
+
+        val entry: NodeEntry = CommandUtil.getNodeEntries(ctx).run {
+            this.firstOrNull { it.key == BUILDER_NAME }
+                ?: this.firstOrNull { it.key == TOURNAMENT_NAME }
+                ?: return builder.buildFuture()
+        }
+
+        if (entry.key == BUILDER_NAME) {
             val tournamentBuilder = TournamentStoreManager.getInstanceByName(
-                name        = entry.value,
-                storeClass  = TournamentBuilderStore::class.java,
-                storeID     = TournamentStoreManager.activeStoreKey
+                storeClass = TournamentBuilderStore::class.java,
+                name = entry.value,
+                storeID = TournamentStoreManager.ACTIVE_STORE_ID,
             ).first ?: return builder.buildFuture()
-            tournamentBuilder.getPlayerNames().forEach { builder.suggest( it ) }
-        } else if ( entry.key == TOURNAMENT_NAME ) {
+            tournamentBuilder.getPlayersNames().forEach { builder.suggest( it ) }
+        } else if (entry.key == TOURNAMENT_NAME) {
             val tournament = TournamentStoreManager.getInstanceByName(
-                name        = entry.value,
-                storeClass  = TournamentStore::class.java,
-                storeID     = TournamentStoreManager.activeStoreKey
+                storeClass = TournamentStore::class.java,
+                name = entry.value,
+                storeID = TournamentStoreManager.ACTIVE_STORE_ID,
             ).first ?: return builder.buildFuture()
-            tournament.getPlayerSet().forEach { builder.suggest( it.name ) }
+            tournament.getPlayerSet().forEach { builder.suggest(it.name) }
         }
         return builder.buildFuture()
     }

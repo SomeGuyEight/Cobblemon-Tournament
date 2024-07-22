@@ -2,7 +2,7 @@ package com.cobblemontournament.common
 
 import com.cobblemon.mod.common.api.Priority
 import com.cobblemon.mod.common.api.events.CobblemonEvents
-import com.cobblemontournament.common.api.MatchManager
+import com.cobblemontournament.common.api.WatchedMatches
 import com.cobblemontournament.common.api.TournamentStoreManager
 import com.cobblemontournament.common.commands.TournamentCommands
 import com.someguy.api.ModImplementation
@@ -32,10 +32,10 @@ object CobblemonTournament : ModImplementation(
             Util.report("Saving Factories Complete.")
         }
 
-        PlayerEvent.PLAYER_QUIT.register( MatchManager::handlePlayerLogoutEvent )
+        PlayerEvent.PLAYER_QUIT.register( WatchedMatches::handlePlayerLogoutEvent )
 
         CobblemonEvents.BATTLE_VICTORY.subscribe( Priority.NORMAL ) {
-                MatchManager.handleBattleVictoryEvent( it )
+                WatchedMatches.handleBattleVictoryEvent( it )
         }
     }
 }

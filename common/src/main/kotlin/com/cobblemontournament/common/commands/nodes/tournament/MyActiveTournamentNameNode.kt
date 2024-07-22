@@ -25,35 +25,39 @@ import java.util.UUID
  *      argument    [TOURNAMENT_NAME] , StringType ->
  *      _
  */
-object MyActiveTournamentNameNode : NestedNode()
-{
+object MyActiveTournamentNameNode : NestedNode() {
+
     override val executionNode get() = ExecutionNode {
         CommandUtil.displayNoArgument(
-            player  = it.source.player,
-            nodeKey = "$TOURNAMENT $TOURNAMENT $MY_ACTIVE $TOURNAMENT_NAME" )
+            player = it.source.player,
+            nodeKey = "$TOURNAMENT $TOURNAMENT $MY_ACTIVE $TOURNAMENT_NAME",
+            )
     }
 
-    private val predicate: (UUID) -> (Tournament) -> Boolean = {
-            playerID -> { it.containsPlayerID( playerID ) }
+    private val predicate: (UUID) -> (Tournament) -> Boolean = { playerID ->
+        { it.containsPlayerID(playerID) }
     }
 
-    private val suggestionProvider get() = ClassStoredNameSuggestionProvider(
-        storeClass      = TournamentStore::class.java,
-        getActive       = true,
-        playerPredicate = predicate )
+    private val suggestionProvider by lazy {
+        ClassStoredNameSuggestionProvider(
+            storeClass = TournamentStore::class.java,
+            getActive = true,
+            playerPredicate = predicate,
+            )
+    }
 
     override fun inner(
-        literal     : LiteralArgumentBuilder <CommandSourceStack>?,
-        argument    : RequiredArgumentBuilder <CommandSourceStack,*>?,
-        execution   : ExecutionNode?
-    ): LiteralArgumentBuilder <CommandSourceStack>
-    {
-        val stack = literal ?: argument
-        return MyActiveTournamentNode.nest(
-            Commands.argument( TOURNAMENT_NAME, StringArgumentType.word() )
-                .suggests( suggestionProvider )
-                .executes( ( execution ?: this.executionNode ).node )
-                .then( stack )
-        )
+        literal: LiteralArgumentBuilder<CommandSourceStack>?,
+        argument: RequiredArgumentBuilder<CommandSourceStack, *>?,
+        execution: ExecutionNode?,
+    ): LiteralArgumentBuilder<CommandSourceStack> {
+        return MyActiveTournamentNode
+            .nest(Commands
+                .argument(TOURNAMENT_NAME, StringArgumentType.word())
+                .suggests(suggestionProvider)
+                .executes((execution ?: this.executionNode).node)
+                .then((literal ?: argument))
+            )
     }
+
 }

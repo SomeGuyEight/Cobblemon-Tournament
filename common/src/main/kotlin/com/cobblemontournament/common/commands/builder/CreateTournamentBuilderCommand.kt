@@ -32,33 +32,30 @@ import org.slf4j.helpers.Util
  *      argument    [NEW]+[BUILDER_NAME] , StringType ->
  *      function    [createNewBuilder]
  */
-object CreateTournamentBuilderCommand : ExecutableCommand
-{
-    override val executionNode get() = ExecutionNode { createNewBuilder( ctx = it ) }
+object CreateTournamentBuilderCommand : ExecutableCommand {
+
+    override val executionNode get() = ExecutionNode { createNewBuilder(ctx = it) }
 
     @JvmStatic
-    fun register( dispatcher: CommandDispatcher <CommandSourceStack> )
-    {
-        dispatcher.register(
-            CreateBuilderNode.nest(
-                Commands.argument( "$NEW$BUILDER_NAME", StringArgumentType.string() )
-                    .executes( this.executionNode.node )
+    fun register(dispatcher: CommandDispatcher<CommandSourceStack>) {
+        dispatcher.register(CreateBuilderNode
+            .nest(Commands
+                .argument("$NEW$BUILDER_NAME", StringArgumentType.string())
+                .executes(this.executionNode.node)
                 // TODO add more optional properties to assign
-            ) )
+            )
+        )
     }
 
     @JvmStatic
-    private fun createNewBuilder(
-        ctx: CommandContext <CommandSourceStack>
-    ): Int
-    {
+    private fun createNewBuilder(ctx: CommandContext<CommandSourceStack>): Int {
         var name = ""
-        var exists              : Boolean?           = null
-        var tournamentBuilder   : TournamentBuilder? = null
+        var exists: Boolean? = null
+        var tournamentBuilder: TournamentBuilder? = null
 
-        val nodeEntries = CommandUtil.getNodeEntries( ctx )
-        for ( entry in nodeEntries ) {
-            when ( entry.key ) {
+        val nodeEntries = CommandUtil.getNodeEntries(ctx = ctx)
+        for (entry in nodeEntries) {
+            when (entry.key) {
                 // TODO implement function to append an index to builders with the same name
                 //      - ?? implement inside store manager ??
                 //      - ex. parameter "allowDuplicateNames": Boolean
@@ -67,30 +64,33 @@ object CreateTournamentBuilderCommand : ExecutableCommand
                 "$NEW$BUILDER_NAME" -> {
                     name = entry.value
                     tournamentBuilder = TournamentStoreManager.getInstanceByName(
-                        name        = entry.value,
-                        storeClass  = TournamentBuilderStore::class.java,
-                        storeID     = TournamentStoreManager.activeStoreKey
-                    ).first ?: TournamentStoreManager.getInstanceByName(
-                        name        = entry.value,
-                        storeClass  = TournamentBuilderStore::class.java,
-                        storeID     = TournamentStoreManager.inactiveStoreKey
+                        storeClass = TournamentBuilderStore::class.java,
+                        name = entry.value,
+                        storeID = TournamentStoreManager.ACTIVE_STORE_ID,
                     ).first
+                        ?: TournamentStoreManager.getInstanceByName(
+                            storeClass = TournamentBuilderStore::class.java,
+                            name = entry.value,
+                            storeID = TournamentStoreManager.INACTIVE_STORE_ID,
+                        ).first
 
-                    val finalName = if ( tournamentBuilder == null ) {
+                    val finalName = if (tournamentBuilder == null) {
                         entry.value
                     } else {
-                        val value = TournamentStoreManager.getNameWithIndex( currentInstance = tournamentBuilder )
-                        if ( value == null ) {
+                        val value = TournamentStoreManager.getNameWithIndex(currentInstance = tournamentBuilder)
+                        if (value == null) {
                             exists = true
                             continue
-                        } else value
+                        } else {
+                            value
+                        }
                     }
 
                     tournamentBuilder = TournamentBuilder().initialize()
                     tournamentBuilder.name = finalName
                     val success = TournamentStoreManager.addInstance(
                         storeClass  = TournamentBuilderStore::class.java,
-                        storeID     = TournamentStoreManager.activeStoreKey,
+                        storeID     = TournamentStoreManager.ACTIVE_STORE_ID,
                         instance    = tournamentBuilder
                     ).first
 
@@ -102,22 +102,22 @@ object CreateTournamentBuilderCommand : ExecutableCommand
         }
 
         var success = 0
-        val text: MutableComponent
-        if ( exists == true) {
-            text = CommandUtil.failedCommand( "A builder named \"$name\" already exists." )
-        } else if ( tournamentBuilder == null ) {
-            text = CommandUtil.failedCommand( "Tournament Builder was null" )
-        } else {
-            text = CommandUtil.successfulCommand( "CREATED Tournament Builder \"$name\"" )
-            success = Command.SINGLE_SUCCESS
+        val text: MutableComponent = when {
+            exists == true -> {
+                CommandUtil.failedCommand(reason = "A builder named \"$name\" already exists.")
+            }
+            tournamentBuilder == null -> {
+                CommandUtil.failedCommand(reason = "Tournament Builder was null")
+            }
+            else -> {
+                success = Command.SINGLE_SUCCESS
+                CommandUtil.successfulCommand(text = "CREATED Tournament Builder \"$name\"")
+            }
         }
 
-        val player = ctx.source.player
-        if ( player != null ) {
-            player.displayClientMessage( text ,false )
-        } else {
-            Util.report( text.string )
-        }
+        ctx.source.player?.displayClientMessage(text ,false)
+            ?: Util.report(text.string)
+
         return success
     }
 }

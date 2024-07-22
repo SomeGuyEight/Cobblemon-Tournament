@@ -22,13 +22,11 @@ import java.util.UUID
 
 object CommandUtil
 {
-    @JvmStatic
     fun tryGetNodeInput(
-        nodes   : List <ParsedCommandNode <*>>,
-        input   : String,
-        key     : String
-    ): String?
-    {
+        nodes: List<ParsedCommandNode<*>>,
+        input: String,
+        key: String
+    ): String? {
         for ( parsedNode in nodes ) {
             if ( parsedNode.node.name == key ) {
                 val range = parsedNode.range
@@ -38,20 +36,15 @@ object CommandUtil
         return null
     }
 
-    @JvmStatic
-    fun getNodeEntries(
-        ctx: CommandContext <CommandSourceStack>
-    ): List <NodeEntry> {
+    fun getNodeEntries( ctx: CommandContext<CommandSourceStack> ): List<NodeEntry> {
         return getNodeEntries( ctx.nodes, ctx.input )
     }
 
-    @JvmStatic
-    fun getNodeEntries(
-        nodes   : List <ParsedCommandNode <*>>,
-        input   : String
-    ): List <NodeEntry>
-    {
-        val list = mutableListOf <NodeEntry>()
+    private fun getNodeEntries(
+        nodes: List<ParsedCommandNode<*>>,
+        input: String
+    ): List<NodeEntry> {
+        val list = mutableListOf<NodeEntry>()
         for ( parsedNode in nodes ) {
             val range = parsedNode.range
             val value = input.subSequence( range.start, range.end )
@@ -60,128 +53,135 @@ object CommandUtil
         return list
     }
 
-    @JvmStatic
     fun getNodesAndTournament(
-        ctx     : CommandContext <CommandSourceStack>,
-        storeID : UUID?
-    ): Pair <List<NodeEntry>, Tournament?>
-    {
+        ctx: CommandContext<CommandSourceStack>,
+        storeID: UUID?
+    ): Pair<List<NodeEntry>, Tournament?> {
         val nodeEntries = getNodeEntries( ctx )
-        val entry = nodeEntries.firstOrNull { it.key == TOURNAMENT_NAME }
-        val storeClass = TournamentStore::class.java
-        val tournament = if ( entry != null ) {
-            tryGetInstance( storeClass, storeID, entry.value )
-                ?: tryGetInstance(
-                    storeClass      = storeClass,
-                    storeID         = TournamentStoreManager.activeStoreKey,
-                    instanceName    = entry.value )
-                ?: tryGetInstance(
-                    storeClass      = storeClass,
-                    storeID         = TournamentStoreManager.inactiveStoreKey,
-                    instanceName    = entry.value )
-        } else null
+        val tournament = tryGetInstance(
+            storeClass = TournamentStore::class.java,
+            storeID = storeID,
+            entry = nodeEntries.firstOrNull { it.key == TOURNAMENT_NAME }
+        )
         return Pair( nodeEntries, tournament )
     }
 
-    @JvmStatic
     fun getNodesAndTournamentBuilder(
-        ctx     : CommandContext <CommandSourceStack>,
-        storeID : UUID?
-    ): Pair <List<NodeEntry>, TournamentBuilder?>
-    {
+        ctx: CommandContext<CommandSourceStack>,
+        storeID: UUID?
+    ): Pair<List<NodeEntry>, TournamentBuilder?> {
         val nodeEntries = getNodeEntries( ctx )
-        val entry = nodeEntries.firstOrNull { it.key == BUILDER_NAME }
-        val storeClass = TournamentBuilderStore::class.java
-        val builder = if ( entry != null ) {
-            tryGetInstance( storeClass, storeID, entry.value )
-                ?: tryGetInstance(
-                    storeClass      = storeClass,
-                    storeID         = TournamentStoreManager.activeStoreKey,
-                    instanceName    = entry.value )
-                ?: tryGetInstance(
-                    storeClass      = storeClass,
-                    storeID         = TournamentStoreManager.inactiveStoreKey,
-                    instanceName    = entry.value )
-        } else null
+        val builder = tryGetInstance(
+            storeClass = TournamentBuilderStore::class.java,
+            storeID = storeID,
+            entry = nodeEntries.firstOrNull { it.key == BUILDER_NAME }
+        )
         return Pair( nodeEntries, builder )
     }
 
-    @JvmStatic
-    private fun <P: StorePosition,C: ClassStored,St: Store<P, C>> tryGetInstance(
-        storeClass      : Class<out St>,
-        storeID         : UUID?,
-        instanceName    : String
+
+    private fun <P : StorePosition, C : ClassStored, St : Store<P, C>> tryGetInstance(
+        storeClass: Class<out St>,
+        storeID: UUID?,
+        entry: NodeEntry?
     ): C? {
-        return if ( storeID != null ) {
+        return if (entry != null) {
+            tryGetInstance(
+                storeClass = storeClass,
+                storeID = storeID,
+                instanceName = entry.value
+            )?: tryGetInstance(
+                storeClass = storeClass,
+                storeID = TournamentStoreManager.ACTIVE_STORE_ID,
+                instanceName = entry.value
+            )?: tryGetInstance(
+                storeClass = storeClass,
+                storeID = TournamentStoreManager.INACTIVE_STORE_ID,
+                instanceName = entry.value
+            )
+        } else null
+    }
+
+    private fun <P : StorePosition, C : ClassStored, St : Store<P, C>> tryGetInstance(
+        storeClass: Class<out St>,
+        storeID: UUID?,
+        instanceName: String
+    ): C? {
+        return if (storeID != null) {
             TournamentStoreManager.getInstanceByName(
-                name        = instanceName,
-                storeClass  = storeClass,
-                storeID     = storeID
+                storeClass = storeClass,
+                name = instanceName,
+                storeID = storeID
             ).first
         } else null
     }
 
-    @JvmStatic
     fun displayNoArgument(
-        player  : ServerPlayer?,
-        nodeKey : String
-    ): Int
-    {
-        if ( player == null ) {
-            Util.report("\"$nodeKey\" command had no arguments.")
+        player: ServerPlayer?,
+        nodeKey: String
+    ): Int {
+        if (player == null) {
+            Util.report( "\"$nodeKey\" command had no arguments." )
         } else {
-            val text0 = ChatUtil.formatText( text = "\"$nodeKey\"  had no arguments.", ChatUtil.yellow, bold = true )
+            val text0 = ChatUtil.formatText(
+                text = "\"$nodeKey\"  had no arguments.",
+                color = ChatUtil.yellow,
+                bold = true )
             player.displayClientMessage( text0 ,false )
         }
         return Command.SINGLE_SUCCESS
     }
 
-    @JvmStatic
     fun createChallengeMatchInteractable(
-        text        : String,
-        tournament  : Tournament,
-        opponent    : ServerPlayer,
-        color       : String    = ChatUtil.white,
-        bracketed   : Boolean   = false,
-        bracketColor: String    = ChatUtil.white,
-    ): MutableComponent
-    {
+        text: String,
+        tournament: Tournament,
+        opponent: ServerPlayer,
+        color: String = ChatUtil.white,
+        bracketed: Boolean = false,
+        bracketColor: String = ChatUtil.white,
+    ): MutableComponent {
 //      // this is the format for the next version of CobblemonChallenge when Handicap & level range are supported
 //        var commandText = "/challenge ${opponent.name.string} "
 //        commandText    += "minLevel ${tournament.minLevel} maxLevel ${tournament.maxLevel} "
 //        commandText    += "handicapP1 0 handicapP2 0" // _TODO implement handicap in player properties
 
-        var commandText = "/challenge ${ opponent.name.string }"
-        commandText    += " level ${ tournament.maxLevel }"
-        commandText    +=  if ( tournament.showPreview ) "" else " nopreview"
+        var commandText = "/challenge ${opponent.name.string}"
+        commandText += " level ${tournament.maxLevel}"
+        commandText += if (tournament.showPreview) "" else " nopreview"
 
         val interactable = ChatUtil.getInteractableCommand(
-            text    = text,
+            text = text,
             command = commandText,
-            color   = color,
-            bold    = true )
+            color = color,
+            bold = true
+        )
 
         if (bracketed) {
-            val component = ChatUtil.formatText( text = "[", color = bracketColor)
+            val component = ChatUtil.formatText(
+                text = "[",
+                color = bracketColor
+            )
             component.append( interactable )
-            return component.append( ChatUtil.formatText( text = "]", color = bracketColor) )
+            return component.append( ChatUtil.formatText(
+                text = "]",
+                color = bracketColor
+            ) )
         } else {
             return interactable
         }
     }
 
-    @JvmStatic
-    fun failedCommand(
-        reason: String
-    ): MutableComponent {
-        return ChatUtil.formatText( text = "Command Failed: $reason.", ChatUtil.yellow )
+    fun failedCommand( reason: String ): MutableComponent {
+        return ChatUtil.formatText(
+            text = "Command Failed: $reason.",
+            color = ChatUtil.yellow
+        )
     }
 
-    @JvmStatic
-    fun successfulCommand(
-        action: String
-    ): MutableComponent {
-        return ChatUtil.formatText( text = "Command Success: $action.", ChatUtil.green )
+    fun successfulCommand( text: String ): MutableComponent {
+        return ChatUtil.formatText(
+            text = "Command Success: $text.",
+            color = ChatUtil.green
+        )
     }
-
 }

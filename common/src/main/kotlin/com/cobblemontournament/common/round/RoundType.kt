@@ -1,7 +1,6 @@
 package com.cobblemontournament.common.round
 
-enum class RoundType
-{
+enum class RoundType {
     NONE,
     PRELIMINARY,
     PRIMARY,

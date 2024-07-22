@@ -165,7 +165,7 @@ abstract class Store<P: StorePosition,C: ClassStored>(id: UUID = UUID.randomUUID
      *
      * If not done data will d-sync
      */
-    abstract fun loadFromNBT(nbt: CompoundTag): Store<P,C>
+    abstract fun loadFromNbt(nbt: CompoundTag): Store<P,C>
 
     abstract fun saveToJSON(json: JsonObject): JsonObject
 

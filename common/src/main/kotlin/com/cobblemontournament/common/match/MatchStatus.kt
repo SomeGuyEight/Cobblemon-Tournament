@@ -1,7 +1,6 @@
 package com.cobblemontournament.common.match
 
-enum class MatchStatus
-{
+enum class MatchStatus {
     ERROR,
     UNKNOWN,
     EMPTY,

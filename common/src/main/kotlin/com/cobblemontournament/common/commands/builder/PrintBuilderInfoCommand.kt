@@ -35,50 +35,43 @@ import org.slf4j.helpers.Util
  *
  *      * arguments fork
  */
-object PrintBuilderInfoCommand : ExecutableCommand
-{
-    override val executionNode get() = ExecutionNode { printInfo( ctx = it ) }
+object PrintBuilderInfoCommand : ExecutableCommand {
+    override val executionNode get() = ExecutionNode { printInfo(ctx = it) }
 
-    @JvmStatic
-    fun register( dispatcher: CommandDispatcher <CommandSourceStack> )
-    {
+    fun register(dispatcher: CommandDispatcher<CommandSourceStack>) {
         val overviewStack = Commands
-            .literal( OVERVIEW )
-            .executes( this.executionNode.node )
+            .literal(OVERVIEW)
+            .executes(this.executionNode.node)
 
         val builderPropertiesStack = Commands
-            .literal( BUILDER_PROPERTIES )
-            .executes( this.executionNode.node )
+            .literal(BUILDER_PROPERTIES)
+            .executes(this.executionNode.node)
 
         val playerPropertiesStack = Commands
-            .literal( PLAYER_PROPERTIES )
-            .executes( this.executionNode.node )
+            .literal(PLAYER_PROPERTIES)
+            .executes(this.executionNode.node)
 
-        dispatcher.register( ActiveBuilderInfoNode.nest( overviewStack ) )
-        dispatcher.register( ActiveBuilderInfoNode.nest( builderPropertiesStack ) )
-        dispatcher.register( ActiveBuilderInfoNode.nest( playerPropertiesStack ) )
+        dispatcher.register(ActiveBuilderInfoNode.nest(overviewStack))
+        dispatcher.register(ActiveBuilderInfoNode.nest(builderPropertiesStack))
+        dispatcher.register(ActiveBuilderInfoNode.nest(playerPropertiesStack))
 
-        dispatcher.register( BuilderHistoryInfoNode.nest( overviewStack ) )
-        dispatcher.register( BuilderHistoryInfoNode.nest( builderPropertiesStack ) )
-        dispatcher.register( BuilderHistoryInfoNode.nest( playerPropertiesStack ) )
+        dispatcher.register(BuilderHistoryInfoNode.nest(overviewStack))
+        dispatcher.register(BuilderHistoryInfoNode.nest(builderPropertiesStack))
+        dispatcher.register(BuilderHistoryInfoNode.nest(playerPropertiesStack))
     }
 
-    @JvmStatic
-    fun printInfo(
-        ctx: CommandContext <CommandSourceStack>
-    ): Int
-    {
+    private fun printInfo(ctx: CommandContext<CommandSourceStack>): Int {
+        val (nodeEntries, tournamentBuilder) = CommandUtil
+            .getNodesAndTournamentBuilder(
+                ctx = ctx,
+                storeID = null,
+                )
+
         var printBuilderInfo    = false
         var printPlayerInfo     = false
         var printOverview       = false
-
-        val ( nodeEntries, tournamentBuilder ) = CommandUtil
-            .getNodesAndTournamentBuilder(
-                ctx = ctx,
-                storeID = null )
-
-        for ( entry in nodeEntries ) {
-            when ( entry.key ) {
+        for (entry in nodeEntries) {
+            when (entry.key) {
                 BUILDER_PROPERTIES -> printBuilderInfo = true
                 PLAYER_PROPERTIES -> printPlayerInfo = true
                 OVERVIEW -> printOverview = true
@@ -87,38 +80,37 @@ object PrintBuilderInfoCommand : ExecutableCommand
 
         val player = ctx.source.player
 
-        if ( printBuilderInfo && player != null ) {
-            tournamentBuilder?.displayPropertiesInChatSlim( player )
-        } else if ( printBuilderInfo ) {
+        if (printBuilderInfo && player != null) {
+            tournamentBuilder?.displayPropertiesInChatSlim(player = player)
+        } else if (printBuilderInfo) {
             tournamentBuilder?.printProperties()
         }
 
-        if ( printPlayerInfo && player != null ) {
+        if (printPlayerInfo && player != null) {
             tournamentBuilder?.displayPlayerInfoInChat(
-                player      = player,
-                spacing     = "  ",
-                displaySeed = true )
-        } else if ( printPlayerInfo ) {
+                player = player,
+                spacing = "  ",
+                displaySeed = true,
+                )
+        } else if (printPlayerInfo) {
             tournamentBuilder?.printPlayerInfo()
         }
 
-        if ( printOverview && player != null ) {
-            tournamentBuilder?.displayPropertiesInChat( player )
-        } else if ( printOverview ) {
+        if (printOverview && player != null) {
+            tournamentBuilder?.displayPropertiesInChat(player = player)
+        } else if (printOverview) {
             tournamentBuilder?.printProperties()
             tournamentBuilder?.printPlayerInfo()
         }
 
-        if ( tournamentBuilder != null ) {
+        if (tournamentBuilder != null) {
             return Command.SINGLE_SUCCESS
         }
 
-        val text = CommandUtil.failedCommand( reason = "Tournament Builder was null" )
-        if ( player != null ) {
-            player.displayClientMessage( text ,false )
-        } else {
-            Util.report( text.string )
-        }
+        val text = CommandUtil.failedCommand(reason = "Tournament Builder was null")
+        ctx.source.player?.displayClientMessage(text ,false)
+            ?: Util.report(text.string)
+
         return 0
     }
 }

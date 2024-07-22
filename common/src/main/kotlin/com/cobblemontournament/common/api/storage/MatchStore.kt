@@ -7,15 +7,17 @@ import com.someguy.storage.store.DefaultStore
 import net.minecraft.nbt.CompoundTag
 import java.util.UUID
 
-class MatchStore(id: UUID): DefaultStore<TournamentMatch>(id)
-{
+class MatchStore(storeID: UUID) : DefaultStore<TournamentMatch>(storeID) {
+
     override fun initializeSubclass() { }
 
-    override fun loadFromNBT(nbt: CompoundTag): MatchStore
-    {
-        instancesDataSetNBT(nbt).forEach { data ->
-            val match = TournamentMatch().loadFromNBT(data)
-            match.storeCoordinates.set(StoreCoordinates(this, UuidPosition(match.uuid)))
+    override fun loadFromNbt(nbt: CompoundTag): MatchStore {
+        for (dataCompound in instancesDataSetNBT(nbt)) {
+            val match = TournamentMatch().loadFromNBT(dataCompound)
+            match.storeCoordinates.set(StoreCoordinates(
+                store = this,
+                position = UuidPosition(match.uuid))
+            )
             instances[match.uuid] = match.initialize()
         }
         initialize()

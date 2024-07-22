@@ -33,7 +33,7 @@ import net.minecraft.nbt.NbtIo
  * the most efficient [FileStoreAdapter].
  */
 // Eight's implementation
-open class NBTStoreAdapter(
+open class NbtStoreAdapter(
     rootFolder: String,
     useNestedFolders: Boolean,
     folderPerClass: Boolean,
@@ -55,7 +55,7 @@ open class NBTStoreAdapter(
         }
         return try {
             val nbt = NbtIo.readCompressed(file)
-            store.loadFromNBT(nbt)
+            store.loadFromNbt(nbt)
             store
         } catch (e: Exception) {
             e.printStackTrace()

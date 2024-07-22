@@ -23,34 +23,37 @@ import java.util.UUID
  * If [playerPredicate] != null && [CommandContext] source includes a non-null player UUID
  * the nexted predicate inside of [playerPredicate] will be obtained with the player UUID & used.
  */
-class ClassStoredNameSuggestionProvider <P: StorePosition, C: ClassStored, ST: Store<P, C>>(
-    private val storeClass      : Class<out ST>,
-    private val getActive       : Boolean = true,
-    private val playerPredicate : ( (UUID) -> (C) -> Boolean )? = null,
-    private val predicate       : ( (C) -> Boolean ) = { _ -> true }
-): SuggestionProvider <CommandSourceStack>
-{
-    override fun getSuggestions(
-        context     : CommandContext<CommandSourceStack>,
-        builder     : SuggestionsBuilder,
-    ): CompletableFuture <Suggestions>
-    {
-        val playerID = context.source.player?.uuid
-        val finalPredicate = if ( playerID != null && playerPredicate != null) {
-            playerPredicate.invoke( playerID )
-        } else predicate
+class ClassStoredNameSuggestionProvider <P : StorePosition, C : ClassStored, ST : Store<P, C>> (
+    private val storeClass: Class<out ST>,
+    private val getActive: Boolean = true,
+    private val playerPredicate: ((UUID) -> (C) -> Boolean)? = null,
+    private val predicate: (C) -> Boolean = { true },
+): SuggestionProvider<CommandSourceStack> {
 
-        val storeKey =  if ( getActive ) {
-            TournamentStoreManager.activeStoreKey
-        } else TournamentStoreManager.inactiveStoreKey
+    override fun getSuggestions(
+        context: CommandContext<CommandSourceStack>,
+        builder: SuggestionsBuilder,
+    ): CompletableFuture<Suggestions> {
+
+        val finalPredicate = context.source.player?.uuid?.let { playerID ->
+            playerPredicate?.invoke(playerID)
+        } ?: predicate
+
+        val storeKey = if (getActive) {
+            TournamentStoreManager.ACTIVE_STORE_ID
+        } else {
+            TournamentStoreManager.INACTIVE_STORE_ID
+        }
 
         TournamentStoreManager.getInstanceNames(
-            storeClass  = storeClass,
-            storeID     = storeKey,
-            predicate   = finalPredicate
-        ).forEach {
-            builder.suggest( it )
+            storeClass = storeClass,
+            storeID = storeKey,
+            predicate = finalPredicate,
+        ).forEach { name ->
+            builder.suggest(name)
         }
+
         return builder.buildFuture()
     }
+
 }

@@ -24,8 +24,8 @@ import net.minecraft.commands.CommandSourceStack
 import net.minecraft.commands.Commands
 import java.util.*
 
-object RegisterFakePlayerCommand
-{
+object RegisterFakePlayerCommand {
+
     /**
      * [TOURNAMENT] -> [BUILDER] -> [BUILDER_NAME] -> [PLAYER] -> [PLAYER_ENTITY]
      *
@@ -42,27 +42,28 @@ object RegisterFakePlayerCommand
      *
      *      * - optional
      */
-    @JvmStatic
-    fun register( dispatcher: CommandDispatcher<CommandSourceStack> )
-    {
-        dispatcher.register(
-            ActiveBuilderPlayersNode.nest(
-                Commands.literal("$REGISTER-$FAKE")
-                    .executes { ctx: CommandContext<CommandSourceStack> ->
-                        registerFakePlayer( ctx = ctx)
+    fun register( dispatcher: CommandDispatcher<CommandSourceStack> ) {
+        dispatcher
+            .register(ActiveBuilderPlayersNode
+                .nest(Commands
+                    .literal("$REGISTER-$FAKE")
+                    .executes { ctx ->
+                        registerFakePlayer(ctx = ctx)
                     }
-                    .then(Commands.literal(PLAYER_SEED)
-                        .then(Commands.argument(PLAYER_SEED, IntegerArgumentType.integer(-1))
-                            .executes { ctx -> registerFakePlayer( ctx = ctx) }
-                        ))
-                    ))
+                    .then(Commands
+                        .literal(PLAYER_SEED)
+                        .then(Commands
+                            .argument(PLAYER_SEED, IntegerArgumentType.integer(-1))
+                            .executes { ctx ->
+                                registerFakePlayer(ctx = ctx)
+                            }
+                        )
+                    )
+                )
+            )
     }
 
-    @JvmStatic
-    fun registerFakePlayer(
-        ctx : CommandContext<CommandSourceStack>
-    ): Int
-    {
+    private fun registerFakePlayer(ctx: CommandContext<CommandSourceStack>): Int {
         var tournamentBuilder: TournamentBuilder? = null
         var playerProperties: PlayerProperties? = null
 
@@ -70,48 +71,47 @@ object RegisterFakePlayerCommand
         for (entry in nodeEntries) {
             when (entry.key) {
                 BUILDER_NAME -> {
-                    val ( builder, _ ) = TournamentStoreManager.getInstanceByName(
-                        name        = entry.value,
-                        storeClass  = TournamentBuilderStore::class.java,
-                        storeID     = TournamentStoreManager.activeStoreKey )
-                    tournamentBuilder = builder
+                    tournamentBuilder = TournamentStoreManager.getInstanceByName(
+                        storeClass = TournamentBuilderStore::class.java,
+                        name = entry.value,
+                        storeID = TournamentStoreManager.ACTIVE_STORE_ID
+                    ).first
                 }
-                PLAYER_ENTITY ->  {
+                PLAYER_ENTITY -> {
                     // TODO better method or is fine since it is just for testing ?
                     //  - temp for testing -> just take as string for now
-                    if (tournamentBuilder == null) continue
-                    val id = UUID.randomUUID()
+                    if (tournamentBuilder == null) {
+                        continue
+                    }
                     playerProperties = PlayerProperties(
-                        name            = entry.value,
-                        actorType       = ActorType.NPC,
-                        playerID        = id,
-                        tournamentID    = tournamentBuilder.uuid
-                    )
+                        name = entry.value,
+                        actorType = ActorType.NPC,
+                        playerID = UUID.randomUUID(),
+                        tournamentID = tournamentBuilder.uuid,
+                        )
                 }
-                PLAYER_SEED -> playerProperties?.seed = Integer.parseInt( entry.value)
+                PLAYER_SEED -> playerProperties?.seed = Integer.parseInt(entry.value)
             }
         }
 
         var success = 0
         var color = ChatUtil.yellow
         val text: String
-        if ( tournamentBuilder == null) {
+        if (tournamentBuilder == null) {
             text = "Failed to REGISTER Fake Player b/c Tournament Builder was null"
-        } else if ( playerProperties == null) {
-            text = "Failed to REGISTER Fake Player with ${tournamentBuilder.name} " +
-                    "b/c Player Properties were null"
+        } else if (playerProperties == null) {
+            text = "Failed to REGISTER Fake Player with ${tournamentBuilder.name} b/c Player Properties were null"
         } else {
-            text = "Successfully REGISTERED Fake Player \"${playerProperties.name}\" " +
-                    "with Tournament Builder \"${tournamentBuilder.name}\"."
+            text = "Successfully REGISTERED Fake Player \"${playerProperties.name}\" with Tournament Builder \"${tournamentBuilder.name}\"."
             color = ChatUtil.green
             success = Command.SINGLE_SUCCESS
         }
 
         val player = ctx.source.player
         if (player != null) {
-            ChatUtil.displayInPlayerChat( player, text = text, color = color)
+            ChatUtil.displayInPlayerChat( player, text, color )
         }
+
         return success
     }
-
 }

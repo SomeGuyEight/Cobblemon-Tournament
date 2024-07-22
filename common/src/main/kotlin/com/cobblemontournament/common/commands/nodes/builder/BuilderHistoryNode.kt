@@ -19,25 +19,26 @@ import net.minecraft.commands.Commands
  *      literal     [HISTORY]       ->
  *      _
  */
-object BuilderHistoryNode : NestedNode()
-{
+object BuilderHistoryNode : NestedNode() {
+
     override val executionNode get() = ExecutionNode {
         CommandUtil.displayNoArgument(
             player  = it.source.player,
-            nodeKey = "$TOURNAMENT $BUILDER $HISTORY" )
+            nodeKey = "$TOURNAMENT $BUILDER $HISTORY",
+            )
     }
 
     override fun inner(
-        literal     : LiteralArgumentBuilder <CommandSourceStack>?,
-        argument    : RequiredArgumentBuilder <CommandSourceStack,*>?,
-        execution   : ExecutionNode?
-    ): LiteralArgumentBuilder <CommandSourceStack>
-    {
-        val stack = literal ?: argument
-        return BuilderNode.nest(
-            Commands.literal( HISTORY )
-                .executes( ( execution ?: this.executionNode ).node )
-                .then( stack )
-        )
+        literal: LiteralArgumentBuilder<CommandSourceStack>?,
+        argument: RequiredArgumentBuilder<CommandSourceStack, *>?,
+        execution: ExecutionNode?,
+    ): LiteralArgumentBuilder<CommandSourceStack> {
+        return BuilderNode
+            .nest(Commands
+                .literal(HISTORY)
+                .executes((execution ?: this.executionNode).node)
+                .then((literal ?: argument))
+            )
     }
+
 }

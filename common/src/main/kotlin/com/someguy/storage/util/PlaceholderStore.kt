@@ -10,6 +10,6 @@ object PlaceholderStore: DefaultStore<PlaceholderClassStored>(UUID.randomUUID())
     override fun initializeSubclass() { }
     override fun getFirstAvailablePosition(): UuidPosition? = null
     override fun instanceNames(): Set<String> = setOf()
-    override fun loadFromNBT(nbt: CompoundTag): DefaultStore<PlaceholderClassStored> = this
+    override fun loadFromNbt(nbt: CompoundTag): DefaultStore<PlaceholderClassStored> = this
     override fun isValidPosition(position: UuidPosition): Boolean = false
 }

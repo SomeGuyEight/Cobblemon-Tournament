@@ -6,16 +6,11 @@ import com.google.gson.JsonObject
 import net.minecraft.nbt.CompoundTag
 import java.io.*
 import java.nio.file.Path
-import java.util.*
+import java.util.UUID
 
 object StoreUtil
 {
-    fun getFile(
-        savePath: Path,
-        dirName: String,
-        subDirName: String?
-    ): File
-    {
+    fun getFile(savePath: Path, dirName: String, subDirName: String?): File {
         val file: File = if (subDirName != null) {
             savePath.resolve("$dirName/$subDirName/").toFile()
         } else {
@@ -30,8 +25,7 @@ object StoreUtil
      * @return - target [JsonObject] if found
      * - null if [Exception] thrown from [Gson.fromJson]
      */
-    private fun getJsonOrCreateFile( file: File, gson: Gson ): JsonObject?
-    {
+    private fun getJsonOrCreateFile(file: File, gson: Gson): JsonObject? {
         try {
             file.parentFile.mkdirs()
             file.createNewFile()
@@ -60,34 +54,28 @@ object StoreUtil
         keyDir: File,
         name: String,
         key: String,
-        gson: Gson
-    ): UUID
-    {
+        gson: Gson,
+    ): UUID {
         val keyPath = root.resolve(getFileStringJson(keyDir,name))
         val file = keyPath.toFile()
-
         val json = getJsonOrCreateFile(file,gson)
 
-        return if (json != null && json.has(key)) {
-            UUID.fromString(json.get(key).toString().filterNot { it == '"' })
-        } else if (json != null) {
-            writeNewUuid(file,key,json)
-        } else {
-            writeNewUuid(file,key,JsonObject())
+        return when {
+            json != null && json.has(key) -> {
+                UUID.fromString(json.get(key).toString().filterNot { it == '"' })
+            }
+            json != null -> writeNewUuid(file,key,json)
+            else -> writeNewUuid(file,key,JsonObject())
         }
     }
 
-    private fun writeNewUuid(
-        file: File,
-        key: String,
-        json: JsonObject
-    ): UUID
-    {
+    private fun writeNewUuid(file: File, key: String, json: JsonObject): UUID {
         val pw: PrintWriter
         try {
             pw = PrintWriter(file)
         } catch (e: FileNotFoundException) {
-            throw RuntimeException(e)
+            e.printStackTrace()
+            throw Exception(e)
         }
 
         val id = UUID.randomUUID()
@@ -100,16 +88,15 @@ object StoreUtil
 
     private fun getFileStringJson(
         rootFile: File,
-        name: String
+        name: String,
     ): String {
         return getFileString(rootFile,name) + ".json"
     }
 
     private fun getFileString(
         rootFile: File,
-        name: String
-    ): String
-    {
+        name: String,
+    ): String {
         var fileString = rootFile.toString()
         if (!fileString.endsWith("/")) {
             fileString += "/"
@@ -118,21 +105,18 @@ object StoreUtil
         return fileString
     }
 
-    fun CompoundTag.putIfNotNull(
-        key: String,
-        uuid: UUID?
-    ) {
+    fun CompoundTag.putIfNotNull(key: String, uuid: UUID?) {
         if (uuid != null) {
             this.putUUID(key, uuid)
         }
     }
 
-    fun CompoundTag.getNullableUUID(
-        key: String,
-    ): UUID? {
+    fun CompoundTag.getNullableUUID(key: String): UUID? {
         return if (this.contains(key)) {
             this.getUUID(key)
-        } else null
+        } else {
+            null
+        }
     }
 
     // https://www.baeldung.com/kotlin/convert-camel-case-snake-case

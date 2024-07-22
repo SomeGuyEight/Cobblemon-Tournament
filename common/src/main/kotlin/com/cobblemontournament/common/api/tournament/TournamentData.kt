@@ -8,16 +8,15 @@ import com.cobblemontournament.common.match.TournamentMatch
 import com.cobblemontournament.common.player.TournamentPlayer
 import com.cobblemontournament.common.round.TournamentRound
 import com.cobblemontournament.common.tournament.Tournament
-import org.slf4j.helpers.Util
 
 data class TournamentData(
-    val tournament      : Tournament,
-    val rounds          : Set <TournamentRound>,
-    val matches         : Set <TournamentMatch>,
-    val players         : Set <TournamentPlayer> )
-{
-    fun sendAllToManager()
-    {
+    val tournament: Tournament,
+    val rounds: Set <TournamentRound>,
+    val matches: Set <TournamentMatch>,
+    val players: Set <TournamentPlayer>,
+) {
+
+    fun sendAllToManager() {
         sendTournamentToManager()
         sendMatchesToManager()
         sendPlayersToManager()
@@ -26,60 +25,29 @@ data class TournamentData(
     private fun sendTournamentToManager() {
         TournamentStoreManager.addInstance(
             storeClass  = TournamentStore::class.java,
-            storeID     = TournamentStoreManager.activeStoreKey,
-            instance    = tournament )
+            storeID     = TournamentStoreManager.ACTIVE_STORE_ID,
+            instance    = tournament
+        )
     }
+
     private fun sendMatchesToManager() {
-        matches.forEach {
+        for (match in matches) {
             TournamentStoreManager.addInstance(
                 storeClass  = MatchStore::class.java,
-                storeID     = tournament.tournamentID,
-                instance    = it )
+                storeID     = tournament.uuid,
+                instance    = match
+            )
         }
     }
+
     private fun sendPlayersToManager() {
-        players.forEach {
+        for (player in players) {
             TournamentStoreManager.addInstance(
                 storeClass  = PlayerStore::class.java,
-                storeID     = tournament.tournamentID,
-                instance    = it )
+                storeID     = tournament.uuid,
+                instance    = player
+            )
         }
     }
 
-    fun printTournamentDataDebug()
-    {
-        printTournamentDebug()
-        printTournamentRoundDebug()
-        printTournamentMatchDebug()
-        printTournamentPlayerDebug()
-    }
-
-    fun printTournamentDebug() = tournament.printProperties()
-
-    fun printTournamentRoundDebug()
-    {
-        val sortedRounds = rounds.sortedBy { it.roundIndex }
-        sortedRounds.forEach {
-            Util.report("")
-            it.printProperties()
-        }
-    }
-
-    fun printTournamentMatchDebug()
-    {
-        val sortedMatches = matches.sortedBy { it.tournamentMatchIndex }
-        sortedMatches.forEach {
-            Util.report("")
-            it.printProperties()
-        }
-    }
-
-    fun printTournamentPlayerDebug()
-    {
-        val sortedPlayers = players.sortedBy { it.seed }
-        sortedPlayers.forEach {
-            Util.report("")
-            it.printProperties()
-        }
-    }
 }

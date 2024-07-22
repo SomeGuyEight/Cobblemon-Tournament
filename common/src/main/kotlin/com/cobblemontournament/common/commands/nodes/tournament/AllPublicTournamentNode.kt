@@ -18,25 +18,26 @@ import net.minecraft.commands.Commands
  *      literal     [PUBLIC]        ->
  *      _
  */
-object AllPublicTournamentNode : NestedNode()
-{
+object AllPublicTournamentNode : NestedNode() {
+
     override val executionNode get() = ExecutionNode {
         CommandUtil.displayNoArgument(
             player  = it.source.player,
-            nodeKey = "$TOURNAMENT $TOURNAMENT $PUBLIC" )
+            nodeKey = "$TOURNAMENT $TOURNAMENT $PUBLIC",
+            )
     }
 
     override fun inner(
-        literal     : LiteralArgumentBuilder <CommandSourceStack>?,
-        argument    : RequiredArgumentBuilder <CommandSourceStack,*>?,
-        execution   : ExecutionNode?
-    ): LiteralArgumentBuilder <CommandSourceStack>
-    {
-        val stack = literal ?: argument
-        return TournamentSubNode.nest(
-            Commands.literal( PUBLIC )
-                .executes( ( execution ?: this.executionNode ).node )
-                .then( stack )
-        )
+        literal: LiteralArgumentBuilder<CommandSourceStack>?,
+        argument: RequiredArgumentBuilder<CommandSourceStack, *>?,
+        execution: ExecutionNode?,
+    ): LiteralArgumentBuilder<CommandSourceStack> {
+        return TournamentSubNode
+            .nest(Commands
+                .literal(PUBLIC)
+                .executes((execution ?: this.executionNode).node)
+                .then((literal ?: argument))
+            )
     }
+
 }

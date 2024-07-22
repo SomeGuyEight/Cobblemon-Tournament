@@ -22,24 +22,25 @@ import net.minecraft.commands.Commands
  *      literal     [CURRENT_MATCH]     ->
  *      _
  */
-object MyActiveTournamentCurrentMatchNode : NestedNode()
-{
+object MyActiveTournamentCurrentMatchNode : NestedNode() {
+
     override val executionNode get() = ExecutionNode {
         CommandUtil.displayNoArgument(
             player  = it.source.player,
-            nodeKey = "$TOURNAMENT $TOURNAMENT $MY_ACTIVE $TOURNAMENT_NAME $CURRENT_MATCH" )
+            nodeKey = "$TOURNAMENT $TOURNAMENT $MY_ACTIVE $TOURNAMENT_NAME $CURRENT_MATCH",
+            )
     }
 
     override fun inner(
-        literal     : LiteralArgumentBuilder <CommandSourceStack>?,
-        argument    : RequiredArgumentBuilder <CommandSourceStack,*>?,
-        execution   : ExecutionNode?
-    ): LiteralArgumentBuilder <CommandSourceStack>
-    {
-        val stack = literal ?: argument
-        return MyActiveTournamentNameNode.nest(
-            Commands.literal( CURRENT_MATCH )
-                .executes( ( execution ?: this.executionNode ).node )
-                .then( stack ) )
+        literal: LiteralArgumentBuilder<CommandSourceStack>?,
+        argument: RequiredArgumentBuilder<CommandSourceStack, *>?,
+        execution: ExecutionNode?,
+    ): LiteralArgumentBuilder<CommandSourceStack> {
+        return MyActiveTournamentNameNode
+            .nest(Commands
+                .literal(CURRENT_MATCH)
+                .executes((execution ?: this.executionNode).node)
+                .then((literal ?: argument))
+            )
     }
 }

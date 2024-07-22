@@ -28,31 +28,25 @@ open class StoreManager
 {
     private val factories = PrioritizedList<StoreFactory>()
 
-    open fun registerFactory(
-        priority: Priority,
-        factory: StoreFactory
-    ) {
-        factories.add(priority, factory)
+    open fun registerFactory( priority: Priority, factory: StoreFactory ) {
+        factories.add( priority, factory )
     }
 
-    open fun unregisterFactory(
-        factory: StoreFactory
-    ) {
+    open fun unregisterFactory( factory: StoreFactory ) {
         factory.shutdown()
-        factories.remove(factory)
+        factories.remove( factory )
     }
 
     open fun unregisterAll() {
         factories.toList().forEach(::unregisterFactory)
     }
 
-    open fun <P: StorePosition,C: ClassStored,St: Store<P, C>> getStore(
+    open fun <P : StorePosition, C : ClassStored,St : Store<P, C>> getStore(
         storeClass: Class<St>,
         uuid: UUID
-    ): St?
-    {
-        for (factory in factories) {
-            factory.getStore(storeClass, uuid)?.run { return this }
+    ): St? {
+        for ( factory in factories ) {
+            factory.getStore( storeClass, uuid )?.run { return this }
         }
         return null
     }

@@ -37,74 +37,75 @@ import org.slf4j.helpers.Util
  *      argument    [PLAYER_NAME] , StringType ->
  *      method      [unregisterPlayer]
  */
-object UnregisterPlayerCommand : ExecutableCommand
-{
-    override val executionNode get() = ExecutionNode { unregisterPlayer( ctx = it ) }
+object UnregisterPlayerCommand : ExecutableCommand {
 
-    @JvmStatic
-    fun register( dispatcher: CommandDispatcher <CommandSourceStack> )
-    {
-        dispatcher.register(
-            ActiveBuilderPlayersNode.nest(
-                Commands.literal( UNREGISTER )
-                    .then( Commands.argument( PLAYER_NAME, StringArgumentType.string() )
-                        .suggests { ctx, builder ->
-                            PlayerNameSuggestionProvider().getSuggestions( ctx, builder )
-                        }
-                        .executes( this.executionNode.node )
-                    ) ) )
+    override val executionNode get() = ExecutionNode { unregisterPlayer(ctx = it) }
+
+    fun register(dispatcher: CommandDispatcher<CommandSourceStack>) {
+        dispatcher.register(ActiveBuilderPlayersNode
+            .nest(Commands
+                .literal(UNREGISTER)
+                .then(Commands
+                    .argument(PLAYER_NAME, StringArgumentType.string())
+                    .suggests { ctx, builder ->
+                        PlayerNameSuggestionProvider().getSuggestions(ctx = ctx, builder = builder)
+                    }
+                    .executes(this.executionNode.node)
+                )
+            )
+        )
     }
 
-    @JvmStatic
-    fun unregisterPlayer(
-        ctx: CommandContext <CommandSourceStack>
-    ): Int
-    {
-        val ( nodeEntries, tournamentBuilder ) = CommandUtil
+    fun unregisterPlayer(ctx: CommandContext<CommandSourceStack>): Int {
+        val (nodeEntries, tournamentBuilder) = CommandUtil
             .getNodesAndTournamentBuilder(
                 ctx = ctx,
-                storeID = TournamentStoreManager.activeStoreKey )
+                storeID = TournamentStoreManager.ACTIVE_STORE_ID,
+                )
 
         // use player properties so removing an offline player is possible
-        var playerProps: PlayerProperties? = null
-        for ( entry in nodeEntries ) {
-            when ( entry.key ) {
-                PLAYER_NAME ->  playerProps = tournamentBuilder?.getPlayer( entry.value )
-            }
+        val playerProps: PlayerProperties? = nodeEntries.firstOrNull {
+            it.key == PLAYER_NAME
+        }?. let {
+            tournamentBuilder?.getPlayer(name = it.value)
         }
 
         var success = 0
-        val text: MutableComponent
-        if ( tournamentBuilder == null ) {
-            text = CommandUtil.failedCommand(
-                reason = "Tournament Builder was null" )
-        } else if ( playerProps == null ) {
-            text = CommandUtil.failedCommand(
-                reason = "Player Properties were null" )
-        } else if ( !tournamentBuilder.removePlayer( playerID = playerProps.playerID ) ) {
-            text = CommandUtil.failedCommand(
-                reason = "Function 'removePlayer( PlayerID )' \"${tournamentBuilder.name}\" returned false." )
-        } else {
-            text = CommandUtil.successfulCommand(
-                action = "UNREGISTERED ${playerProps.name} from \"${tournamentBuilder.name}\"" )
-            success = Command.SINGLE_SUCCESS
+        val text: MutableComponent = when {
+            tournamentBuilder == null -> {
+                CommandUtil.failedCommand(reason = "Tournament Builder was null")
+            }
+            playerProps == null -> {
+                CommandUtil.failedCommand(reason = "Player Properties were null")
+            }
+            !tournamentBuilder.removePlayer(playerID = playerProps.playerID) -> {
+                CommandUtil.failedCommand(
+                    reason = "Function 'removePlayer( PlayerID )' \"${tournamentBuilder.name}\" returned false."
+                )
+            }
+            else -> {
+                success = Command.SINGLE_SUCCESS
+                CommandUtil.successfulCommand(
+                    text = "UNREGISTERED ${playerProps.name} from \"${tournamentBuilder.name}\"",
+                    )
+            }
         }
 
-        val player = ctx.source.player
-        val unregisteredPlayer = if ( playerProps != null ) {
-            PlayerManager.getServerPlayer( playerProps.playerID )
-        } else null
-        if ( player != null ) {
-            player.displayClientMessage( text ,false )
-            if ( unregisteredPlayer != null && unregisteredPlayer != player && tournamentBuilder != null ) {
+        ctx.source.player?.let { player ->
+            val unregisteredPlayer = if ( playerProps != null ) {
+                PlayerManager.getServerPlayer(playerProps.playerID)
+            } else {
+                null
+            }
+            if (unregisteredPlayer != null && unregisteredPlayer != player && tournamentBuilder != null) {
                 ChatUtil.displayInPlayerChat(
                     player = unregisteredPlayer,
-                    text   = "You were successfully UNREGISTERED from Tournament Builder \"${tournamentBuilder.name}\"!",
-                    color  = ChatUtil.white )
+                    text = "You were successfully UNREGISTERED from Tournament Builder \"${tournamentBuilder.name}\"!",
+                    )
             }
-        } else {
-            Util.report( text.string )
-        }
+            player.displayClientMessage(text ,false)
+        } ?: Util.report(text.string)
+
         return success
     }
 }

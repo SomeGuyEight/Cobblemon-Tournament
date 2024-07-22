@@ -22,25 +22,26 @@ import net.minecraft.commands.Commands
  *      literal     [INFO]              ->
  *      _
  */
-object MyActiveTournamentInfoNode : NestedNode()
-{
+object MyActiveTournamentInfoNode : NestedNode() {
+
     override val executionNode get() = ExecutionNode {
         CommandUtil.displayNoArgument(
-            player  = it.source.player,
-            nodeKey = "$TOURNAMENT $TOURNAMENT $MY_ACTIVE $TOURNAMENT_NAME $INFO" )
+            player = it.source.player,
+            nodeKey = "$TOURNAMENT $TOURNAMENT $MY_ACTIVE $TOURNAMENT_NAME $INFO",
+            )
     }
 
     override fun inner(
-        literal     : LiteralArgumentBuilder <CommandSourceStack>?,
-        argument    : RequiredArgumentBuilder <CommandSourceStack,*>?,
-        execution   : ExecutionNode?
-    ): LiteralArgumentBuilder <CommandSourceStack>
-    {
-        val stack = literal ?: argument
-        return MyActiveTournamentNameNode.nest(
-            Commands.literal( INFO )
-                .executes( ( execution ?: this.executionNode ).node )
-                .then( stack )
+        literal: LiteralArgumentBuilder<CommandSourceStack>?,
+        argument: RequiredArgumentBuilder<CommandSourceStack, *>?,
+        execution: ExecutionNode?,
+    ): LiteralArgumentBuilder<CommandSourceStack> {
+        return MyActiveTournamentNameNode
+            .nest(Commands
+                .literal(INFO)
+                .executes((execution ?: this.executionNode).node)
+                .then((literal ?: argument))
         )
     }
+
 }

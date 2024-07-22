@@ -35,7 +35,7 @@ import java.util.UUID
 
 /**
  * A [FileStoreAdapter] for JSON files. This allows a [Store] to be serialized to a .json file. This is usually
- * slower and makes for a larger file per storage by several times compared to a [NBTStoreAdapter].
+ * slower and makes for a larger file per storage by several times compared to a [NbtStoreAdapter].
  */
 // Eight's implementation
 open class JSONStoreAdapter(

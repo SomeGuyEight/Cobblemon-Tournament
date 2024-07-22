@@ -24,30 +24,33 @@ import net.minecraft.commands.Commands
  *      argument    [BUILDER_NAME] , StringType ->
  *      _
  */
-object BuilderHistoryNameNode : NestedNode()
-{
+object BuilderHistoryNameNode : NestedNode() {
+
     override val executionNode get() = ExecutionNode {
         CommandUtil.displayNoArgument(
-            player  = it.source.player,
-            nodeKey = "$TOURNAMENT $BUILDER $HISTORY $BUILDER_NAME" )
+            player = it.source.player,
+            nodeKey = "$TOURNAMENT $BUILDER $HISTORY $BUILDER_NAME",
+            )
     }
 
-    private val suggestionProvider get() = ClassStoredNameSuggestionProvider(
-        storeClass  = TournamentBuilderStore::class.java,
-        getActive   = false )
+    private val suggestionProvider by lazy {
+        ClassStoredNameSuggestionProvider(
+            storeClass = TournamentBuilderStore::class.java,
+            getActive = false,
+            )
+    }
 
     override fun inner(
-        literal     : LiteralArgumentBuilder <CommandSourceStack>?,
-        argument    : RequiredArgumentBuilder <CommandSourceStack,*>?,
-        execution   : ExecutionNode?
-    ): LiteralArgumentBuilder <CommandSourceStack>
-    {
-        val stack = literal ?: argument
+        literal: LiteralArgumentBuilder<CommandSourceStack>?,
+        argument: RequiredArgumentBuilder<CommandSourceStack, *>?,
+        execution: ExecutionNode?,
+    ): LiteralArgumentBuilder<CommandSourceStack> {
         return BuilderHistoryNode.nest(
-            Commands.argument( BUILDER_NAME, StringArgumentType.string() )
-                .suggests( suggestionProvider )
-                .executes( ( execution ?: this.executionNode ).node )
-                .then( stack )
+            Commands.argument(BUILDER_NAME, StringArgumentType.string())
+                .suggests(suggestionProvider)
+                .executes((execution ?: this.executionNode).node)
+                .then((literal ?: argument))
         )
     }
+
 }

@@ -1,6 +1,6 @@
 package com.cobblemontournament.common.commands.match
 
-import com.cobblemontournament.common.api.MatchManager
+import com.cobblemontournament.common.api.WatchedMatches
 import com.cobblemontournament.common.commands.ExecutableCommand
 import com.cobblemontournament.common.commands.nodes.ExecutionNode
 import com.cobblemontournament.common.commands.nodes.NodeKeys.ALL_MATCHES
@@ -26,42 +26,38 @@ import org.slf4j.helpers.Util
  *
  *      * - optional
  */
-object MyMatchesCommand : ExecutableCommand
-{
-    override val executionNode get() = ExecutionNode { myMatches( ctx = it ) }
+object MyMatchesCommand : ExecutableCommand {
 
-    @JvmStatic
-    fun register( dispatcher: CommandDispatcher <CommandSourceStack> )
-    {
-        dispatcher.register(
-            MyMatchesNode.nest(
-                Commands.literal( ALL_MATCHES )
-                    .executes( this.executionNode.node )
-            ) )
+    override val executionNode get() = ExecutionNode { myMatches(ctx = it) }
+
+    fun register(dispatcher: CommandDispatcher<CommandSourceStack>) {
+        dispatcher.register(MyMatchesNode
+            .nest(Commands
+                .literal(ALL_MATCHES)
+                .executes(this.executionNode.node)
+            )
+        )
     }
 
-    @JvmStatic
-    private fun myMatches(
-        ctx: CommandContext<CommandSourceStack>
-    ): Int
-    {
+    private fun myMatches(ctx: CommandContext<CommandSourceStack>): Int {
 //        var allMatches = false
-//        val nodeEntries = CommandUtil.getNodeEntries( ctx.nodes, ctx.input )
-//        for ( entry in nodeEntries ) {
-//            when ( entry.key ) {
+//        val nodeEntries = CommandUtil.getNodeEntries(ctx.nodes, ctx.input)
+//        for (entry in nodeEntries) {
+//            when (entry.key) {
 //                ALL_MATCHES -> allMatches = true
 //            }
 //        }
 
         val player = ctx.source.player
-        val text = if ( player == null ) {
-            CommandUtil.failedCommand( reason = "Server Player was null" )
+        val text = if (player == null) {
+            CommandUtil.failedCommand(reason = "Server Player was null")
         } else { //if (allMatches) {
-            MatchManager.displayAllPlayerMatches( player )
+            WatchedMatches.displayAllPlayerMatches(player)
             return Command.SINGLE_SUCCESS
         }
 
-        Util.report( text.string )
+        Util.report(text.string)
         return 0
     }
+
 }

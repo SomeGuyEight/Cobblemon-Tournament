@@ -1,6 +1,6 @@
 package com.cobblemontournament.common.commands.tournament
 
-import com.cobblemontournament.common.api.MatchManager
+import com.cobblemontournament.common.api.WatchedMatches
 import com.cobblemontournament.common.api.TournamentStoreManager
 import com.cobblemontournament.common.commands.ExecutableCommand
 import com.cobblemontournament.common.commands.nodes.ExecutionNode
@@ -31,45 +31,41 @@ import org.slf4j.helpers.Util
  *
  *      * - optional
  */
-object MyActiveTournamentCurrentMatchCommand : ExecutableCommand
-{
-    override val executionNode get() = ExecutionNode { myCurrentMatches( ctx = it ) }
+object MyActiveTournamentCurrentMatchCommand : ExecutableCommand {
 
-    @JvmStatic
-    fun register( dispatcher: CommandDispatcher <CommandSourceStack> )
-    {
-        dispatcher.register(
-            MyActiveTournamentNameNode.nest(
-                Commands.literal( CURRENT_MATCH )
-                    .executes( this.executionNode.node )
-            ) )
+    override val executionNode get() = ExecutionNode { myCurrentMatches(ctx = it) }
+
+    fun register(dispatcher: CommandDispatcher<CommandSourceStack>) {
+        dispatcher.register(MyActiveTournamentNameNode
+            .nest(Commands
+                .literal(CURRENT_MATCH)
+                .executes(this.executionNode.node)
+            ))
     }
 
-    @JvmStatic
-    private fun myCurrentMatches(
-        ctx: CommandContext <CommandSourceStack>
-    ): Int
-    {
+    private fun myCurrentMatches(ctx: CommandContext<CommandSourceStack>): Int {
         val tournament = CommandUtil.getNodesAndTournament(
-            ctx     = ctx,
-            storeID = TournamentStoreManager.activeStoreKey
+            ctx = ctx,
+            storeID = TournamentStoreManager.ACTIVE_STORE_ID,
         ).second
 
         val player = ctx.source.player
         val text = if ( tournament == null ) {
-            CommandUtil.failedCommand( reason = "Tournament was null" )
+            CommandUtil.failedCommand(reason = "Tournament was null")
         } else if ( player == null ) {
-            CommandUtil.failedCommand( reason = "Server Player was null" )
+            CommandUtil.failedCommand(reason = "Server Player was null")
         } else {
-            MatchManager.handleMatchChallengeRequest( tournament = tournament, challenger = player )
+            WatchedMatches.handleMatchChallengeRequest(tournament = tournament, challenger = player)
             return Command.SINGLE_SUCCESS
         }
 
         if ( player != null ) {
-            player.displayClientMessage( text , false )
+            player.displayClientMessage(text , false)
         } else {
-            Util.report( text.string )
+            Util.report(text.string)
         }
+
         return 0
     }
+
 }

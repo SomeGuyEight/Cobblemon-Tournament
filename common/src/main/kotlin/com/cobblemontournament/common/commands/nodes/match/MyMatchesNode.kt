@@ -18,22 +18,21 @@ import net.minecraft.commands.Commands
  *      literal     [MY_MATCHES]        ->
  *      _
  */
-object MyMatchesNode : NestedNode()
-{
+object MyMatchesNode : NestedNode() {
+
     override val executionNode get() = MyMatchesCommand.executionNode
 
     override fun inner(
-        literal     : LiteralArgumentBuilder <CommandSourceStack>?,
-        argument    : RequiredArgumentBuilder <CommandSourceStack,*>?,
-        execution   : ExecutionNode?
-    ): LiteralArgumentBuilder <CommandSourceStack>
-    {
-        val stack = literal ?: argument
-        return TournamentRootNode.nest(
-            Commands.literal( MY_MATCHES )
-                .executes( ( execution ?: this.executionNode ).node )
-                .then( stack )
-        )
+        literal: LiteralArgumentBuilder<CommandSourceStack>?,
+        argument: RequiredArgumentBuilder<CommandSourceStack, *>?,
+        execution: ExecutionNode?,
+    ): LiteralArgumentBuilder<CommandSourceStack> {
+        return TournamentRootNode
+            .nest(Commands
+                .literal(MY_MATCHES)
+                .executes((execution ?: this.executionNode).node)
+                .then((literal ?: argument))
+            )
     }
 
 }

@@ -43,53 +43,53 @@ import org.slf4j.helpers.Util
  *
  *      * - optional
  */
-object RegisterPlayerCommand : ExecutableCommand
-{
-    override val executionNode get() = ExecutionNode { registerPlayer( ctx = it ) }
+object RegisterPlayerCommand : ExecutableCommand {
+    override val executionNode get() = ExecutionNode { registerPlayer(ctx = it) }
 
     @JvmStatic
-    fun register( dispatcher: CommandDispatcher <CommandSourceStack> )
-    {
-        dispatcher.register(
-            ActiveBuilderPlayersNode.nest(
-                Commands.literal( REGISTER )
-                    .then( Commands.argument( PLAYER_ENTITY, EntityArgument.player() )
-                        .executes( this.executionNode.node )
-                        .then( Commands.literal( SEED )
-                            .then( Commands.argument( PLAYER_SEED, IntegerArgumentType.integer( -1 ) )
-                                .executes( this.executionNode.node )
-                            ) )
-                    ) ) )
+    fun register(dispatcher: CommandDispatcher<CommandSourceStack>) {
+        dispatcher.register(ActiveBuilderPlayersNode
+            .nest(Commands
+                .literal(REGISTER)
+                .then(Commands
+                    .argument(PLAYER_ENTITY, EntityArgument.player())
+                    .executes(this.executionNode.node)
+                    .then( Commands.literal( SEED )
+                        .then( Commands.argument( PLAYER_SEED, IntegerArgumentType.integer( -1 ) )
+                            .executes( this.executionNode.node )
+                        )
+                    )
+                )
+            )
+        )
     }
 
     @JvmStatic
-    fun registerPlayer(
-        ctx: CommandContext <CommandSourceStack>
-    ): Int
-    {
-        val ( nodeEntries, tournamentBuilder ) = CommandUtil
+    fun registerPlayer(ctx: CommandContext<CommandSourceStack>): Int {
+        val (nodeEntries, tournamentBuilder) = CommandUtil
             .getNodesAndTournamentBuilder(
-                ctx     = ctx,
-                storeID = TournamentStoreManager.activeStoreKey)
+                ctx = ctx,
+                storeID = TournamentStoreManager.ACTIVE_STORE_ID,
+                )
 
-        var registeredPlayer    : ServerPlayer?         = null
-        var playerProperties    : PlayerProperties?     = null
-        for ( entry in nodeEntries ) {
-            when ( entry.key ) {
+        var registeredPlayer: ServerPlayer? = null
+        var playerProperties: PlayerProperties? = null
+        for (entry in nodeEntries) {
+            when (entry.key) {
                 PLAYER_ENTITY -> {
-                    registeredPlayer = EntityArgument.getPlayer( ctx, entry.key )
+                    registeredPlayer = EntityArgument.getPlayer(ctx, entry.key)
                     val success = tournamentBuilder?.addPlayer(
-                        playerID    = registeredPlayer.uuid,
-                        playerName  = registeredPlayer.name.string,
-                        actorType   = ActorType.PLAYER,
-                    )
-                    if ( success == true ) {
-                        playerProperties = tournamentBuilder.getPlayer( playerID = registeredPlayer.uuid )
+                        playerID = registeredPlayer.uuid,
+                        playerName = registeredPlayer.name.string,
+                        actorType = ActorType.PLAYER,
+                        )
+                    if (success == true) {
+                        playerProperties = tournamentBuilder.getPlayer(playerID = registeredPlayer.uuid)
                     }
                 }
                 PLAYER_SEED -> {
-                    if ( playerProperties != null ) {
-                        val seed = Integer.parseInt( entry.value )
+                    if (playerProperties != null) {
+                        val seed = Integer.parseInt(entry.value)
                         playerProperties.seed = seed
                         playerProperties.originalSeed = seed
                     }
@@ -98,33 +98,34 @@ object RegisterPlayerCommand : ExecutableCommand
         }
 
         var success = 0
-        val text: MutableComponent
-        if ( tournamentBuilder == null ) {
-            text = CommandUtil.failedCommand(
-                reason = "Tournament Builder was null" )
-        } else if ( registeredPlayer == null ) {
-            text = CommandUtil.failedCommand(
-                reason = "Server Player was null" )
-        } else if ( playerProperties == null ) {
-            text = CommandUtil.failedCommand(
-                reason = "Player already registered OR registration failed inside builder" )
-        } else {
-            text = CommandUtil.successfulCommand(
-                action = "REGISTERED ${registeredPlayer.name.string} with Tournament Builder \"${tournamentBuilder.name}\"" )
-            success = Command.SINGLE_SUCCESS
+        val text: MutableComponent = when {
+            tournamentBuilder == null -> {
+                CommandUtil.failedCommand(reason = "Tournament Builder was null")
+            }
+            registeredPlayer == null -> {
+                CommandUtil.failedCommand(reason = "Server Player was null")
+            }
+            playerProperties == null -> {
+                CommandUtil.failedCommand(reason = "Player already registered OR registration failed inside builder")
+            }
+            else -> {
+                success = Command.SINGLE_SUCCESS
+                CommandUtil.successfulCommand(
+                    text = "REGISTERED ${registeredPlayer.name.string} with Tournament Builder \"${tournamentBuilder.name}\"",
+                    )
+            }
         }
 
-        val player = ctx.source.player
-        if ( player != null ) {
-            player.displayClientMessage( text ,false )
-            if ( registeredPlayer != null && registeredPlayer != player && tournamentBuilder != null ) {
+        ctx.source.player?.let { player ->
+            if (registeredPlayer != null && registeredPlayer != player && tournamentBuilder != null) {
                 ChatUtil.displayInPlayerChat(
                     player = registeredPlayer,
-                    text   = "You were successfully REGISTERED with Tournament Builder \"${tournamentBuilder.name}\"!" )
+                    text = "You were successfully REGISTERED with Tournament Builder \"${tournamentBuilder.name}\"!",
+                    )
             }
-        } else {
-            Util.report( text.string )
-        }
+            player.displayClientMessage(text ,false)
+        } ?: Util.report(text.string)
+
         return success
     }
 }

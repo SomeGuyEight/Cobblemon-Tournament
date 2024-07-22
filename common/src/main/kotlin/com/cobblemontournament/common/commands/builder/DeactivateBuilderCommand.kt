@@ -37,70 +37,68 @@ import org.slf4j.helpers.Util
  *
  *      * - optional with [ACTIVE]
  */
-object DeactivateBuilderCommand : ExecutableCommand
-{
-    override val executionNode get() = ExecutionNode { deactivate( ctx = it ) }
+object DeactivateBuilderCommand : ExecutableCommand {
 
-    @JvmStatic
-    fun register( dispatcher: CommandDispatcher <CommandSourceStack> )
-    {
+    override val executionNode get() = ExecutionNode { deactivate(ctx = it) }
+
+    fun register(dispatcher: CommandDispatcher<CommandSourceStack>) {
         val deleteStack = Commands
-            .literal( DELETE )
-            .executes( this.executionNode.node )
+            .literal(DELETE)
+            .executes(this.executionNode.node)
 
         val deactivateOrDeleteStack = Commands
-                .literal( DEACTIVATE )
-                .executes( this.executionNode.node )
-                .then( deleteStack )
+            .literal(DEACTIVATE)
+            .executes(this.executionNode.node)
+            .then(deleteStack)
 
-        dispatcher.register( ActiveBuilderNameNode.nest( deactivateOrDeleteStack ) )
-        dispatcher.register( BuilderHistoryNameNode.nest( deleteStack ) )
+        dispatcher.register(ActiveBuilderNameNode.nest(deactivateOrDeleteStack))
+        dispatcher.register(BuilderHistoryNameNode.nest(deleteStack))
     }
 
-    @JvmStatic
-    private fun deactivate(
-        ctx: CommandContext <CommandSourceStack>
-    ): Int
-    {
-        val ( nodeEntries, tournamentBuilder ) = CommandUtil
+    private fun deactivate(ctx: CommandContext<CommandSourceStack>): Int {
+        val (nodeEntries, tournamentBuilder) = CommandUtil
             .getNodesAndTournamentBuilder(
                 ctx = ctx,
-                storeID = null )
+                storeID = null,
+                )
 
-        var delete = false
-        for ( entry in nodeEntries ) {
-            when ( entry.key ) {
-                DELETE -> delete = true
+        var success = 0
+        val text: MutableComponent = when {
+            tournamentBuilder == null -> {
+                CommandUtil.failedCommand(reason = "Tournament Builder was null")
+            }
+            nodeEntries.any { it.key == DELETE } -> {
+                val deleted = TournamentStoreManager.deleteInstance(
+                    storeClass = TournamentBuilderStore::class.java,
+                    storeID = TournamentStoreManager.ACTIVE_STORE_ID,
+                    instance = tournamentBuilder,
+                    )
+                if (deleted) {
+                    success = Command.SINGLE_SUCCESS
+                    CommandUtil.successfulCommand(text = "DELETED Tournament Builder \"${tournamentBuilder.name}\"",)
+                } else {
+                    CommandUtil.failedCommand(reason = "Failed to DELETE in store \"${tournamentBuilder.name}\"")
+                }
+            }
+            else -> {
+                val transferred = TournamentStoreManager.transferInstance(
+                    storeClass = TournamentBuilderStore::class.java,
+                    storeID = TournamentStoreManager.ACTIVE_STORE_ID,
+                    newStoreID = TournamentStoreManager.INACTIVE_STORE_ID,
+                    instance = tournamentBuilder,
+                    )
+                if (transferred) {
+                    success = Command.SINGLE_SUCCESS
+                    CommandUtil.successfulCommand(text = "DEACTIVATED Tournament Builder \"${tournamentBuilder.name}\"")
+                } else {
+                    CommandUtil.failedCommand(reason = "Failed to DEACTIVATE in store \"${tournamentBuilder.name}\"")
+                }
             }
         }
 
-        var success = 0
-        val text: MutableComponent
-        if ( tournamentBuilder == null ) {
-            text = CommandUtil.failedCommand( "Tournament Builder was null" )
-        } else if ( delete ) {
-            TournamentStoreManager.deleteInstance(
-                storeClass  = TournamentBuilderStore::class.java,
-                storeID     = TournamentStoreManager.activeStoreKey,
-                instance    = tournamentBuilder )
-            text = CommandUtil.successfulCommand( "DELETED Tournament Builder \"${tournamentBuilder.name}\"" )
-            success = Command.SINGLE_SUCCESS
-        } else {
-            TournamentStoreManager.transferInstance(
-                storeClass  = TournamentBuilderStore::class.java,
-                storeID     = TournamentStoreManager.activeStoreKey,
-                newStoreID  = TournamentStoreManager.inactiveStoreKey,
-                instance    = tournamentBuilder )
-            text = CommandUtil.successfulCommand( "DEACTIVATED Tournament Builder \"${tournamentBuilder.name}\"" )
-            success = Command.SINGLE_SUCCESS
-        }
+        ctx.source.player?.displayClientMessage(text ,false)
+            ?: Util.report(text.string)
 
-        val player = ctx.source.player
-        if ( player != null ) {
-            player.displayClientMessage( text ,false )
-        } else {
-            Util.report( text.string )
-        }
         return success
     }
 }

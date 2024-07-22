@@ -31,50 +31,49 @@ import org.slf4j.helpers.Util
  *      literal     [ACTIVATE]      ->
  *      function    [activate]
  */
-object ActivateBuilderCommand : ExecutableCommand
-{
-    override val executionNode get() = ExecutionNode { activate( ctx = it ) }
+object ActivateBuilderCommand : ExecutableCommand {
 
-    @JvmStatic
-    fun register( dispatcher: CommandDispatcher <CommandSourceStack> )
-    {
-        dispatcher.register(
-            BuilderHistoryNameNode.nest(
-                Commands.literal( ACTIVATE )
-                    .executes( this.executionNode.node )
-            ) )
+    override val executionNode get() = ExecutionNode { activate(ctx = it) }
+
+    fun register(dispatcher: CommandDispatcher<CommandSourceStack>) {
+        dispatcher.register(BuilderHistoryNameNode
+            .nest(Commands
+                .literal(ACTIVATE)
+                .executes(this.executionNode.node)
+            )
+        )
     }
 
-    @JvmStatic
-    private fun activate(
-        ctx: CommandContext <CommandSourceStack>
-    ): Int
-    {
+    private fun activate(ctx: CommandContext<CommandSourceStack>): Int {
+        var success = 0
         val tournamentBuilder = CommandUtil.getNodesAndTournamentBuilder(
             ctx = ctx,
-            storeID = TournamentStoreManager.inactiveStoreKey
-        ).second
-
-        var success = 0
-        val text: MutableComponent
-        if ( tournamentBuilder == null ) {
-            text = CommandUtil.failedCommand( "Tournament Builder was null" )
-        } else {
-            TournamentStoreManager.transferInstance(
-                storeClass  = TournamentBuilderStore::class.java,
-                storeID     = TournamentStoreManager.inactiveStoreKey,
-                newStoreID  = TournamentStoreManager.activeStoreKey,
-                instance    = tournamentBuilder )
-            text = CommandUtil.successfulCommand( "ACTIVATED Tournament Builder \"${tournamentBuilder.name}\"" )
-            success = Command.SINGLE_SUCCESS
+            storeID = TournamentStoreManager.INACTIVE_STORE_ID,
+        ).second?.let { instance ->
+            val transferred = TournamentStoreManager.transferInstance(
+                storeClass = TournamentBuilderStore::class.java,
+                storeID = TournamentStoreManager.INACTIVE_STORE_ID,
+                newStoreID = TournamentStoreManager.ACTIVE_STORE_ID,
+                instance = instance,
+                )
+            if (transferred) {
+                success = Command.SINGLE_SUCCESS
+            }
+            return@let instance
         }
 
-        val player = ctx.source.player
-        if ( player != null ) {
-            player.displayClientMessage( text ,false )
+        val text: MutableComponent = if (tournamentBuilder == null) {
+           CommandUtil.failedCommand(reason = "Tournament Builder was null")
         } else {
-            Util.report( text.string )
+            CommandUtil.successfulCommand(
+                text = "ACTIVATED Tournament Builder \"${tournamentBuilder.name}\"",
+                )
         }
+
+        ctx.source.player?.displayClientMessage(text ,false)
+            ?: Util.report(text.string)
+
         return success
     }
+
 }

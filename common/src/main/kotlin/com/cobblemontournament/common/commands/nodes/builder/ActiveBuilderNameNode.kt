@@ -24,30 +24,33 @@ import net.minecraft.commands.Commands
  *      argument    [BUILDER_NAME] , StringType ->
  *      _
  */
-object ActiveBuilderNameNode : NestedNode()
-{
+object ActiveBuilderNameNode : NestedNode() {
+
     override val executionNode get() = ExecutionNode {
         CommandUtil.displayNoArgument(
-            player  = it.source.player,
-            nodeKey = "$TOURNAMENT $BUILDER $ACTIVE $BUILDER_NAME" )
+            player = it.source.player,
+            nodeKey = "$TOURNAMENT $BUILDER $ACTIVE $BUILDER_NAME",
+            )
     }
 
-    private val suggestionProvider get() = ClassStoredNameSuggestionProvider(
-        storeClass  = TournamentBuilderStore::class.java,
-        getActive   = true )
+    private val suggestionProvider by lazy {
+        ClassStoredNameSuggestionProvider(
+            storeClass = TournamentBuilderStore::class.java,
+            getActive = true,
+            )
+    }
 
     override fun inner(
-        literal     : LiteralArgumentBuilder <CommandSourceStack>?,
-        argument    : RequiredArgumentBuilder <CommandSourceStack,*>?,
-        execution   : ExecutionNode?
-    ): LiteralArgumentBuilder <CommandSourceStack>
-    {
-        val stack = literal ?: argument
-        return ActiveBuilderNode.nest(
-            Commands.argument( BUILDER_NAME, StringArgumentType.string() )
-                .suggests( suggestionProvider )
-                .executes( ( execution ?: this.executionNode ).node )
-                .then( stack )
-        )
+        literal: LiteralArgumentBuilder<CommandSourceStack>?,
+        argument: RequiredArgumentBuilder<CommandSourceStack, *>?,
+        execution: ExecutionNode?,
+    ): LiteralArgumentBuilder<CommandSourceStack> {
+        return ActiveBuilderNode
+            .nest(Commands
+                .argument(BUILDER_NAME, StringArgumentType.string())
+                .suggests(suggestionProvider)
+                .executes((execution ?: this.executionNode).node)
+                .then((literal ?: argument))
+            )
     }
 }

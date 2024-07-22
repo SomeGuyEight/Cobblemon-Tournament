@@ -35,35 +35,31 @@ object UnregisterFakePlayerCommand
      *      literal     [UNREGISTER]-[FAKE]     ->
      *      method      [unregisterFakePlayer]
      */
-    @JvmStatic
-    fun register( dispatcher: CommandDispatcher<CommandSourceStack> )
-    {
-        dispatcher.register(
-            ActiveBuilderPlayersNode.nest(
-                Commands.literal( "$UNREGISTER-$FAKE" )
-                    .executes {
-                        ctx -> unregisterPlayer( ctx )
+    fun register(dispatcher: CommandDispatcher<CommandSourceStack>) {
+        dispatcher
+            .register(ActiveBuilderPlayersNode
+                .nest(Commands
+                    .literal("$UNREGISTER-$FAKE")
+                    .executes { ctx ->
+                        unregisterPlayer(ctx = ctx)
                     }
-            ) )
+                )
+            )
     }
 
-    @JvmStatic
-    fun unregisterFakePlayer(
-        ctx : CommandContext<CommandSourceStack>
-    ): Int
-    {
-        var tournamentBuilder   : TournamentBuilder? = null
-        var removed             : Boolean?           = null
+    fun unregisterFakePlayer( ctx: CommandContext<CommandSourceStack> ): Int {
+        var tournamentBuilder: TournamentBuilder? = null
+        var removed: Boolean? = null
 
         val nodeEntries = CommandUtil.getNodeEntries( ctx )
         for (entry in nodeEntries) {
             when (entry.key) {
                 BUILDER_NAME -> {
-                    val ( builder, _ ) = TournamentStoreManager.getInstanceByName(
-                        name        = entry.value,
-                        storeClass  = TournamentBuilderStore::class.java,
-                        storeID     = TournamentStoreManager.activeStoreKey )
-                    tournamentBuilder = builder
+                    tournamentBuilder = TournamentStoreManager.getInstanceByName(
+                        storeClass = TournamentBuilderStore::class.java,
+                        name = entry.value,
+                        storeID = TournamentStoreManager.ACTIVE_STORE_ID
+                    ).first
                 }
                 PLAYER_ENTITY -> removed = tournamentBuilder?.removePlayerByName( entry.value )
             }
@@ -72,21 +68,20 @@ object UnregisterFakePlayerCommand
         var success = 0
         var color = ChatUtil.yellow
         val text: String
-        if ( tournamentBuilder == null) {
+        if (tournamentBuilder == null) {
             text = "Failed to UNREGISTER Fake Player b/c Tournament Builder was null"
         } else if (removed == null || removed == false) {
             text = "Failed to UNREGISTER Fake Player with ${tournamentBuilder.name} " +
                     "b/c IDK..."
         } else {
-            text = "Successfully UNREGISTERED Fake Player " +
-                    "from Tournament Builder: \"${tournamentBuilder.name}\"."
+            text = "Successfully UNREGISTERED Fake Player from Tournament Builder: \"${tournamentBuilder.name}\"."
             color = ChatUtil.green
             success = Command.SINGLE_SUCCESS
         }
 
         val player = ctx.source.player
         if (player != null) {
-            ChatUtil.displayInPlayerChat( player, text = text, color = color)
+            ChatUtil.displayInPlayerChat( player, text, color )
         }
         return success
     }

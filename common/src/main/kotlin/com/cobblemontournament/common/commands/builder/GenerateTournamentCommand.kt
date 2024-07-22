@@ -38,57 +38,53 @@ import org.slf4j.helpers.Util
  *
  *      * == optional
  */
-object GenerateTournamentCommand : ExecutableCommand
-{
-    override val executionNode get() = ExecutionNode { generateTournament( ctx = it ) }
+object GenerateTournamentCommand : ExecutableCommand {
 
-    @JvmStatic
-    fun register( dispatcher: CommandDispatcher <CommandSourceStack> )
-    {
-        dispatcher.register(
-            ActiveBuilderNameNode.nest(
-                Commands.literal( GENERATE_TOURNAMENT )
-                    .then(Commands.argument( "$NEW$TOURNAMENT_NAME", StringArgumentType.string() )
-                        .executes( this.executionNode.node )
-                        // TODO other optional parameters
-                    ) )
+    override val executionNode get() = ExecutionNode { generateTournament(ctx = it) }
+
+    fun register(dispatcher: CommandDispatcher<CommandSourceStack>) {
+        dispatcher.register(ActiveBuilderNameNode
+            .nest(Commands
+                .literal(GENERATE_TOURNAMENT)
+                // TODO other optional parameters
+                .then(Commands
+                    .argument("$NEW$TOURNAMENT_NAME", StringArgumentType.string())
+                    .executes(this.executionNode.node)
+                )
+            )
         )
     }
 
     @JvmStatic
-    fun generateTournament(
-        ctx : CommandContext <CommandSourceStack>,
-    ): Int
-    {
-        val ( nodeEntries, tournamentBuilder ) = CommandUtil
+    fun generateTournament(ctx: CommandContext<CommandSourceStack>): Int {
+        val (nodeEntries, tournamentBuilder) = CommandUtil
             .getNodesAndTournamentBuilder(
-                ctx     = ctx,
-                storeID = null )
+                ctx = ctx,
+                storeID = null,
+                )
 
-        var tournamentData: TournamentData? = null
-        for ( entry in nodeEntries ) {
-            when ( entry.key ) {
-                "$NEW$TOURNAMENT_NAME" -> tournamentData = tournamentBuilder?.toTournament( entry.value )
+        val tournamentData: TournamentData? = run {
+            val entry = nodeEntries.firstOrNull { it.key == "$NEW$TOURNAMENT_NAME" }
+            if (entry != null) {
+                return@run tournamentBuilder?.toTournament(entry.value)
+            } else {
+                return@run null
             }
         }
 
         var success = 0
-        val text: MutableComponent
-        if ( tournamentBuilder == null ) {
-            text = CommandUtil.failedCommand( "Tournament Builder was null" )
-        } else if ( tournamentData == null ) {
-            text = CommandUtil.failedCommand( "Tournament Data was null" )
-        } else {
-            text = CommandUtil.successfulCommand( "GENERATED Tournament \"${tournamentData.tournament.name}\"" )
-            success = Command.SINGLE_SUCCESS
+        val text: MutableComponent = when {
+            tournamentBuilder == null -> CommandUtil.failedCommand(reason = "Tournament Builder was null")
+            tournamentData == null -> CommandUtil.failedCommand(reason = "Tournament Data was null")
+            else -> {
+                success = Command.SINGLE_SUCCESS
+                CommandUtil.successfulCommand(text = "GENERATED Tournament \"${tournamentData.tournament.name}\"")
+            }
         }
 
-        val player = ctx.source.player
-        if ( player != null ) {
-            player.displayClientMessage( text ,false )
-        } else {
-            Util.report( text.string )
-        }
+        ctx.source.player?.displayClientMessage(text ,false)
+            ?: Util.report(text.string)
+
         return success
     }
 }

@@ -7,68 +7,61 @@ import com.mojang.brigadier.CommandDispatcher
 import com.mojang.brigadier.arguments.IntegerArgumentType
 import com.mojang.brigadier.context.CommandContext
 import com.someguy.collections.SortType
-import net.minecraft.commands.CommandBuildContext
 import net.minecraft.commands.CommandSourceStack
 import net.minecraft.commands.Commands
-import net.minecraft.commands.Commands.argument
-import net.minecraft.commands.Commands.literal
 
-object TestCommands
-{
-    @JvmStatic
-    fun register(
-        dispatcher: CommandDispatcher<CommandSourceStack>,
-        registry: CommandBuildContext,
-        selection: Commands.CommandSelection
-    )
-    {
-        dispatcher.register(
-            literal("tournament")
-                .then(literal("test")
-                    .then(literal("ping")
+object TestCommands {
+
+    fun register(dispatcher: CommandDispatcher<CommandSourceStack>) {
+        dispatcher.register(Commands
+            .literal("tournament")
+                .then(Commands
+                    .literal("test")
+                    .then(Commands
+                        .literal("ping")
                             .executes { ctx -> pong( ctx) }
                     )))
 
-        dispatcher.register(
-            literal("tournament")
-                .then(literal("test")
-                    .then(literal("sum")
-                        .then(argument("a", IntegerArgumentType.integer(0, 100))
-                            .then(argument("b", IntegerArgumentType.integer(0, 100))
+        dispatcher.register(Commands
+            .literal("tournament")
+                .then(Commands
+                    .literal("test")
+                    .then(Commands
+                        .literal("sum")
+                        .then(Commands
+                            .argument("a", IntegerArgumentType.integer(0, 100))
+                            .then(Commands
+                                .argument("b", IntegerArgumentType.integer(0, 100))
                                 .executes { ctx ->
                                     sum(
                                         ctx = ctx,
-                                        a   = IntegerArgumentType.getInteger(ctx, "a"),
-                                        b   = IntegerArgumentType.getInteger(ctx, "b"))
+                                        a = IntegerArgumentType.getInteger(ctx, "a"),
+                                        b = IntegerArgumentType.getInteger(ctx, "b"))
                                 })))))
 
-        dispatcher.register(
-            literal("tournament")
-                .then(literal("test")
-                    .then(literal("run-seed-gen")
-                        .then(argument("size", IntegerArgumentType.integer())
+        dispatcher.register(Commands
+            .literal("tournament")
+                .then(Commands
+                    .literal("test")
+                    .then(Commands
+                        .literal("run-seed-gen")
+                        .then(Commands
+                            .argument("size", IntegerArgumentType.integer())
                             .executes { ctx ->
                                 runSeedGen( ctx, IntegerArgumentType.getInteger(ctx, "size"))
                             }
                         ))))
     }
 
-    private fun pong(
-        ctx: CommandContext<CommandSourceStack>
-    ): Int {
+    private fun pong(ctx: CommandContext<CommandSourceStack>): Int {
         val player = ctx.source.player
         if (player != null) {
-            ChatUtil.displayInPlayerChat( player, text = "Pong.")
+            ChatUtil.displayInPlayerChat(player = player, text = "Pong.")
         }
         return Command.SINGLE_SUCCESS
     }
 
-    private fun sum(
-        ctx: CommandContext<CommandSourceStack>,
-        a: Int,
-        b: Int
-    ): Int
-    {
+    private fun sum(ctx: CommandContext<CommandSourceStack>, a: Int, b: Int): Int {
         val nodes = ctx.nodes
         val strings = mutableListOf<String>()
         for (parsed in nodes) {
@@ -81,23 +74,22 @@ object TestCommands
         val player = ctx.source.player
         if (player != null) {
             for (string in strings) {
-                ChatUtil.displayInPlayerChat( player, text = string)
+                ChatUtil.displayInPlayerChat(player = player, text = string)
             }
-            ChatUtil.displayInPlayerChat( player, text = "Sum (a + b) = " + (a + b))
+            ChatUtil.displayInPlayerChat(player = player, text = "Sum (a + b) = " + (a + b))
         }
         return Command.SINGLE_SUCCESS
     }
 
-    private fun runSeedGen(
-        ctx: CommandContext<CommandSourceStack>,
-        seeds: Int
-    ): Int
-    {
-        val indexedSeeds = IndexedSeedGenerator.getIndexedSeedArray(seeds, SortType.INDEX_ASCENDING)
+    private fun runSeedGen(ctx: CommandContext<CommandSourceStack>, seedCount: Int): Int {
+        val indexedSeeds = IndexedSeedGenerator.getIndexedSeedArray(
+            seedCount = seedCount,
+            currentSortType = SortType.INDEX_ASCENDING,
+            )
         indexedSeeds.print()
         val player = ctx.source.player
         if (player != null) {
-            ChatUtil.displayInPlayerChat( player, text = "Ran & printed Indexed Seed Generation")
+            ChatUtil.displayInPlayerChat(player = player, text = "Ran & printed Indexed Seed Generation")
         }
         return Command.SINGLE_SUCCESS
     }
