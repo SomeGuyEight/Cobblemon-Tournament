@@ -1,79 +1,95 @@
 package com.cobblemontournament.common.tournamentbuilder
 
 import com.cobblemon.mod.common.api.battles.model.actor.ActorType
-import com.cobblemon.mod.common.api.reactive.Observable
 import com.cobblemon.mod.common.api.reactive.SettableObservable
 import com.cobblemon.mod.common.api.reactive.SimpleObservable
+import com.cobblemontournament.common.api.TournamentData
+import com.cobblemontournament.common.api.cobblemonchallenge.ChallengeFormat
 import com.cobblemontournament.common.generator.TournamentGenerator
 import com.cobblemontournament.common.player.properties.PlayerProperties
-import com.cobblemontournament.common.tournamentbuilder.properties.TournamentBuilderProperties
-import com.cobblemontournament.common.api.tournament.TournamentData
-import com.cobblemontournament.common.tournament.properties.TournamentProperties
-import com.cobblemontournament.common.api.storage.TournamentDataKeys.TOURNAMENT_BUILDER_PROPERTIES_KEY
 import com.cobblemontournament.common.player.properties.PlayerPropertiesHelper
-import com.cobblemontournament.common.util.ChatUtil
+import com.cobblemontournament.common.tournament.TournamentType
+import com.cobblemontournament.common.tournament.properties.TournamentProperties
+import com.cobblemontournament.common.tournamentbuilder.properties.TournamentBuilderProperties
+import com.cobblemontournament.common.util.*
 import com.google.gson.JsonObject
-import com.someguy.storage.classstored.ClassStored
-import com.someguy.storage.coordinates.StoreCoordinates
+import com.someguy.storage.ClassStored
+import com.someguy.storage.StoreCoordinates
+import com.someguy.storage.util.NameSet
+import com.someguy.storage.util.PlayerID
 import net.minecraft.nbt.CompoundTag
 import net.minecraft.server.level.ServerPlayer
 import java.util.UUID
 
-/** &#9888; (UUID) constructor is needed for serialization method */
-open class TournamentBuilder(
-    protected val properties: TournamentBuilderProperties
-) : ClassStored {
+open class TournamentBuilder(protected val properties: TournamentBuilderProperties) : ClassStored {
 
-    override var name
+    override var storeCoordinates: SettableObservable<StoreCoordinates<*, *>?> =
+        SettableObservable(value = null)
+
+    private val anyChangeObservable = SimpleObservable<TournamentBuilder>()
+
+    override var name: String
         get() = properties.name
         set(value) { properties.name = value }
-    override var uuid
+    override var uuid: TournamentBuilderID
         get() = properties.tournamentBuilderID
         protected set (value) { properties.tournamentBuilderID = value }
-    var tournamentType
-        get() = properties.tournamentProperties.tournamentType
-        set(value) { properties.tournamentProperties.tournamentType = value }
-    var challengeFormat
-        get() = properties.tournamentProperties.challengeFormat
-        set(value) { properties.tournamentProperties.challengeFormat = value }
-    var maxParticipants
-        get() = properties.tournamentProperties.maxParticipants
-        set(value) { properties.tournamentProperties.maxParticipants = value }
-    var teamSize
-        get() = properties.tournamentProperties.teamSize
-        set(value) { properties.tournamentProperties.teamSize = value }
-    var groupSize
-        get() = properties.tournamentProperties.groupSize
-        set(value) { properties.tournamentProperties.groupSize = value }
-    var minLevel
-        get() = properties.tournamentProperties.minLevel
-        set(value) { properties.tournamentProperties.minLevel = value }
-    var maxLevel
-        get() = properties.tournamentProperties.maxLevel
-        set(value) { properties.tournamentProperties.maxLevel = value }
-    var showPreview
-        get() = properties.tournamentProperties.showPreview
-        set (value) { properties.tournamentProperties.showPreview = value }
+    var tournamentType: TournamentType
+        get() = properties.tournamentType
+        set(value) { properties.tournamentType = value }
+    var challengeFormat: ChallengeFormat
+        get() = properties.challengeFormat
+        set(value) { properties.challengeFormat = value }
+    var maxParticipants: Int
+        get() = properties.maxParticipants
+        set(value) { properties.maxParticipants = value }
+    var teamSize: Int
+        get() = properties.teamSize
+        set(value) { properties.teamSize = value }
+    var groupSize: Int
+        get() = properties.groupSize
+        set(value) { properties.groupSize = value }
+    var minLevel: Int
+        get() = properties.minLevel
+        set(value) { properties.minLevel = value }
+    var maxLevel: Int
+        get() = properties.maxLevel
+        set(value) { properties.maxLevel = value }
+    var showPreview: Boolean
+        get() = properties.showPreview
+        set (value) { properties.showPreview = value }
 
-    override var storeCoordinates: SettableObservable<StoreCoordinates<*, *>?> = SettableObservable(value = null)
-    private val observables = mutableListOf <Observable<*>>()
-    val anyChangeObservable = SimpleObservable<TournamentBuilder>()
-
-    constructor(uuid: UUID = UUID.randomUUID()) : this(TournamentBuilderProperties(tournamentBuilderID = uuid))
-
-    override fun initialize(): TournamentBuilder {
-        registerObservable(observable = properties.getChangeObservable() )
-        return this
+    init {
+        properties.getChangeObservable().subscribe { emitChange() }
     }
+
+    /** &#9888; (UUID) constructor is needed for serialization method */
+    constructor(uuid: TournamentBuilderID = UUID.randomUUID()) :
+            this(TournamentBuilderProperties(tournamentBuilderID = uuid))
+
+    override fun initialize() = this
+
+    private fun emitChange() = anyChangeObservable.emit(this)
+
+    override fun getChangeObservable() = anyChangeObservable
 
     fun getTournamentProperties(
         name: String,
-        tournamentID: UUID = UUID.randomUUID(),
+        tournamentID: TournamentID = UUID.randomUUID(),
     ): TournamentProperties {
-        val copy = properties.tournamentProperties.deepCopy()
-        copy.name = name
-        copy.tournamentID = tournamentID
-        return copy
+        return properties.getTournamentProperties(name, tournamentID)
+    }
+
+    fun containsPlayer(playerID: PlayerID) = properties.containsPlayer(playerID)
+
+    fun containsPlayer(name: String) = properties.containsPlayer(name)
+
+    fun getPlayersNames(): NameSet {
+        val names = mutableSetOf<String>()
+        for (playerProps in properties.getPlayersIterator()) {
+            names.add(playerProps.name)
+        }
+        return names
     }
 
     fun getPlayer(playerID: UUID) = properties.getPlayer(playerID = playerID)
@@ -81,14 +97,6 @@ open class TournamentBuilder(
     fun getPlayer(name: String) = properties.getPlayer(name = name)
 
     fun getPlayersSize() = properties.getPlayersSize()
-
-    fun getPlayersNames(): Set<String> {
-        val names = mutableSetOf<String>()
-        for (playerProps in properties.getPlayersIterator()) {
-            names.add(playerProps.name)
-        }
-        return names
-    }
 
     fun getSeededPlayers() = properties.getSeededPlayers()
 
@@ -100,7 +108,7 @@ open class TournamentBuilder(
         actorType: ActorType? = null,
         seed: Int? = null,
     ): Boolean {
-        return if (!properties.containsPlayerID(playerID = playerID)) {
+        return if (!properties.containsPlayer(playerID = playerID)) {
             properties.addPlayer(
                 playerProps = PlayerProperties(
                     name = playerName,
@@ -115,102 +123,81 @@ open class TournamentBuilder(
         }
     }
 
-    fun updatePlayer(playerID: UUID, actorType: ActorType?, seed: Int?): Boolean {
-        val playerProps = getPlayer(playerID = playerID)
-            ?: return false
-
-        val updated = if (actorType != null) {
-            playerProps.actorType = actorType
-            true
-        } else {
-            false
-        }
-
-        return if (seed != null && seed != playerProps.seed) {
-            playerProps.seed = seed
-            playerProps.originalSeed = seed
-            true
-        } else {
-            updated
-        }
-    }
-
     fun removePlayer(playerID: UUID) = properties.removePlayer(playerID = playerID)
 
-    fun removePlayerByName(name: String) = properties.removePlayer(name = name)
+    fun removePlayer(name: String) = properties.removePlayer(name = name)
 
-    fun toTournament(name: String): TournamentData? {
-        val tournamentData = TournamentGenerator.toTournament(name = name, builder = this)
-        tournamentData?.sendAllToManager()
-        return tournamentData
+    private fun toTournament(name: String): TournamentData? {
+        return TournamentGenerator.toTournament(name = name, builder = this)
     }
 
-    private fun registerObservable(observable: Observable<*>): Observable<*> {
-        observables.add(observable)
-        observable.subscribe { anyChangeObservable.emit((this)) }
-        return observable
+    fun toTournamentAndSave(name: String): TournamentData? {
+        val data = toTournament(name = name)
+        data?.saveAll()
+        return data
     }
 
-    fun getAllObservables() = observables.asIterable()
-
-    override fun getChangeObservable() = anyChangeObservable
-
-    override fun saveToNBT(nbt: CompoundTag): CompoundTag {
-        nbt.put(TOURNAMENT_BUILDER_PROPERTIES_KEY, properties.saveToNBT(nbt = CompoundTag()))
+    override fun saveToNbt(nbt: CompoundTag): CompoundTag {
+        nbt.put(TOURNAMENT_BUILDER_PROPERTIES_KEY, properties.saveToNbt(nbt = CompoundTag()))
         return nbt
     }
+
+    override fun saveToJSON(json: JsonObject): JsonObject { TODO() }
+
     override fun loadFromNBT(nbt: CompoundTag): TournamentBuilder {
-        properties.setFromNBT(nbt = nbt.getCompound(TOURNAMENT_BUILDER_PROPERTIES_KEY))
+        properties.setFromNbt(nbt = nbt.getCompound(TOURNAMENT_BUILDER_PROPERTIES_KEY))
         return this
     }
-    override fun saveToJSON(json: JsonObject): JsonObject { TODO("Not implemented") }
-    override fun loadFromJSON(json: JsonObject): TournamentBuilder { TODO("Not implemented") }
+
+    override fun loadFromJSON(json: JsonObject): TournamentBuilder { TODO() }
 
     override fun printProperties() = properties.logDebug()
 
     fun displayPropertiesInChat(player: ServerPlayer) = properties.displayInChat(player = player)
 
-    fun displayPropertiesInChatSlim(player: ServerPlayer) = properties.displayInChatSlim(player = player)
-
-    fun printPlayerInfo() {
-        for ( player in properties.getPlayersSortedBy { it.seed } ) {
-            player.logDebug()
-        }
+    fun displayPropertiesInChatSlim(player: ServerPlayer) {
+        properties.displayShortenedInChat(player)
     }
 
-    fun displayPlayerInfoInChat(
+    fun printPlayerInfo() {
+        properties.getPlayersSortedBy { it.seed }.forEach { it.logDebug() }
+    }
+
+    fun displayPlayersInChat(
         player: ServerPlayer,
-        spacing: String = "",
+        padStart: Int = 0,
         displaySeed: Boolean = false,
         displayPokemon: Boolean = false,
         displayCurrentMatch: Boolean = false,
         displayPlacement: Boolean = false
     ) {
         if (properties.getPlayersSize() != 0) {
-            ChatUtil.displayInPlayerChat(
-                player  = player,
-                text    = "Players for Tournament Builder \"$name\":", ChatUtil.yellow,
-                bold    = true )
+            player.displayInChat(
+                text = "Players for Tournament Builder \"$name\":", ChatUtil.YELLOW_FORMAT,
+                bold = true,
+            )
             for ( playerProps in properties.getPlayersSortedBy { it.seed } ) {
-                PlayerPropertiesHelper.displayInChatOptionalHelper(
-                    properties          = playerProps,
-                    player              = player,
-                    spacing             = spacing,
-                    displaySeed         = displaySeed,
-                    displayPokemon      = displayPokemon,
+                PlayerPropertiesHelper.displayInChatHelper(
+                    properties = playerProps,
+                    player = player,
+                    padStart = padStart,
+                    displaySeed = displaySeed,
+                    displayPokemon = displayPokemon,
                     displayCurrentMatch = displayCurrentMatch,
-                    displayPlacement    = displayPlacement )
+                    displayPlacement = displayPlacement,
+                )
             }
         } else {
-            ChatUtil.displayInPlayerChat( player, "No players registered for Tournament Builder \"$name\"." )
+            player.displayInChat(text = "No players registered for Tournament Builder \"$name\".")
         }
     }
 
     companion object {
-        /** &#9888; Observables will be broken if [initialize] is not called after construction */
         fun loadFromNbt(nbt: CompoundTag): TournamentBuilder {
             return TournamentBuilder(
-                TournamentBuilderProperties.loadFromNbt(nbt = nbt.getCompound(TOURNAMENT_BUILDER_PROPERTIES_KEY))
+                TournamentBuilderProperties.loadFromNbt(
+                    nbt = nbt.getCompound(TOURNAMENT_BUILDER_PROPERTIES_KEY),
+                )
             )
         }
     }

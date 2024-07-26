@@ -21,9 +21,9 @@ package com.someguy.storage.adapter.flatfile
  */
 
 import com.cobblemon.mod.common.util.fromJson
-import com.someguy.storage.store.Store
-import com.someguy.storage.position.StorePosition
-import com.someguy.storage.classstored.ClassStored
+import com.someguy.storage.Store
+import com.someguy.storage.StorePosition
+import com.someguy.storage.ClassStored
 import com.google.gson.Gson
 import com.google.gson.GsonBuilder
 import com.google.gson.JsonObject
@@ -43,20 +43,20 @@ open class JSONStoreAdapter(
     useNestedFolders: Boolean,
     folderPerClass: Boolean,
     private val gson: Gson = GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create(),
-): OneToOneFileStoreAdapter<JsonObject>(rootFolder, useNestedFolders, folderPerClass, "json")
-{
+): OneToOneFileStoreAdapter<JsonObject>(
+    rootFolder = rootFolder,
+    useNestedFolders = useNestedFolders,
+    folderPerClass = folderPerClass,
+    fileExtension = "json",
+) {
 
-    override fun <P: StorePosition,T: ClassStored,St: Store<P,T>> serialize(
-        store: St
+    override fun <P : StorePosition, C : ClassStored, St : Store<P, C>> serialize(
+        store: St,
     ): JsonObject {
-        return store.saveToJSON(JsonObject())
+        return store.saveToJson(json = JsonObject())
     }
 
-    override fun save(
-        file: File,
-        serialized: JsonObject
-    )
-    {
+    override fun save(file: File, serialized: JsonObject) {
         val pw = PrintWriter(file)
         val json = gson.toJson(serialized)
         pw.write(json)
@@ -64,22 +64,23 @@ open class JSONStoreAdapter(
         pw.close()
     }
 
-    override fun <P: StorePosition,T: ClassStored,St: Store<P,T>> load(
+    override fun <P : StorePosition, C : ClassStored, St : Store<P, C>> load(
         file: File,
         storeClass: Class<out St>,
         uuid: UUID,
-    ): St?
-    {
+    ): St? {
         return try {
             val br = BufferedReader(FileReader(file))
             val json = gson.fromJson<JsonObject>(br)
             br.close()
+
             val store = try {
                 storeClass.getConstructor(UUID::class.java, UUID::class.java).newInstance(uuid, uuid)
             } catch (exception: NoSuchMethodException) {
                 storeClass.getConstructor(UUID::class.java).newInstance(uuid)
             }
-            store.loadFromJSON(json)
+
+            store.loadFromJson(json)
             store
         } catch (e: Exception) {
             null

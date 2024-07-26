@@ -1,114 +1,112 @@
 package com.cobblemontournament.common.match.properties
 
 import com.cobblemon.mod.common.api.reactive.Observable
+import com.cobblemon.mod.common.api.reactive.SettableObservable
 import com.cobblemon.mod.common.api.reactive.SimpleObservable
 import com.cobblemontournament.common.match.MatchConnections
 import com.cobblemontournament.common.match.MatchStatus
-import com.cobblemontournament.common.match.properties.MatchPropertiesHelper.DEFAULT_MATCH_STATUS
-import com.cobblemontournament.common.match.properties.MatchPropertiesHelper.DEFAULT_ROUND_MATCH_INDEX
-import com.cobblemontournament.common.match.properties.MatchPropertiesHelper.DEFAULT_TOURNAMENT_MATCH_INDEX
-import com.cobblemontournament.common.match.properties.MatchPropertiesHelper.DEFAULT_VICTOR_ID
-import com.cobblemontournament.common.round.properties.RoundPropertiesHelper.DEFAULT_ROUND_INDEX
-import com.cobblemontournament.common.util.TournamentUtil
-import com.someguy.storage.properties.Properties
+import com.cobblemontournament.common.round.properties.DEFAULT_ROUND_INDEX
+import com.cobblemontournament.common.util.*
+import com.someguy.storage.Properties
+import com.someguy.storage.util.SubscriptionMap
+import com.someguy.storage.util.registerObservable
 import net.minecraft.nbt.CompoundTag
 import java.util.UUID
 
 class MatchProperties(
-    matchID: UUID,
-    tournamentID: UUID,
-    roundID: UUID,
-    roundIndex: Int,
-    tournamentMatchIndex: Int,
-    roundMatchIndex: Int,
+    matchID: MatchID = UUID.randomUUID(),
+    tournamentID: TournamentID = UUID.randomUUID(),
+    roundID: RoundID = UUID.randomUUID(),
+    roundIndex: Int = DEFAULT_ROUND_INDEX,
+    tournamentMatchIndex: Int = DEFAULT_TOURNAMENT_MATCH_INDEX,
+    roundMatchIndex: Int = DEFAULT_ROUND_MATCH_INDEX,
     connections: MatchConnections = MatchConnections(),
     matchStatus: MatchStatus = DEFAULT_MATCH_STATUS,
-    victorID: UUID? = DEFAULT_VICTOR_ID,
-    playerMap: MutableMap<UUID, Int> = mutableMapOf(),
+    victorID: VictorID? = DEFAULT_VICTOR_ID,
+    playerMap: PlayerToTeamMap = mutableMapOf(),
 ) : Properties<MatchProperties> {
 
     override val instance = this
-    val name get() = "Match $roundMatchIndex ($tournamentMatchIndex)"
-    var matchID: UUID = matchID
-        set(value) {
-            field = value
-            emitChange()
-        }
-    var tournamentID: UUID = tournamentID
-        set(value) {
-            field = value
-            emitChange()
-        }
-    var roundID: UUID = roundID
-        set(value) {
-            field = value
-            emitChange()
-        }
-    var roundIndex = roundIndex
-        set(value) {
-            field = value
-            emitChange()
-        }
-    var tournamentMatchIndex = tournamentMatchIndex
-        set(value) {
-            field = value
-            emitChange()
-        }
-    var roundMatchIndex = roundMatchIndex
-        set(value) {
-            field = value
-            emitChange()
-        }
-    /** exposed publicly as val, so observable can be set once & updated by the connections observable */
-    val connections = connections.deepCopy()
-    var matchStatus = matchStatus
-        set(value) {
-            field = value
-            emitChange()
-        }
-    var victorID: UUID? = victorID
-        set(value) {
-            field = value
-            emitChange()
-        }
-    var playerMap = TournamentUtil.shallowCopy(map = playerMap)
-        set(value) {
-            field = value
-            emitChange()
-        }
-
     override val helper = MatchPropertiesHelper
-    private val observables = mutableListOf<Observable<*>>()
-    val anyChangeObservable = SimpleObservable<MatchProperties>()
+
+    val connections = connections.deepCopy()
+    // TODO handle with observable
+    val playerMap: PlayerToTeamMap = playerMap.toMutableMap()
+
+    private val anyChangeObservable = SimpleObservable<MatchProperties>()
+    private val subscriptionsMap: SubscriptionMap = mutableMapOf()
+
+    private val matchIDObservable = subscribeTo(SettableObservable(matchID))
+    private val tournamentIDObservable = subscribeTo(SettableObservable(tournamentID))
+    private val roundIDObservable = subscribeTo(SettableObservable(roundID))
+    private val roundIndexObservable = subscribeTo(SettableObservable(roundIndex))
+    private val tournamentMatchIndexObservable =
+        subscribeTo(SettableObservable(tournamentMatchIndex))
+    private val roundMatchIndexObservable = subscribeTo(SettableObservable(roundMatchIndex))
+    private val victorIDObservable = subscribeTo(SettableObservable(victorID))
+    private val matchStatusObservable = subscribeTo(SettableObservable(matchStatus))
+
+    val name get() = "Match $roundMatchIndex ($tournamentMatchIndex)"
+    var matchID: MatchID
+        get() = matchIDObservable.get()
+        set(value) { matchIDObservable.set(value) }
+    var tournamentID: TournamentID
+        get() = tournamentIDObservable.get()
+        set(value) { tournamentIDObservable.set(value) }
+    var roundID: RoundID
+        get() = roundIDObservable.get()
+        set(value) { roundIDObservable.set(value) }
+    var roundIndex: Int
+        get() = roundIndexObservable.get()
+        set(value) { roundIndexObservable.set(value) }
+    var tournamentMatchIndex: Int
+        get() = tournamentMatchIndexObservable.get()
+        set(value) { tournamentMatchIndexObservable.set(value) }
+    var roundMatchIndex: Int
+        get() = roundMatchIndexObservable.get()
+        set(value) { roundMatchIndexObservable.set(value) }
+    var matchStatus: MatchStatus
+        get() = matchStatusObservable.get()
+        set(value) { matchStatusObservable.set(value) }
+    var victorID: VictorID?
+        get() = victorIDObservable.get()
+        set(value) { victorIDObservable.set(value) }
 
     init {
-        registerObservable(connections.getChangeObservable())
+        subscribeTo(connections.getChangeObservable())
     }
 
-    constructor(uuid: UUID = UUID.randomUUID()) : this(
-        matchID = uuid,
-        tournamentID = UUID.randomUUID(),
-        roundID = UUID.randomUUID(),
-        roundIndex = DEFAULT_ROUND_INDEX,
-        tournamentMatchIndex = DEFAULT_TOURNAMENT_MATCH_INDEX,
-        roundMatchIndex = DEFAULT_ROUND_MATCH_INDEX,
-    )
+    private fun <T, O : Observable<T>> subscribeTo(observable: O): O {
+        return observable.registerObservable(subscriptionsMap) { emitChange() }
+    }
 
-    private fun emitChange() = anyChangeObservable.emit((this))
-
-    override fun getAllObservables() = observables.asIterable()
+    private fun emitChange() = anyChangeObservable.emit(this)
 
     override fun getChangeObservable() = anyChangeObservable
 
-    private fun registerObservable(observable: Observable<*>): Observable<*> {
-        observables.add(observable)
-        observable.subscribe { anyChangeObservable.emit((this)) }
-        return observable
+    fun trySetPlayer(playerID: UUID, team: Int): Boolean {
+        return if (!playerMap.containsKey(playerID)) {
+            playerMap[playerID] = team
+            emitChange()
+            true
+        } else {
+            false
+        }
+    }
+
+    fun removePlayer(playerID: UUID): Pair<UUID, Int>? {
+        val teamIndex = playerMap.remove(playerID)
+        return if (teamIndex != null) {
+            emitChange()
+            return Pair(playerID, teamIndex)
+        } else {
+            null
+        }
     }
 
     companion object {
         private val HELPER = MatchPropertiesHelper
-        fun loadFromNbt(nbt: CompoundTag) = HELPER.loadFromNBTHelper(nbt = nbt)
+        fun loadFromNbt(nbt: CompoundTag) = HELPER.loadFromNbtHelper(nbt = nbt)
     }
 
 }

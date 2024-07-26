@@ -2,40 +2,51 @@ package com.cobblemontournament.common
 
 import com.cobblemon.mod.common.api.Priority
 import com.cobblemon.mod.common.api.events.CobblemonEvents
-import com.cobblemontournament.common.api.WatchedMatches
-import com.cobblemontournament.common.api.TournamentStoreManager
+import com.cobblemontournament.common.api.MatchManager
+import com.cobblemontournament.common.api.storage.TournamentStoreManager
 import com.cobblemontournament.common.commands.TournamentCommands
-import com.someguy.api.ModImplementation
+import com.someguy.mod.ModImplementation
+import com.someguy.storage.util.PlayerID
 import dev.architectury.event.events.common.LifecycleEvent
 import dev.architectury.event.events.common.PlayerEvent
+import net.minecraft.server.level.ServerPlayer
 import org.slf4j.helpers.Util
+import java.util.UUID
 
-object CobblemonTournament : ModImplementation(
-    modID           = COMPANION.MOD_ID,
-    commandManager  = TournamentCommands )
-{
-    object COMPANION {
-        const val MOD_ID = "cobblemontournament"
-    }
+const val MOD_ID = "cobblemontournament"
 
-    override fun registerEvents()
-    {
+object CobblemonTournament :
+    ModImplementation(commandManager = TournamentCommands) {
+
+    override fun registerEvents() {
         super.registerEvents()
 
-        LifecycleEvent.SERVER_STARTING.register {
-            TournamentStoreManager.initialize( it )
+        LifecycleEvent.SERVER_STARTING.register { server ->
+            TournamentStoreManager.initialize(server = server)
         }
 
-        LifecycleEvent.SERVER_STOPPED.register {
-            Util.report("Saving Tournament Factories...")
+        LifecycleEvent.SERVER_STOPPED.register { _ ->
+            Util.report(("Saving Tournament Factories..."))
             TournamentStoreManager.unregisterAll()
-            Util.report("Saving Factories Complete.")
+            Util.report(("Saving Factories Complete."))
         }
 
-        PlayerEvent.PLAYER_QUIT.register( WatchedMatches::handlePlayerLogoutEvent )
+        PlayerEvent.PLAYER_QUIT.register(MatchManager::handlePlayerLogoutEvent)
 
-        CobblemonEvents.BATTLE_VICTORY.subscribe( Priority.NORMAL ) {
-                WatchedMatches.handleBattleVictoryEvent( it )
+        CobblemonEvents.BATTLE_VICTORY.subscribe(Priority.NORMAL) { event ->
+            MatchManager.handleBattleVictoryEvent(event = event)
         }
     }
+
+    fun getServerPlayer(playerID: PlayerID) = server?.playerList?.getPlayer(playerID)
+
+    fun getServerPlayers(playerIDs: Set<UUID>): Set<ServerPlayer> {
+        val players = mutableSetOf<ServerPlayer>()
+        for (playerID in playerIDs) {
+            val player = getServerPlayer(playerID) ?: continue
+            players.add(player)
+        }
+        return players
+    }
+
 }

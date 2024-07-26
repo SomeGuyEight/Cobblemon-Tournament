@@ -1,9 +1,8 @@
 package com.cobblemontournament.common.commands.testing
 
 import com.cobblemon.mod.common.api.battles.model.actor.ActorType
-import com.cobblemontournament.common.commands.nodes.NodeKeys
-import com.cobblemontournament.common.util.CommandUtil
-import com.cobblemontournament.common.api.WatchedMatches
+import com.cobblemontournament.common.commands.nodes.*
+import com.cobblemontournament.common.commands.nodes.ExecutionNode
 import com.cobblemontournament.common.match.TournamentMatch
 import com.cobblemontournament.common.match.properties.MatchProperties
 import com.cobblemontournament.common.player.TournamentPlayer
@@ -13,94 +12,100 @@ import com.cobblemontournament.common.round.TournamentRound
 import com.cobblemontournament.common.round.properties.RoundProperties
 import com.cobblemontournament.common.tournament.Tournament
 import com.cobblemontournament.common.tournament.properties.TournamentProperties
-import com.cobblemontournament.common.tournament.properties.TournamentPropertiesHelper
 import com.cobblemontournament.common.tournamentbuilder.TournamentBuilder
-import com.cobblemontournament.common.util.ChatUtil
+import com.cobblemontournament.common.util.*
 import com.mojang.brigadier.Command
 import com.mojang.brigadier.CommandDispatcher
 import com.mojang.brigadier.context.CommandContext
 import net.minecraft.commands.CommandSourceStack
 import net.minecraft.commands.Commands
-import net.minecraft.network.chat.Component
 import net.minecraft.server.level.ServerPlayer
 import org.slf4j.helpers.Util
 import java.util.UUID
 
+/**
+ * [TOURNAMENT]-"test"
+ */
 object TestChatFormating {
+
+    private val execution: ExecutionNode by lazy { ExecutionNode { displayChat(it) } }
 
     fun register(dispatcher: CommandDispatcher<CommandSourceStack>) {
         dispatcher
-            .register(Commands
-                .literal("tournament")
-                .then(Commands
+            .register(TournamentRootNode
+                .nest(Commands
                     .literal("test")
                     .then(Commands
                         .literal("general")
-                        .executes { ctx -> displayChat(ctx = ctx) })
+                        .executes(execution.action)
+                    )
                     .then(Commands
-                        .literal(NodeKeys.BUILDER)
+                        .literal(BUILDER)
                         .then(Commands
-                            .literal("all_${NodeKeys.BUILDER}")
-                            .executes { ctx -> displayChat(ctx = ctx) })
+                            .literal("all_${BUILDER}")
+                            .executes(this.execution.action)
+                        )
                         .then(Commands
-                            .literal("${NodeKeys.CREATE}_${NodeKeys.BUILDER}")
-                            .executes { ctx -> displayChat(ctx = ctx) })
+                            .literal("${CREATE}_${BUILDER}")
+                            .executes(this.execution.action)
+                        )
                         .then(Commands
-                            .literal("${NodeKeys.UPDATE}_${NodeKeys.BUILDER}")
-                            .executes { ctx -> displayChat(ctx = ctx) })
+                            .literal("${UPDATE}_${BUILDER}")
+                            .executes(this.execution.action)
+                        )
                         .then(Commands
-                            .literal("${NodeKeys.UPDATE}_${NodeKeys.BUILDER}")
-                            .executes { ctx -> displayChat(ctx = ctx) }))
+                            .literal("${UPDATE}_${BUILDER}")
+                            .executes(this.execution.action)
+                        )
+                    )
                     .then(Commands
-                        .literal(NodeKeys.PLAYER)
+                        .literal(PLAYER)
                         .then(Commands
-                            .literal("all_${NodeKeys.PLAYER}")
-                            .executes { ctx -> displayChat(ctx = ctx) })
+                            .literal("all_${PLAYER}")
+                            .executes(this.execution.action)
+                        )
                         .then(Commands
-                            .literal("${NodeKeys.REGISTER}_${NodeKeys.PLAYER}")
-                            .executes { ctx -> displayChat(ctx = ctx) })
+                            .literal("${REGISTER}_${PLAYER}")
+                            .executes(this.execution.action)
+                        )
                         .then(Commands
-                            .literal("${NodeKeys.UPDATE}_${NodeKeys.PLAYER}")
-                            .executes { ctx -> displayChat(ctx = ctx) })
+                            .literal("${UPDATE}_${PLAYER}")
+                            .executes(this.execution.action)
+                        )
                         .then(Commands
-                            .literal("${NodeKeys.UNREGISTER}_${NodeKeys.PLAYER}")
-                            .executes { ctx -> displayChat(ctx = ctx) })
+                            .literal("${UNREGISTER}_${PLAYER}")
+                            .executes(this.execution.action)
+                        )
                     .then(Commands
-                        .literal(NodeKeys.MATCH)
+                        .literal(MATCH)
                         .then(Commands
-                            .literal("${NodeKeys.MATCH}_manager")
-                            .executes { ctx -> displayChat(ctx = ctx) }))
+                            .literal("${MATCH}_manager")
+                            .executes(this.execution.action)))
                         .then(Commands
-                            .literal("all_${NodeKeys.MATCH}")
-                            .executes { ctx -> displayChat(ctx = ctx) }))
+                            .literal("all_${MATCH}")
+                            .executes(this.execution.action)
+                        )
+                    )
                     .then(Commands
-                        .literal(NodeKeys.ROUND)
+                        .literal(ROUND)
                         .then(Commands
-                            .literal("all_${NodeKeys.ROUND}")
-                            .executes { ctx -> displayChat(ctx = ctx) }))
+                            .literal("all_${ROUND}")
+                            .executes(this.execution.action)
+                        )
+                    )
                     .then(Commands
-                        .literal(NodeKeys.TOURNAMENT)
+                        .literal(TOURNAMENT)
                         .then(Commands
-                            .literal("all_${NodeKeys.TOURNAMENT}")
-                            .executes { ctx -> displayChat(ctx = ctx) }))
-//                    .then( Commands
-//                .literal( "my_active" )
-//                        .then( Commands
-//                .literal( "all_my_active" )
-//                            .executes { ctx -> displayChat(ctx = ctx) }))
-//                        .then( Commands
-//                .literal( "my_active_info" )
-//                            .executes { ctx -> displayChat(ctx = ctx) }))
-//                        .then( Commands
-//                .literal( "my_active_current_match" )
-//                            .executes { ctx -> displayChat(ctx = ctx) }))
-                ) )
-
+                            .literal("all_${TOURNAMENT}")
+                            .executes(this.execution.action)
+                        )
+                    )
+                )
+            )
     }
 
     private fun displayChat(ctx: CommandContext<CommandSourceStack>): Int {
-        val player = ctx.source.player
-        if (player == null) {
+        val player = ctx.source.player?: run {
             Util.report("Could not display chat b/c player was null")
             return 0
         }
@@ -114,14 +119,14 @@ object TestChatFormating {
             actorType = ActorType.PLAYER,
             playerID = UUID.randomUUID(),
             tournamentID = builderID,
-            )
+        )
 
         val playerTwoProps = PlayerProperties(
             name = "Player_Two",
             actorType = ActorType.PLAYER,
             playerID = UUID.randomUUID(),
             tournamentID = builderID,
-            )
+        )
 
         val builder = TournamentBuilder(builderID)
         builder.addPlayer(
@@ -129,13 +134,13 @@ object TestChatFormating {
             playerName = playerOneProps.name,
             actorType = ActorType.PLAYER,
             seed = 1,
-            )
+        )
         builder.addPlayer(
             playerID = playerTwoProps.playerID,
             playerName = playerTwoProps.name,
             actorType = ActorType.PLAYER,
             seed = 2,
-            )
+        )
 
         playerOneProps.tournamentID = tournamentID
         playerTwoProps.tournamentID = tournamentID
@@ -152,7 +157,7 @@ object TestChatFormating {
             roundID = UUID.randomUUID(),
             tournamentID = tournamentID,
             roundIndex = 0,
-            )
+        )
         roundProps.roundType = RoundType.PRIMARY
         roundProps.indexedMatchMap[0] = matchProps.matchID
 
@@ -169,290 +174,208 @@ object TestChatFormating {
         tournamentProps.players[playerTwo.uuid] = playerTwo
         val tournament = Tournament(tournamentProps)
 
-        val nodeEntries = CommandUtil.getNodeEntries(ctx)
-        for (entry in nodeEntries) {
-            when (entry.key) {
-                "general" -> general(player)
-                "all_${NodeKeys.BUILDER}" -> {
-                    builderProperties(player, builder)
-                    createTournamentBuilderCommand(player)
-                    updateBuilderCommand(player)
-                }
-                "${NodeKeys.CREATE}_${NodeKeys.BUILDER}" -> createTournamentBuilderCommand(player)
-                "${NodeKeys.UPDATE}_${NodeKeys.BUILDER}" -> updateBuilderCommand(player)
-                "all_${NodeKeys.PLAYER}" -> {
-                    playerProperties(player, playerOneProps)
-                    registerPlayerCommand(player)
-                    updatePlayerCommand(player)
-                    unregisterPlayerCommand(player)
-                }
-                "${NodeKeys.REGISTER}_${NodeKeys.PLAYER}" -> registerPlayerCommand(player)
-                "${NodeKeys.UPDATE}_${NodeKeys.PLAYER}" -> updatePlayerCommand(player)
-                "${NodeKeys.UNREGISTER}_${NodeKeys.PLAYER}" -> unregisterPlayerCommand(player)
-                "all_${NodeKeys.MATCH}" -> {
-                    matchProperties(player, matchProps)
-                    matchManager(player, playerOne, playerTwo, tournament, match)
-                }
-                "${NodeKeys.MATCH}_manager" -> matchManager(player, playerOne, playerTwo, tournament, match)
-                "all_${NodeKeys.ROUND}" -> {
-                    roundProperties(player, roundProps)
-                }
-                "all_${NodeKeys.TOURNAMENT}" -> {
-                    tournamentProperties(player, tournamentProps)
-                    generateTournamentCommand(player)
-                }
-                "all_my_active" -> {
-                    myActiveInfoCommand(player)
-                    myActiveCurrentMatchCommand(player)
-                }
-                "my_active_info" -> myActiveInfoCommand(player)
-                "my_active_current_match" ->  myActiveCurrentMatchCommand(player)
-            }
+
+        ctx.getNodeInputRange(nodeName = "general")?. let { displayGeneral(player) }
+
+        ctx.getNodeInputRange(nodeName = "all_${BUILDER}")?. let {
+            displayBuilderProperties(player, builder)
+            displayCreateTournamentBuilderCommand(player)
+            displayUpdateBuilderCommand(player)
+        }
+
+        ctx.getNodeInputRange(nodeName = "${CREATE}_${BUILDER}")?. let {
+            displayCreateTournamentBuilderCommand(player)
+        }
+
+        ctx.getNodeInputRange(nodeName = "${UPDATE}_${BUILDER}")?. let {
+            displayUpdateBuilderCommand(player)
+        }
+
+        ctx.getNodeInputRange(nodeName = "all_${PLAYER}")?. let {
+            displayPlayerProperties(player, playerOneProps)
+            displayRegisterPlayerCommand(player)
+            displayUpdatePlayerCommand(player)
+            displayUnregisterPlayerCommand(player)
+        }
+
+        ctx.getNodeInputRange(nodeName = "${REGISTER}_${PLAYER}")?. let {
+            displayRegisterPlayerCommand(player)
+        }
+
+        ctx.getNodeInputRange(nodeName = "${UPDATE}_${PLAYER}")?. let {
+            displayUpdatePlayerCommand(player)
+        }
+
+        ctx.getNodeInputRange(nodeName = "${UNREGISTER}_${PLAYER}")?. let {
+            displayUnregisterPlayerCommand(player)
+        }
+
+        ctx.getNodeInputRange(nodeName = "all_${MATCH}" )?. let {
+            displayMatchProperties(player, matchProps)
+            displayMatchManager(player, playerOne, playerTwo, tournament, match)
+        }
+
+        ctx.getNodeInputRange(nodeName = "${MATCH}_manager")?. let {
+            displayMatchManager(player, playerOne, playerTwo, tournament, match)
+        }
+
+        ctx.getNodeInputRange(nodeName = "all_${ROUND}")?. let {
+            displayRoundProperties(player, roundProps)
+        }
+
+        ctx.getNodeInputRange(nodeName = "all_${TOURNAMENT}")?. let {
+            displayTournamentProperties(player, tournamentProps)
+            displayGenerateTournamentCommand(player)
         }
 
         return Command.SINGLE_SUCCESS
     }
 
-    private fun general(player: ServerPlayer) {
-        ChatUtil.displayInPlayerChat(
-            player = player,
-            text = "[General]",
-            )
-        player.displayClientMessage(
-            CommandUtil.failedCommand(reason = "Server Player was null" ),
-            false )
-        player.displayClientMessage(
-            CommandUtil.failedCommand(reason = "Tournament Builder was null" ),
-            false
-        )
-        player.displayClientMessage(
-            CommandUtil.failedCommand(reason = "Tournament Data was null" ),
-            false
-        )
-        player.displayClientMessage(
-            CommandUtil.failedCommand(reason = "Tournament was null" ),
-            false
-        )
+    private fun displayGeneral(player: ServerPlayer) {
+        TODO("Need to update format")
+//        player.displayInChat(text = "[General]")
+//        player.displayCommandFail(reason = "Server Player was null")
+//        player.displayCommandFail(reason = "Tournament Builder was null" )
+//        player.displayCommandFail(reason = "Tournament Data was null" )
+//        player.displayCommandFail(reason = "Tournament was null")
     }
 
-    private fun builderProperties(player: ServerPlayer, builder: TournamentBuilder) {
-        ChatUtil.displayInPlayerChat(
-            player = player,
-            text = "[Tournament Builder]",
-            )
-        builder.displayPropertiesInChat(player)
+    private fun displayBuilderProperties(player: ServerPlayer, builder: TournamentBuilder) {
+        TODO("Need to update format")
+//        player.displayInChat(text = "[Tournament Builder]")
+//        builder.displayPropertiesInChat(player = player)
     }
 
-    private fun createTournamentBuilderCommand(player: ServerPlayer) {
-        ChatUtil.displayInPlayerChat(
-            player = player,
-            text = "[Create Tournament Builder Command]",
-            )
-        player.displayClientMessage(
-            CommandUtil.failedCommand(reason = "A builder named \"\${BUILDER_NAME}\" already exists"),
-            false
-        )
-        player.displayClientMessage(
-            CommandUtil.successfulCommand(text = "CREATED Tournament Builder \"\${BUILDER_NAME}\""),
-            false
-        )
+    private fun displayCreateTournamentBuilderCommand(player: ServerPlayer) {
+        TODO("Need to update format")
+//        player.displayInChat(text = "[Create Tournament Builder Command]")
+//        player.displayCommandFail(reason = "A builder named \"\${BUILDER_NAME}\" already exists")
+//        player.displayCommandSuccess(text = "CREATED Tournament Builder \"\${BUILDER_NAME}\"")
     }
 
-    private fun updateBuilderCommand(player: ServerPlayer )
-    {
-        ChatUtil.displayInPlayerChat(
-            player = player,
-            text = "[Update Builder Command]",
-            )
-        player.displayClientMessage(
-            CommandUtil.successfulCommand(text = "UPDATED Tournament Builder \"\${BUILDER_NAME}\""),
-            false
-        )
+    private fun displayUpdateBuilderCommand(player: ServerPlayer ) {
+        TODO("Need to update format")
+//        player.displayInChat(text = "[Update Builder Command]")
+//        player.displayCommandSuccess(text = "UPDATED Tournament Builder \"\${BUILDER_NAME}\"")
     }
 
-    private fun playerProperties(player: ServerPlayer, props: PlayerProperties) {
-        ChatUtil.displayInPlayerChat(
-            player = player,
-            text = "[Player Properties]",
-            )
-        props.displayInChat(player)
+    private fun displayPlayerProperties(player: ServerPlayer, props: PlayerProperties) {
+        TODO("Need to update format")
+//        player.displayInChat(text = "[Player Properties]")
+//        props.displayInChat(player = player)
     }
 
-    private fun registerPlayerCommand(player: ServerPlayer) {
-        ChatUtil.displayInPlayerChat(
-            player = player,
-            text = "[Register Player Command]",
-            )
-        player.displayClientMessage(
-            CommandUtil.failedCommand(reason = "Player already registered OR registration failed inside builder"),
-            false
-        )
-        player.displayClientMessage(
-            CommandUtil.successfulCommand(text = "REGISTERED \${PLAYER_NAME} with \"\${BUILDER_NAME}\""),
-            false
-        )
-        ChatUtil.displayInPlayerChat(
-            player = player,
-            text = "You were successfully REGISTERED with Tournament Builder \"\${BUILDER_NAME}\"!",
-            )
+    private fun displayRegisterPlayerCommand(player: ServerPlayer) {
+        TODO("Need to update format")
+//        player.displayInChat(text = "[Register Player Command]")
+//        player.displayCommandFail(
+//            reason = "Player already registered OR registration failed inside builder"
+//        )
+//        player.displayCommandSuccess(text = "REGISTERED \${PLAYER_NAME} with \"\${BUILDER_NAME}\"")
+//        player.displayInChat(
+//            text = "You were REGISTERED with Tournament Builder \"\${BUILDER_NAME}\"!",
+//            color = ChatUtil.GREEN_FORMAT,
+//        )
     }
 
-    private fun unregisterPlayerCommand(player: ServerPlayer ) {
-        ChatUtil.displayInPlayerChat(
-            player = player,
-            text = "[UnregisterPlayerCommand]",
-            )
-        player.displayClientMessage(
-            CommandUtil.successfulCommand(text = "UNREGISTERED \${PLAYER_NAME} from \"\${BUILDER_NAME}\""),
-            false
-        )
-        ChatUtil.displayInPlayerChat(
-            player = player,
-            text   = "You were successfully UNREGISTERED from Tournament Builder \"\${BUILDER_NAME}\"!",
-            color  = ChatUtil.white,
-            )
+    private fun displayUnregisterPlayerCommand(player: ServerPlayer ) {
+        TODO("Need to update format")
+//        player.displayInChat(text = "[UnregisterPlayerCommand]")
+//        player.displayCommandSuccess(text = "UNREGISTERED \${PLAYER_NAME} from \"\${BUILDER_NAME}\"")
+//        player.displayInChat(
+//            text = "You were UNREGISTERED from Tournament Builder \"\${BUILDER_NAME}\"!",
+//        )
     }
 
-    private fun updatePlayerCommand(player: ServerPlayer )
-    {
-        ChatUtil.displayInPlayerChat(
-            player = player,
-            text = "[Update Player Command]",
-            )
-        player.displayClientMessage(
-            CommandUtil.failedCommand(reason = "All properties to update were null"),
-            false
-        )
-        player.displayClientMessage(
-            CommandUtil.successfulCommand(text = "UPDATED \${PLAYER_NAME} properties in \"\${BUILDER_NAME}\""),
-            false
-        )
-        ChatUtil.displayInPlayerChat(
-            player = player,
-            text   = "Your properties have been UPDATED in Tournament Builder \"\${BUILDER_NAME}\"!",
-            color  = ChatUtil.white,
-            )
+    private fun displayUpdatePlayerCommand(player: ServerPlayer ) {
+        TODO("Need to update format")
+//        player.displayInChat(text = "[Update Player Command]")
+//        player.displayCommandFail(reason = "All properties to update were null")
+//        player.displayCommandSuccess(
+//            text = "UPDATED \${PLAYER_NAME} properties in \"\${BUILDER_NAME}\""
+//        )
+//        player.displayInChat(
+//            text = "Your properties have been UPDATED in Tournament Builder \"\${BUILDER_NAME}\"!",
+//            color = ChatUtil.WHITE_FORMAT,
+//        )
     }
 
-    private fun matchProperties(player: ServerPlayer, props: MatchProperties) {
-        ChatUtil.displayInPlayerChat(
-            player = player,
-            text = "[Match Properties]",
-            )
-        props.displayInChat(player)
+    private fun displayMatchProperties(player: ServerPlayer, props: MatchProperties) {
+        TODO("Need to update format")
+//        player.displayInChat(text = "[Match Properties]")
+//        props.displayInChat(player = player)
     }
 
-    private fun matchManager(
+    private fun displayMatchManager(
         player: ServerPlayer,
         playerOne: TournamentPlayer,
         playerTwo: TournamentPlayer,
         tournament: Tournament,
         match: TournamentMatch,
     ) {
-        ChatUtil.displayInPlayerChat(
-            player = player,
-            text = "[MatchManager]",
-            )
-        val text = ChatUtil.formatText( text = "\${PLAYER_NAME} ", color = ChatUtil.aqua)
-        text.append(ChatUtil.formatText(text = "finished in "))
-        text.append(ChatUtil.formatTextBracketed(
-            text = "\${FINAL_PLACEMENT}",
-            color = ChatUtil.green,
-            bold = true,
-            )
-        )
-        text.append(ChatUtil.formatText(text = " place!"))
-        player.displayClientMessage(text ,false)
-
-        val action: (Component) -> Unit = { component ->
-            WatchedMatches.displayMatchDetails(
-                player = player,
-                playerOneName = playerOne.name,
-                playerTwoName = playerTwo.name,
-                tournamentName = tournament.name,
-                match = match,
-                insert = component,
-                )
-        }
-
-        action(ChatUtil.formatTextBracketed(text = "Server Player was null", color = ChatUtil.yellow))
-        action(ChatUtil.formatTextBracketed(text = "Match was null", color = ChatUtil.yellow))
-        action(ChatUtil.formatTextBracketed(text = "Participant offline", color = ChatUtil.yellow))
-        action(WatchedMatches.handleChallengeInteractable( player, tournament))
+        TODO("Need to update format")
+//        player.displayInChat(text = "[MatchManager]")
+//        val text = getComponent( text = "\${PLAYER_NAME} ", color = ChatUtil.AQUA_FORMAT)
+//        text.appendWith(text = "finished in ")
+//        text.appendWithBracketed(
+//            text = "\${FINAL_PLACEMENT}",
+//            textColor = ChatUtil.GREEN_FORMAT,
+//            bold = true,
+//        )
+//        text.appendWith(text = " place!")
+//        player.displayClientMessage(text ,false)
+//
+//        val action: (Component) -> Unit = { component ->
+//            WatchedMatchManager.displayMatchDetails(
+//                player = player,
+//                playerOneName = playerOne.name,
+//                playerTwoName = playerTwo.name,
+//                tournamentName = tournament.name,
+//                match = match,
+//                insert = component,
+//            )
+//        }
+//
+//        action(
+//            getBracketedComponent(
+//                text = "Server Player was null",
+//                textColor = ChatUtil.YELLOW_FORMAT,
+//            )
+//        )
+//        action(
+//            getBracketedComponent(text = "Match was null", textColor = ChatUtil.YELLOW_FORMAT)
+//        )
+//        action(
+//            getBracketedComponent(text = "Participant offline", textColor = ChatUtil.YELLOW_FORMAT)
+//        )
+//        action(WatchedMatchManager.handleChallengeInteractable(player, tournament))
     }
 
-    private fun roundProperties(player: ServerPlayer, props: RoundProperties) {
-        ChatUtil.displayInPlayerChat(
-            player = player,
-            text = "[Round Properties]",
-            )
-        props.displayInChat(player)
+    private fun displayRoundProperties(player: ServerPlayer, props: RoundProperties) {
+        TODO("Need to update format")
+//        player.displayInChat(text = "[Round Properties]")
+//        props.displayInChat(player = player)
     }
 
-    private fun tournamentProperties(player: ServerPlayer, props: TournamentProperties) {
-        ChatUtil.displayInPlayerChat(
-            player = player,
-            text = "[Tournament Properties]",
-            )
-        props.displayInChat(player)
-
-        ChatUtil.displayInPlayerChat(
-            player = player,
-            text = "[Tournament] ",
-            )
-        TournamentPropertiesHelper.displayInChatHelper(
-            properties = props,
-            player = player,
-            )
-        ChatUtil.displayInPlayerChat(
-            player = player,
-            text = "[Tournament - Slim] ",
-            )
-        TournamentPropertiesHelper.displaySlimInChatHelper(
-            properties = props,
-            player = player,
-            )
-        ChatUtil.displayInPlayerChat(
-            player = player,
-            text = "[Tournament - Overview] ",
-            )
-        TournamentPropertiesHelper.displayOverviewInChat(
-            properties = props,
-            player = player,
-            )
+    private fun displayTournamentProperties(player: ServerPlayer, props: TournamentProperties) {
+        TODO("Need to update format")
+//        player.displayInChat(text = "[Tournament Properties]")
+//        props.displayInChat(player = player)
+//        player.displayInChat(text = "[Tournament] ")
+//
+//        TournamentPropertiesHelper.displayInChatHelper(properties = props, player = player)
+//
+//        player.displayInChat(text = "[Tournament - Slim] ")
+//        TournamentPropertiesHelper.displaySlimInChatHelper(properties = props, player = player)
+//
+//        player.displayInChat(text = "[Tournament - Overview] ")
+//        TournamentPropertiesHelper.displayOverviewInChat(properties = props, player = player)
     }
 
-    private fun generateTournamentCommand(player: ServerPlayer) {
-        ChatUtil.displayInPlayerChat(
-            player = player,
-            text = "[Generate Tournament Command]",
-            )
-        player.displayClientMessage(
-            CommandUtil.successfulCommand(text = "GENERATED Tournament \"\${TOURNAMENT_NAME}\""),
-            false
-        )
-    }
-
-    private fun myActiveInfoCommand(player: ServerPlayer) {
-        ChatUtil.displayInPlayerChat(
-            player = player,
-            text = "[MyActiveInfoCommand]",
-            )
-        ChatUtil.displayInPlayerChat(
-            player = player,
-            text = "-> just overviews & properties directly right now",
-            )
-    }
-
-    private fun myActiveCurrentMatchCommand(player: ServerPlayer) {
-        ChatUtil.displayInPlayerChat(
-            player = player,
-            text = "[MyActiveCurrentMatchCommand]",
-            )
-        ChatUtil.displayInPlayerChat(
-            player = player,
-            text = "-> just overviews & properties directly right now",
-            )
+    private fun displayGenerateTournamentCommand(player: ServerPlayer) {
+        TODO("Need to update format")
+//        player.displayInChat(text = "[Generate Tournament Command]")
+//        player.displayCommandSuccess(text = "GENERATED Tournament \"\${TOURNAMENT_NAME}\"")
     }
 
 }

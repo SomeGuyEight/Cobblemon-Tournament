@@ -17,36 +17,32 @@ package com.someguy.storage
 
 import com.cobblemon.mod.common.api.PrioritizedList
 import com.cobblemon.mod.common.api.Priority
-import com.someguy.storage.classstored.ClassStored
 import com.someguy.storage.factory.StoreFactory
-import com.someguy.storage.position.StorePosition
-import com.someguy.storage.store.Store
 import java.util.UUID
 
 // Eight's implementation below
-open class StoreManager
-{
+open class StoreManager {
+
     private val factories = PrioritizedList<StoreFactory>()
 
-    open fun registerFactory( priority: Priority, factory: StoreFactory ) {
-        factories.add( priority, factory )
-    }
+    open fun registerFactory(priority: Priority, factory: StoreFactory) =
+        factories.add(priority = priority, value = factory)
 
-    open fun unregisterFactory( factory: StoreFactory ) {
+    open fun unregisterFactory(factory: StoreFactory) {
         factory.shutdown()
-        factories.remove( factory )
+        factories.remove(value = factory)
     }
 
-    open fun unregisterAll() {
-        factories.toList().forEach(::unregisterFactory)
-    }
+    open fun unregisterAll() = factories.toList().forEach(::unregisterFactory)
 
     open fun <P : StorePosition, C : ClassStored,St : Store<P, C>> getStore(
-        storeClass: Class<St>,
-        uuid: UUID
+        storeClass: Class<out St>,
+        uuid: UUID,
     ): St? {
-        for ( factory in factories ) {
-            factory.getStore( storeClass, uuid )?.run { return this }
+        for (factory in factories) {
+            factory
+                .getStore(storeClass = storeClass, storeID = uuid)
+                ?.run { return this }
         }
         return null
     }

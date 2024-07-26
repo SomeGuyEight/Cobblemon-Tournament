@@ -15,17 +15,25 @@ package com.someguy.storage.adapter.flatfile
  * interface FileStoreAdapter<S> : CobblemonAdapter<S>
  */
 
-import com.someguy.storage.store.Store
-import com.someguy.storage.position.StorePosition
-import com.someguy.storage.classstored.ClassStored
+import com.someguy.storage.Store
+import com.someguy.storage.StorePosition
+import com.someguy.storage.ClassStored
 import com.someguy.storage.adapter.StoreAdapter
 import java.util.UUID
 
 // Eight's implementation
-interface FileStoreAdapter<Ser> : StoreAdapter<Ser>
-{
-    /** Converts the specified store into a serialized form. This is expected to run on the server thread, and as fast as possible. */
+interface FileStoreAdapter<Ser> : StoreAdapter<Ser> {
+
+    /**
+     * Converts the specified store into a serialized form.
+     * This is expected to run on the server thread, and as fast as possible.
+     */
     fun <P: StorePosition,T: ClassStored,St: Store<P, T>> serialize(store: St): Ser
-    /** Writes the serialized form of a store into the appropriate file. This should be thread safe. */
-    fun save(storeClass: Class<out Store<*,*>>, uuid: UUID, serialized: Ser)
+
+    /**
+     * Writes the serialized form of a store into the appropriate file.
+     * This should be thread safe.
+     */
+    fun save(storeClass: Class<out Store<*, *>>, uuid: UUID, serialized: Ser)
+
 }

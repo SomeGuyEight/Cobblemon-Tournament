@@ -17,28 +17,26 @@ package com.someguy.storage.adapter
  *
  */
 
-import com.someguy.storage.store.Store
-import com.someguy.storage.position.StorePosition
-import com.someguy.storage.classstored.ClassStored
+import com.someguy.storage.Store
+import com.someguy.storage.StorePosition
+import com.someguy.storage.ClassStored
 import java.util.UUID
 
 /** Provides a generic layer for adapters which are expected to allow for children */
 
 // Eight's implementation
-abstract class StoreAdapterParent<Ser> : StoreAdapter<Ser>
-{
-    val children: MutableList<StoreAdapter<*>> = mutableListOf()
+abstract class StoreAdapterParent<Ser> : StoreAdapter<Ser> {
 
-    fun with(
-        vararg children: StoreAdapter<*>
-    ) : StoreAdapter<Ser> {
+    private val children: MutableList<StoreAdapter<*>> = mutableListOf()
+
+    fun with(vararg children: StoreAdapter<*>): StoreAdapter<Ser> {
         this.children.addAll(children)
         return this
     }
 
-    override fun <P: StorePosition,C: ClassStored,St: Store<P, C>> load(
+    override fun <P : StorePosition, C : ClassStored, St : Store<P, C>> load(
         storeClass: Class<St>,
-        uuid: UUID
+        uuid: UUID,
     ): St? {
         return this.provide(storeClass, uuid)
             ?: children.firstNotNullOfOrNull { it.load(storeClass, uuid) }

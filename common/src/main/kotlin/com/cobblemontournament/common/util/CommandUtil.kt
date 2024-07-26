@@ -1,187 +1,164 @@
 package com.cobblemontournament.common.util
 
-import com.cobblemontournament.common.api.TournamentStoreManager
-import com.cobblemontournament.common.api.storage.TournamentBuilderStore
-import com.cobblemontournament.common.api.storage.TournamentStore
-import com.cobblemontournament.common.commands.nodes.NodeEntry
-import com.cobblemontournament.common.commands.nodes.NodeKeys.BUILDER_NAME
-import com.cobblemontournament.common.commands.nodes.NodeKeys.TOURNAMENT_NAME
+import com.cobblemontournament.common.api.storage.*
+import com.cobblemontournament.common.commands.CommandContext
+import com.cobblemontournament.common.commands.nodes.*
 import com.cobblemontournament.common.tournament.Tournament
 import com.cobblemontournament.common.tournamentbuilder.TournamentBuilder
-import com.mojang.brigadier.Command
-import com.mojang.brigadier.context.CommandContext
-import com.mojang.brigadier.context.ParsedCommandNode
-import com.someguy.storage.classstored.ClassStored
-import com.someguy.storage.position.StorePosition
-import com.someguy.storage.store.Store
-import net.minecraft.commands.CommandSourceStack
+import com.someguy.storage.*
+import com.someguy.storage.util.StoreID
+import net.minecraft.commands.arguments.EntityArgument
 import net.minecraft.network.chat.MutableComponent
 import net.minecraft.server.level.ServerPlayer
 import org.slf4j.helpers.Util
 import java.util.UUID
 
-object CommandUtil
-{
-    fun tryGetNodeInput(
-        nodes: List<ParsedCommandNode<*>>,
-        input: String,
-        key: String
-    ): String? {
-        for ( parsedNode in nodes ) {
-            if ( parsedNode.node.name == key ) {
-                val range = parsedNode.range
-                return input.subSequence( range.start, range.end ).toString()
-            }
+fun ServerPlayer?.displayNoArgument(nodeKey: String): Int {
+    this?.displayInChat(text = "\"$nodeKey\"  had no arguments.", color = ChatUtil.YELLOW_FORMAT)
+        ?: Util.report("\"$nodeKey\" command had no arguments.")
+    return 0
+}
+
+fun ServerPlayer?.displayCommandFail(reason: String) {
+    this?.displayInChat(text = "Command Failed: $reason.", color = ChatUtil.YELLOW_FORMAT)
+        ?: Util.report("Command Failed: $reason.")
+}
+
+fun ServerPlayer?.displayCommandSuccess(text: String) {
+    this?.displayInChat(text = "Command Success: $text.", color = ChatUtil.GREEN_FORMAT)
+        ?: Util.report("Command Success: $text.")
+}
+
+fun CommandContext.containsNodeName(nodeName: String): Boolean {
+    return this.nodes.any { it.node.name == nodeName }
+}
+
+fun CommandContext.getNodeInputRange(nodeName: String): String? {
+    return this.nodes.firstOrNull { it.node.name == nodeName }
+        ?.let { this.input.subSequence(it.range.start, it.range.end).toString() }
+}
+
+fun CommandContext.getNodeInputRangeOrDisplayFail(nodeName: String): String? {
+    return this.getNodeInputRange(nodeName)
+        ?: let { ctx ->
+            val reason = "No valid \"$nodeName\" node in command."
+            ctx.source.player.displayCommandFail(reason)
+            return null
         }
+}
+
+fun CommandContext.getPlayerEntityArgument(): ServerPlayer? {
+    if (this.containsNodeName(PLAYER_ENTITY)) {
+        return EntityArgument.getPlayer(this, PLAYER_ENTITY)
+    }
+    return null
+}
+
+fun CommandContext.getPlayerEntityArgumentOrDisplayFail(): ServerPlayer? {
+    return this.getPlayerEntityArgument()
+        ?: let { ctx ->
+            ctx.source.player.displayCommandFail(reason = "Player entity argument was invalid")
+            return null
+        }
+}
+
+fun CommandContext.getServerPlayerOrDisplayFail(): ServerPlayer? {
+    return this.source.player ?: let { _ ->
+        Util.report( "Server Player was null")
         return null
     }
+}
 
-    fun getNodeEntries( ctx: CommandContext<CommandSourceStack> ): List<NodeEntry> {
-        return getNodeEntries( ctx.nodes, ctx.input )
-    }
-
-    private fun getNodeEntries(
-        nodes: List<ParsedCommandNode<*>>,
-        input: String
-    ): List<NodeEntry> {
-        val list = mutableListOf<NodeEntry>()
-        for ( parsedNode in nodes ) {
-            val range = parsedNode.range
-            val value = input.subSequence( range.start, range.end )
-            list.add( NodeEntry( parsedNode.node.name, value.toString() ) )
-        }
-        return list
-    }
-
-    fun getNodesAndTournament(
-        ctx: CommandContext<CommandSourceStack>,
-        storeID: UUID?
-    ): Pair<List<NodeEntry>, Tournament?> {
-        val nodeEntries = getNodeEntries( ctx )
-        val tournament = tryGetInstance(
-            storeClass = TournamentStore::class.java,
-            storeID = storeID,
-            entry = nodeEntries.firstOrNull { it.key == TOURNAMENT_NAME }
-        )
-        return Pair( nodeEntries, tournament )
-    }
-
-    fun getNodesAndTournamentBuilder(
-        ctx: CommandContext<CommandSourceStack>,
-        storeID: UUID?
-    ): Pair<List<NodeEntry>, TournamentBuilder?> {
-        val nodeEntries = getNodeEntries( ctx )
-        val builder = tryGetInstance(
-            storeClass = TournamentBuilderStore::class.java,
-            storeID = storeID,
-            entry = nodeEntries.firstOrNull { it.key == BUILDER_NAME }
-        )
-        return Pair( nodeEntries, builder )
-    }
-
-
-    private fun <P : StorePosition, C : ClassStored, St : Store<P, C>> tryGetInstance(
-        storeClass: Class<out St>,
-        storeID: UUID?,
-        entry: NodeEntry?
-    ): C? {
-        return if (entry != null) {
-            tryGetInstance(
-                storeClass = storeClass,
+fun CommandContext.getTournament(storeID: StoreID? = null): Tournament? {
+    return this.getNodeInputRange(TOURNAMENT_NAME)
+        ?.let { name ->
+            CommandUtil.tryGetInstance(
+                storeClass = TournamentStore::class.java,
+                name = name,
                 storeID = storeID,
-                instanceName = entry.value
-            )?: tryGetInstance(
-                storeClass = storeClass,
-                storeID = TournamentStoreManager.ACTIVE_STORE_ID,
-                instanceName = entry.value
-            )?: tryGetInstance(
-                storeClass = storeClass,
-                storeID = TournamentStoreManager.INACTIVE_STORE_ID,
-                instanceName = entry.value
             )
-        } else null
-    }
-
-    private fun <P : StorePosition, C : ClassStored, St : Store<P, C>> tryGetInstance(
-        storeClass: Class<out St>,
-        storeID: UUID?,
-        instanceName: String
-    ): C? {
-        return if (storeID != null) {
-            TournamentStoreManager.getInstanceByName(
-                storeClass = storeClass,
-                name = instanceName,
-                storeID = storeID
-            ).first
-        } else null
-    }
-
-    fun displayNoArgument(
-        player: ServerPlayer?,
-        nodeKey: String
-    ): Int {
-        if (player == null) {
-            Util.report( "\"$nodeKey\" command had no arguments." )
-        } else {
-            val text0 = ChatUtil.formatText(
-                text = "\"$nodeKey\"  had no arguments.",
-                color = ChatUtil.yellow,
-                bold = true )
-            player.displayClientMessage( text0 ,false )
         }
-        return Command.SINGLE_SUCCESS
+}
+
+fun CommandContext.getTournamentOrDisplayFail(storeID: StoreID? = null): Tournament? {
+    return this.getTournament(storeID = storeID)
+        ?: let { ctx ->
+            val reason = "Tournament was null."
+            ctx.source.player.displayCommandFail(reason)
+            return null
+        }
+}
+
+fun CommandContext.getTournamentBuilder(storeID: StoreID? = null): TournamentBuilder? {
+    return this.getNodeInputRange(BUILDER_NAME)
+        ?.let { name ->
+            CommandUtil.tryGetInstance(
+                storeClass = TournamentBuilderStore::class.java,
+                name = name,
+                storeID = storeID,
+            )
+        }
+}
+
+fun CommandContext.getTournamentBuilderOrDisplayFail(
+    storeID: StoreID? = null,
+): TournamentBuilder? {
+    return this.getTournamentBuilder(storeID = storeID)
+        ?: let { ctx ->
+            val reason = "Tournament builder was null."
+            ctx.source.player.displayCommandFail(reason)
+            return null
+        }
+}
+
+object CommandUtil {
+
+    fun <P : StorePosition, C : ClassStored, St : Store<P, C>> tryGetInstance(
+        storeClass: Class<out St>,
+        name: String,
+        storeID: StoreID? = null,
+    ): C? {
+        val getInstance: (UUID) -> C? = { uuid ->
+            TournamentStoreManager.getInstanceByName(storeClass, name, storeID = uuid)
+        }
+        return storeID
+            ?.let { getInstance(it) }
+            ?: getInstance(TournamentStoreManager.ACTIVE_STORE_ID)
+            ?: getInstance(TournamentStoreManager.INACTIVE_STORE_ID)
     }
 
     fun createChallengeMatchInteractable(
         text: String,
         tournament: Tournament,
         opponent: ServerPlayer,
-        color: String = ChatUtil.white,
+        color: String = ChatUtil.WHITE_FORMAT,
         bracketed: Boolean = false,
-        bracketColor: String = ChatUtil.white,
+        bracketColor: String = ChatUtil.WHITE_FORMAT,
     ): MutableComponent {
-//      // this is the format for the next version of CobblemonChallenge when Handicap & level range are supported
+// for the next version of CobblemonChallenge when Handicap & level range are supported
 //        var commandText = "/challenge ${opponent.name.string} "
-//        commandText    += "minLevel ${tournament.minLevel} maxLevel ${tournament.maxLevel} "
-//        commandText    += "handicapP1 0 handicapP2 0" // _TODO implement handicap in player properties
+//        commandText += "minLevel ${tournament.minLevel} maxLevel ${tournament.maxLevel} "
+//        commandText += "handicapP1 0 handicapP2 0" // _TODO implement handicap in player properties
 
-        var commandText = "/challenge ${opponent.name.string}"
-        commandText += " level ${tournament.maxLevel}"
+        var commandText = ("/challenge ${opponent.name.string}")
+        commandText += (" level ${tournament.maxLevel}")
         commandText += if (tournament.showPreview) "" else " nopreview"
 
-        val interactable = ChatUtil.getInteractableCommand(
-            text = text,
+        val interactable = getInteractableCommand(
             command = commandText,
+            text = text,
             color = color,
-            bold = true
+            bold = true,
         )
 
         if (bracketed) {
-            val component = ChatUtil.formatText(
-                text = "[",
-                color = bracketColor
-            )
-            component.append( interactable )
-            return component.append( ChatUtil.formatText(
-                text = "]",
-                color = bracketColor
-            ) )
+            val component = getComponent(text = "[", color = bracketColor)
+            component.append(interactable)
+            component.appendWith(text = "]", color = bracketColor)
+            return component
         } else {
             return interactable
         }
     }
 
-    fun failedCommand( reason: String ): MutableComponent {
-        return ChatUtil.formatText(
-            text = "Command Failed: $reason.",
-            color = ChatUtil.yellow
-        )
-    }
-
-    fun successfulCommand( text: String ): MutableComponent {
-        return ChatUtil.formatText(
-            text = "Command Success: $text.",
-            color = ChatUtil.green
-        )
-    }
 }
