@@ -1,77 +1,61 @@
 package com.cobblemontournament.common.round.properties
 
 import com.cobblemon.mod.common.api.reactive.Observable
+import com.cobblemon.mod.common.api.reactive.SettableObservable
 import com.cobblemon.mod.common.api.reactive.SimpleObservable
-import com.cobblemontournament.common.round.properties.RoundPropertiesHelper.DEFAULT_ROUND_INDEX
-import com.cobblemontournament.common.round.properties.RoundPropertiesHelper.DEFAULT_ROUND_TYPE
+import com.cobblemontournament.common.util.*
 import com.cobblemontournament.common.round.RoundType
-import com.someguy.storage.properties.Properties
+import com.someguy.storage.Properties
+import com.someguy.storage.util.*
 import net.minecraft.nbt.CompoundTag
 import java.util.UUID
 
 class RoundProperties(
-    roundID: UUID,
-    tournamentID: UUID,
-    roundIndex: Int,
+    roundID: RoundID = UUID.randomUUID(),
+    tournamentID: TournamentID = UUID.randomUUID(),
+    roundIndex: Int = DEFAULT_ROUND_INDEX,
     roundType: RoundType = DEFAULT_ROUND_TYPE,
-    indexedMatchMap: MutableMap<Int, UUID> = mutableMapOf()
+    indexedMatchMap: IndexedMatchMap = mutableMapOf()
 ) : Properties<RoundProperties> {
 
-    override val instance = this
-    var roundID: UUID = UUID.randomUUID()
-        set(value) {
-            field = value
-            emitChange()
-        }
-    var tournamentID: UUID = UUID.randomUUID()
-        set(value) {
-            field = value
-            emitChange()
-        }
-    var roundIndex: Int = -1
-        set(value) {
-            field = value
-            emitChange()
-        }
-    var roundType: RoundType = DEFAULT_ROUND_TYPE
-        set(value) {
-            field = value
-            emitChange()
-        }
-    var indexedMatchMap: MutableMap<Int, UUID> = mutableMapOf()
-        set(value) {
-            field = value
-            emitChange()
-        }
-
+    override val instance: RoundProperties = this
     override val helper = RoundPropertiesHelper
-    private val observables = mutableListOf <Observable <*>>()
-    val anyChangeObservable = SimpleObservable <RoundProperties>()
 
-    init {
-        this.roundID = roundID
-        this.tournamentID = tournamentID
-        this.roundIndex = roundIndex
-        this.roundType = roundType
-        this.indexedMatchMap.putAll(indexedMatchMap)
+    // TODO handle with observable
+    var indexedMatchMap: IndexedMatchMap = indexedMatchMap.toMutableMap()
+
+    private val anyChangeObservable = SimpleObservable<RoundProperties>()
+    private val subscriptionsMap: SubscriptionMap = mutableMapOf()
+
+    private val roundIDObservable = registerObservable(SettableObservable(roundID))
+    private val tournamentIDObservable = registerObservable(SettableObservable(tournamentID))
+    private val roundIndexObservable = registerObservable(SettableObservable(roundIndex))
+    private val roundTypeObservable = registerObservable(SettableObservable(roundType))
+
+    var roundID: RoundID
+        get() = roundIDObservable.get()
+        set(value) { roundIDObservable.set(value) }
+    var tournamentID: TournamentID
+        get() = tournamentIDObservable.get()
+        set(value) { tournamentIDObservable.set(value) }
+    var roundIndex: Int
+        get() = roundIndexObservable.get()
+        set(value) { roundIndexObservable.set(value) }
+    var roundType: RoundType
+        get() = roundTypeObservable.get()
+        set(value) { roundTypeObservable.set(value) }
+
+    private fun <T, O : Observable<T>> registerObservable(observable: O): O {
+        return observable.registerObservable(subscriptionsMap) { emitChange() }
     }
 
-    constructor(uuid: UUID = UUID.randomUUID()) : this(
-        roundID = uuid,
-        tournamentID = UUID.randomUUID(),
-        roundIndex = DEFAULT_ROUND_INDEX,
-    )
-
-    private fun emitChange() = anyChangeObservable.emit((this))
-
-    override fun getAllObservables() = observables.asIterable()
+    private fun emitChange() = anyChangeObservable.emit(this)
 
     override fun getChangeObservable() = anyChangeObservable
 
     companion object {
         private val HELPER = RoundPropertiesHelper
-        /** Returns a new RoundProperties instance loaded from the CompoundTag */
-        fun loadFromNBT(nbt: CompoundTag) = HELPER.loadFromNBTHelper(nbt = nbt)
+        fun loadFromNbt(nbt: CompoundTag) = HELPER.loadFromNbtHelper(nbt = nbt)
     }
 
 }

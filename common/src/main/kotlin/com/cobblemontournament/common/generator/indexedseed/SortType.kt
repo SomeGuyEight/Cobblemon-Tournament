@@ -1,0 +1,15 @@
+package com.cobblemontournament.common.generator.indexedseed
+
+enum class SortType {
+    UNKNOWN,
+    VALUE_ASCENDING,
+    VALUE_DESCENDING,
+    INDEX_ASCENDING,
+    INDEX_DESCENDING,
+    KEY_ASCENDING,
+    KEY_DESCENDING,
+    FIRST_VALUE_ASCENDING,
+    FIRST_VALUE_DESCENDING,
+    SECOND_VALUE_ASCENDING,
+    SECOND_VALUE_DESCENDING,
+}

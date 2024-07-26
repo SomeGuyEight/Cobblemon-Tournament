@@ -1,111 +1,73 @@
 package com.cobblemontournament.common.commands.builder
 
-import com.cobblemontournament.common.commands.nodes.builder.ActiveBuilderPlayersNode
+import com.cobblemontournament.common.CobblemonTournament
+import com.cobblemontournament.common.api.storage.TournamentStoreManager
+import com.cobblemontournament.common.commands.CommandContext
+import com.cobblemontournament.common.commands.nodes.*
 import com.cobblemontournament.common.commands.suggestions.PlayerNameSuggestionProvider
-import com.cobblemontournament.common.util.CommandUtil
-import com.cobblemontournament.common.commands.nodes.NodeKeys.BUILDER
-import com.cobblemontournament.common.commands.nodes.NodeKeys.BUILDER_NAME
-import com.cobblemontournament.common.commands.nodes.NodeKeys.PLAYER
-import com.cobblemontournament.common.commands.nodes.NodeKeys.PLAYER_NAME
-import com.cobblemontournament.common.commands.nodes.NodeKeys.TOURNAMENT
-import com.cobblemontournament.common.commands.nodes.NodeKeys.UNREGISTER
-import com.cobblemontournament.common.api.PlayerManager
-import com.cobblemontournament.common.api.TournamentStoreManager
-import com.cobblemontournament.common.commands.ExecutableCommand
-import com.cobblemontournament.common.commands.nodes.ExecutionNode
-import com.cobblemontournament.common.player.properties.PlayerProperties
-import com.cobblemontournament.common.util.ChatUtil
+import com.cobblemontournament.common.util.*
 import com.mojang.brigadier.Command
 import com.mojang.brigadier.CommandDispatcher
 import com.mojang.brigadier.arguments.StringArgumentType
-import com.mojang.brigadier.context.CommandContext
 import net.minecraft.commands.CommandSourceStack
 import net.minecraft.commands.Commands
-import net.minecraft.network.chat.MutableComponent
-import org.slf4j.helpers.Util
 
 /**
- * [TOURNAMENT] - [BUILDER] - [BUILDER_NAME] - [PLAYER]
- *
- * [UNREGISTER] - [PLAYER_NAME] -> [unregisterPlayer]
- *
- *      literal     [TOURNAMENT]        ->
- *      literal     [BUILDER]           ->
- *      argument    [BUILDER_NAME] , StringType ->
- *      literal     [PLAYER]            ->
- *      argument    [UNREGISTER]        ->
- *      argument    [PLAYER_NAME] , StringType ->
- *      method      [unregisterPlayer]
+ * [TOURNAMENT]-[BUILDER]-[BUILDER_NAME]-[PLAYER]-[UNREGISTER]
  */
-object UnregisterPlayerCommand : ExecutableCommand {
+object UnregisterPlayerCommand {
 
-    override val executionNode get() = ExecutionNode { unregisterPlayer(ctx = it) }
+    val executionNode by lazy { ExecutionNode { unregisterPlayer(ctx = it) } }
 
     fun register(dispatcher: CommandDispatcher<CommandSourceStack>) {
-        dispatcher.register(ActiveBuilderPlayersNode
-            .nest(Commands
-                .literal(UNREGISTER)
-                .then(Commands
-                    .argument(PLAYER_NAME, StringArgumentType.string())
-                    .suggests { ctx, builder ->
-                        PlayerNameSuggestionProvider().getSuggestions(ctx = ctx, builder = builder)
-                    }
-                    .executes(this.executionNode.node)
+        dispatcher
+            .register(ActiveBuilderPlayerNode
+                .nest(Commands
+                    .literal(UNREGISTER)
+                    .then(Commands
+                        .argument(PLAYER_NAME, StringArgumentType.string())
+                        .suggests(PlayerNameSuggestionProvider())
+                        .executes(this.executionNode.action)
+                    )
                 )
             )
-        )
     }
 
-    fun unregisterPlayer(ctx: CommandContext<CommandSourceStack>): Int {
-        val (nodeEntries, tournamentBuilder) = CommandUtil
-            .getNodesAndTournamentBuilder(
-                ctx = ctx,
-                storeID = TournamentStoreManager.ACTIVE_STORE_ID,
-                )
+    fun unregisterPlayer(ctx: CommandContext): Int {
+        val player = ctx.source.player
 
-        // use player properties so removing an offline player is possible
-        val playerProps: PlayerProperties? = nodeEntries.firstOrNull {
-            it.key == PLAYER_NAME
-        }?. let {
-            tournamentBuilder?.getPlayer(name = it.value)
+        val tournamentBuilder = ctx.getTournamentBuilderOrDisplayFail(
+            storeID = TournamentStoreManager.INACTIVE_STORE_ID
+        ) ?: return 0
+
+        val properties = ctx
+            .getNodeInputRange(PLAYER_NAME)
+            ?.let { tournamentBuilder.getPlayer(it) }
+            ?: let { _ ->
+                player.displayCommandFail(reason = "No valid player found.")
+                return 0
+            }
+
+        val playerName = properties.name
+        val builderName = tournamentBuilder.name
+
+        if (!tournamentBuilder.removePlayer(properties.playerID)) {
+            player.displayCommandFail(
+                reason = "Failed inside of builder when unregistering $playerName."
+            )
+            return 0
         }
 
-        var success = 0
-        val text: MutableComponent = when {
-            tournamentBuilder == null -> {
-                CommandUtil.failedCommand(reason = "Tournament Builder was null")
-            }
-            playerProps == null -> {
-                CommandUtil.failedCommand(reason = "Player Properties were null")
-            }
-            !tournamentBuilder.removePlayer(playerID = playerProps.playerID) -> {
-                CommandUtil.failedCommand(
-                    reason = "Function 'removePlayer( PlayerID )' \"${tournamentBuilder.name}\" returned false."
-                )
-            }
-            else -> {
-                success = Command.SINGLE_SUCCESS
-                CommandUtil.successfulCommand(
-                    text = "UNREGISTERED ${playerProps.name} from \"${tournamentBuilder.name}\"",
-                    )
-            }
-        }
+        CobblemonTournament
+            .getServerPlayer(properties.playerID)
+            ?.displayInChat(
+                text = "You were successfully unregistered from " +
+                        "Tournament Builder \"$builderName\"!",
+            )
 
-        ctx.source.player?.let { player ->
-            val unregisteredPlayer = if ( playerProps != null ) {
-                PlayerManager.getServerPlayer(playerProps.playerID)
-            } else {
-                null
-            }
-            if (unregisteredPlayer != null && unregisteredPlayer != player && tournamentBuilder != null) {
-                ChatUtil.displayInPlayerChat(
-                    player = unregisteredPlayer,
-                    text = "You were successfully UNREGISTERED from Tournament Builder \"${tournamentBuilder.name}\"!",
-                    )
-            }
-            player.displayClientMessage(text ,false)
-        } ?: Util.report(text.string)
+        player.displayCommandSuccess(text = "Unregistered $playerName from \"$builderName\"")
 
-        return success
+        return Command.SINGLE_SUCCESS
     }
+
 }

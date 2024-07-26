@@ -1,67 +1,36 @@
 package com.cobblemontournament.common.commands.builder
 
-import com.cobblemontournament.common.api.TournamentStoreManager
-import com.cobblemontournament.common.commands.ExecutableCommand
-import com.cobblemontournament.common.commands.nodes.ExecutionNode
-import com.cobblemontournament.common.util.CommandUtil
-import com.cobblemontournament.common.commands.nodes.NodeKeys.ACTIVE
-import com.cobblemontournament.common.commands.nodes.NodeKeys.BUILDER
-import com.cobblemontournament.common.commands.nodes.NodeKeys.BUILDER_NAME
-import com.cobblemontournament.common.commands.nodes.NodeKeys.CHALLENGE_FORMAT
-import com.cobblemontournament.common.commands.nodes.NodeKeys.GROUP_SIZE
-import com.cobblemontournament.common.commands.nodes.NodeKeys.LEVEL
-import com.cobblemontournament.common.commands.nodes.NodeKeys.MAX_LEVEL
-import com.cobblemontournament.common.commands.nodes.NodeKeys.MAX_PARTICIPANTS
-import com.cobblemontournament.common.commands.nodes.NodeKeys.MIN_LEVEL
-import com.cobblemontournament.common.commands.nodes.NodeKeys.NAME
-import com.cobblemontournament.common.commands.nodes.NodeKeys.NEW
-import com.cobblemontournament.common.commands.nodes.NodeKeys.SHOW_PREVIEW
-import com.cobblemontournament.common.commands.nodes.NodeKeys.TEAM_SIZE
-import com.cobblemontournament.common.commands.nodes.NodeKeys.TOURNAMENT
-import com.cobblemontournament.common.commands.nodes.NodeKeys.TOURNAMENT_TYPE
-import com.cobblemontournament.common.commands.nodes.NodeKeys.UPDATE
-import com.cobblemontournament.common.commands.nodes.builder.ActiveBuilderNameNode
-import com.cobblemontournament.common.util.TournamentUtil
+import com.cobblemontournament.common.api.storage.TournamentStoreManager
+import com.cobblemontournament.common.commands.CommandContext
+import com.cobblemontournament.common.commands.nodes.*
+import com.cobblemontournament.common.util.*
 import com.mojang.brigadier.Command
 import com.mojang.brigadier.CommandDispatcher
 import com.mojang.brigadier.arguments.BoolArgumentType
 import com.mojang.brigadier.arguments.IntegerArgumentType
 import com.mojang.brigadier.arguments.StringArgumentType
-import com.mojang.brigadier.context.CommandContext
 import net.minecraft.commands.CommandSourceStack
 import net.minecraft.commands.Commands
-import net.minecraft.network.chat.MutableComponent
-import org.slf4j.helpers.Util
 
 /**
- * [TOURNAMENT] - [BUILDER] - [ACTIVE] - [BUILDER_NAME]
+ * [TOURNAMENT]-[BUILDER]-[ACTIVE]-[BUILDER_NAME]-[UPDATE]
  *
- * [UPDATE] - * arguments -> [updateBuilderProperties]
- *
- *      literal     [TOURNAMENT]    ->
- *      literal     [BUILDER]       ->
- *      literal     [ACTIVE]        ->
- *      argument    [BUILDER_NAME] , StringType ->
- *      literal     [UPDATE]        ->
- *      * arguments
- *      function    [updateBuilderProperties]
- *
- *      * - optional
+ * calls [updateBuilderProperties]
  */
-object UpdateBuilderCommand : ExecutableCommand {
+object UpdateBuilderCommand {
 
-    override val executionNode get() = ExecutionNode { updateBuilderProperties(ctx = it) }
+    val executionNode by lazy { ExecutionNode { updateBuilderProperties(ctx = it) } }
 
     fun register(dispatcher: CommandDispatcher<CommandSourceStack>) {
-        dispatcher.register(ActiveBuilderNameNode
-            .nest(Commands
-                .literal(UPDATE)
-                .then(Commands
-                    .literal(NAME)
-                    .then(Commands.argument("$NEW$BUILDER_NAME", StringArgumentType.string())
-                        .executes { ctx ->
-                            updateBuilderProperties(ctx = ctx)
-                        }
+        dispatcher
+            .register(ActiveBuilderNameNode
+                .nest(Commands
+                    .literal(UPDATE)
+                    .then(Commands
+                        .literal(NAME)
+                        .then(Commands
+                            .argument("$NEW$BUILDER_NAME", StringArgumentType.string())
+                            .executes(this.executionNode.action)
                     )
                 )
 //                .then(Commands
@@ -69,9 +38,7 @@ object UpdateBuilderCommand : ExecutableCommand {
 //                    .then(Commands
 //                        .argument("$NEW$TOURNAMENT_TYPE", StringArgumentType.string())
 //                        .suggests(TournamentTypeSuggestionProvider())
-//                        .executes { ctx ->
-//                            updateBuilderProperties(ctx = ctx)
-//                        }
+//                        .executes(this.executionNode.handler)
 //                    )
 //                )
 //                .then( Commands
@@ -88,36 +55,28 @@ object UpdateBuilderCommand : ExecutableCommand {
                     .literal(MAX_PARTICIPANTS)
                     .then(Commands
                         .argument("$NEW$MAX_PARTICIPANTS", IntegerArgumentType.integer())
-                        .executes { ctx ->
-                            updateBuilderProperties(ctx = ctx)
-                        }
+                        .executes(this.executionNode.action)
                     )
                 )
 //                .then(Commands
 //                    .literal(TEAM_SIZE)
 //                    .then(Commands
 //                        .argument("$NEW$TEAM_SIZE", IntegerArgumentType.integer())
-//                        .executes { ctx ->
-//                            updateBuilderProperties(ctx = ctx)
-//                        }
+//                        .executes(this.executionNode.handler)
 //                    )
 //                )
 //                .then(Commands
 //                    .literal(GROUP_SIZE)
 //                    .then(Commands
 //                        .argument("$NEW$GROUP_SIZE", IntegerArgumentType.integer())
-//                        .executes { ctx ->
-//                            updateBuilderProperties(ctx = ctx)
-//                        }
+//                        .executes(this.executionNode.handler)
 //                    )
 //                )
                 .then(Commands
                     .literal(LEVEL)
                     .then(Commands
                         .argument("$NEW$LEVEL", IntegerArgumentType.integer())
-                        .executes { ctx ->
-                            updateBuilderProperties(ctx = ctx)
-                        }
+                        .executes(this.executionNode.action)
                     )
                 )
 //                .then(Commands
@@ -126,9 +85,7 @@ object UpdateBuilderCommand : ExecutableCommand {
 //                        .argument("$NEW$MIN_LEVEL", IntegerArgumentType.integer())
 //                        .then(Commands
 //                            .argument("$NEW$MAX_LEVEL", IntegerArgumentType.integer())
-//                            .executes { ctx ->
-//                                updateBuilderProperties(ctx = ctx)
-//                            }
+//                            .executes(this.executionNode.handler)
 //                        )
 //                    )
 //                )
@@ -136,64 +93,63 @@ object UpdateBuilderCommand : ExecutableCommand {
                     .literal(SHOW_PREVIEW)
                     .then(Commands
                         .argument("$NEW$SHOW_PREVIEW", BoolArgumentType.bool())
-                        .executes { ctx ->
-                            updateBuilderProperties(ctx = ctx)
-                        }
+                        .executes(this.executionNode.action)
                     )
                 )
             )
         )
     }
 
-    private fun updateBuilderProperties(ctx: CommandContext<CommandSourceStack>): Int {
-        val (nodeEntries, tournamentBuilder) = CommandUtil
-            .getNodesAndTournamentBuilder(
-                ctx = ctx,
-                storeID = TournamentStoreManager.ACTIVE_STORE_ID,
-                )
+    private fun updateBuilderProperties(ctx: CommandContext): Int {
+        val player = ctx.source.player
 
-        for ( entry in nodeEntries ) {
-            when (entry.key) {
-                "$NEW$BUILDER_NAME" -> tournamentBuilder?.name = entry.value
-                "$NEW$TOURNAMENT_TYPE"  -> {
-                    TournamentUtil.getTournamentTypeOrNull(entry.value)
-                        ?.let { tournamentBuilder?.tournamentType = it }
-                }
-                "$NEW$CHALLENGE_FORMAT" -> {
-                    TournamentUtil.getChallengeFormatOrNull(entry.value)
-                        ?.let { tournamentBuilder?.challengeFormat = it }
-                }
-                "$NEW$MAX_PARTICIPANTS" -> tournamentBuilder?.maxParticipants = Integer.parseInt(entry.value)
-                "$NEW$TEAM_SIZE" -> tournamentBuilder?.teamSize = Integer.parseInt(entry.value)
-                "$NEW$GROUP_SIZE" -> tournamentBuilder?.groupSize = Integer.parseInt(entry.value)
-                "$NEW$MIN_LEVEL" -> tournamentBuilder?.minLevel = Integer.parseInt(entry.value)
-                "$NEW$MAX_LEVEL" -> tournamentBuilder?.maxLevel  = Integer.parseInt(entry.value)
-                // "$NEW$LEVEL" is temporary until level range is released for CobblemonChallenge
-                //  ?? maybe keep it after ??
-                "$NEW$LEVEL" -> {
-                    Integer.parseInt(entry.value).let { level ->
-                        tournamentBuilder?.minLevel = level
-                        tournamentBuilder?.maxLevel = level
-                    }
-                }
-                "$NEW$SHOW_PREVIEW" -> {
-                    entry.value.toBooleanStrictOrNull()
-                        ?.let { tournamentBuilder?.showPreview = it }
-                }
+        val tournamentBuilder = ctx
+            .getTournamentBuilder(TournamentStoreManager.INACTIVE_STORE_ID)
+            ?: let { _ ->
+                player.displayCommandFail(reason = "Tournament Builder was null")
+                return 0
             }
-        }
 
-        var success = 0
-        val text: MutableComponent = if (tournamentBuilder == null) {
-            CommandUtil.failedCommand(reason = "Tournament Builder was null")
-        } else {
-            success = Command.SINGLE_SUCCESS
-            CommandUtil.successfulCommand(text = "UPDATED Tournament Builder \"${tournamentBuilder.name}\"")
-        }
+        ctx.getNodeInputRange(nodeName = "$NEW$BUILDER_NAME")?.let { tournamentBuilder.name = it }
 
-        ctx.source.player?.displayClientMessage(text ,false)
-            ?: Util.report(text.string)
+        ctx.getNodeInputRange(nodeName = "$NEW$TOURNAMENT_TYPE")
+            ?.let { TournamentUtil.getTournamentTypeOrNull(it) }
+            ?.let { tournamentBuilder.tournamentType = it }
 
-        return success
+        ctx.getNodeInputRange(nodeName = "$NEW$CHALLENGE_FORMAT")
+            ?.let { TournamentUtil.getChallengeFormatOrNull(it) }
+            ?.let { tournamentBuilder.challengeFormat = it }
+
+        ctx.getNodeInputRange(nodeName = "$NEW$MAX_PARTICIPANTS")
+            ?.let { tournamentBuilder.maxParticipants = Integer.parseInt(it) }
+
+        ctx.getNodeInputRange(nodeName = "$NEW$TEAM_SIZE")
+            ?.let { tournamentBuilder.teamSize = Integer.parseInt(it) }
+
+        ctx.getNodeInputRange(nodeName = "$NEW$GROUP_SIZE")
+            ?.let { tournamentBuilder.groupSize = Integer.parseInt(it) }
+
+        ctx.getNodeInputRange(nodeName = "$NEW$MIN_LEVEL")
+            ?.let { tournamentBuilder.minLevel = Integer.parseInt(it) }
+
+        ctx.getNodeInputRange(nodeName = "$NEW$MAX_LEVEL")
+            ?.let { tournamentBuilder.maxLevel = Integer.parseInt(it) }
+
+        ctx.getNodeInputRange(nodeName = "$NEW$LEVEL")
+            ?.let { Integer.parseInt(it) }
+            ?.let { level ->
+                tournamentBuilder.minLevel = level
+                tournamentBuilder.maxLevel = level
+            }
+
+        ctx.getNodeInputRange(nodeName = "$NEW$SHOW_PREVIEW")
+            ?.toBooleanStrictOrNull()
+            ?.let { tournamentBuilder.showPreview = it }
+
+        player.displayCommandSuccess(
+            text = "UPDATED Tournament Builder \"${tournamentBuilder.name}\"",
+        )
+
+        return Command.SINGLE_SUCCESS
     }
 }

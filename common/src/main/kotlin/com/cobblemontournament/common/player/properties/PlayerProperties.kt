@@ -2,97 +2,87 @@ package com.cobblemontournament.common.player.properties
 
 import com.cobblemon.mod.common.api.battles.model.actor.ActorType
 import com.cobblemon.mod.common.api.reactive.Observable
+import com.cobblemon.mod.common.api.reactive.SettableObservable
 import com.cobblemon.mod.common.api.reactive.SimpleObservable
-import com.someguy.storage.properties.Properties
+import com.cobblemontournament.common.util.*
+import com.someguy.storage.Properties
+import com.someguy.storage.util.*
 import net.minecraft.nbt.CompoundTag
+import net.minecraft.server.level.ServerPlayer
 import java.util.UUID
 
 class PlayerProperties(
-    name: String,
-    actorType: ActorType,
-    playerID: UUID,
-    tournamentID: UUID,
-    seed: Int = PlayerPropertiesHelper.DEFAULT_SEED,
-    originalSeed: Int = PlayerPropertiesHelper.DEFAULT_SEED,
-    pokemonTeamID: UUID? = PlayerPropertiesHelper.DEFAULT_POKEMON_TEAM_ID,
-    currentMatchID: UUID? = PlayerPropertiesHelper.DEFAULT_CURRENT_MATCH_ID,
-    finalPlacement: Int = PlayerPropertiesHelper.DEFAULT_FINAL_PLACEMENT,
-    pokemonFinal: Boolean = PlayerPropertiesHelper.DEFAULT_POKEMON_FINAL,
-    lockPokemonOnSet: Boolean = PlayerPropertiesHelper.DEFAULT_LOCK_POKEMON_ON_SET,
-) : Properties<PlayerProperties>,
-    Comparable<PlayerProperties> {
+    name: String = DEFAULT_PLAYER_NAME,
+    actorType: ActorType = DEFAULT_ACTOR_TYPE,
+    playerID: PlayerID = UUID.randomUUID(),
+    tournamentID: TournamentID = UUID.randomUUID(),
+    seed: Int = DEFAULT_SEED,
+    originalSeed: Int = DEFAULT_SEED,
+    pokemonTeamID: UUID? = DEFAULT_POKEMON_TEAM_ID,
+    currentMatchID: MatchID? = DEFAULT_CURRENT_MATCH_ID,
+    finalPlacement: Int = DEFAULT_FINAL_PLACEMENT,
+    pokemonFinal: Boolean = DEFAULT_POKEMON_FINAL,
+    lockPokemonOnSet: Boolean = DEFAULT_LOCK_POKEMON_ON_SET,
+) : Properties<PlayerProperties>, Comparable<PlayerProperties> {
 
-    override val instance = this
-    var name: String = name
-        set(value) {
-            field = value
-            emitChange()
-        }
-    var actorType: ActorType = actorType
-        set(value) {
-            field = value
-            emitChange()
-        }
-    var playerID: UUID = playerID
-        set(value) {
-            field = value
-            emitChange()
-        }
-    var tournamentID: UUID = tournamentID
-        set(value) {
-            field = value
-            emitChange()
-        }
-    var seed: Int = seed
-        set(value) {
-            field = value
-            emitChange()
-        }
-    var originalSeed: Int = originalSeed
-        set(value) {
-            field = value
-            emitChange()
-        }
-    var pokemonTeamID: UUID? = pokemonTeamID
-        set(value) {
-            field = value
-            emitChange()
-        }
-    var currentMatchID: UUID? = currentMatchID
-        set(value) {
-            field = value
-            emitChange()
-        }
-    var finalPlacement: Int = finalPlacement
-         set(value) {
-             field = value
-             emitChange()
-         }
-    var pokemonFinal: Boolean = pokemonFinal
-        set(value) {
-            field = value
-            emitChange()
-        }
-    var lockPokemonOnSet: Boolean = lockPokemonOnSet
-        set(value) {
-            field = value
-            emitChange()
-        }
-
+    override val instance: PlayerProperties = this
     override val helper = PlayerPropertiesHelper
-    private val observables = mutableListOf<Observable<*>>()
-    val anyChangeObservable = SimpleObservable<PlayerProperties>()
 
-    constructor(uuid: UUID = UUID.randomUUID()) : this(
-        name = PlayerPropertiesHelper.DEFAULT_PLAYER_NAME,
-        actorType = PlayerPropertiesHelper.DEFAULT_ACTOR_TYPE,
-        playerID = uuid,
-        tournamentID = UUID.randomUUID(),
-    )
+    private val anyChangeObservable = SimpleObservable<PlayerProperties>()
+    private val subscriptionsMap: SubscriptionMap = mutableMapOf()
+
+    private val nameObservable = registerObservable(SettableObservable(name))
+    private val playerIDObservable = registerObservable(SettableObservable(playerID))
+    private val actorTypeObservable = registerObservable(SettableObservable(actorType))
+    private val tournamentIDObservable = registerObservable(SettableObservable(tournamentID))
+    private val seedObservable = registerObservable(SettableObservable(seed))
+    private val originalSeedObservable = registerObservable(SettableObservable(originalSeed))
+    private val pokemonTeamIDObservable = registerObservable(SettableObservable(pokemonTeamID))
+    private val currentMatchIDObservable = registerObservable(SettableObservable(currentMatchID))
+    private val finalPlacementObservable = registerObservable(SettableObservable(finalPlacement))
+    private val pokemonFinalObservable = registerObservable(SettableObservable(pokemonFinal))
+    private val lockPokemonOnSetObservable =
+        registerObservable(SettableObservable(lockPokemonOnSet))
+
+    var name: String
+        get() = nameObservable.get()
+        set(value) { nameObservable.set(value) }
+    var playerID: PlayerID
+        get() = playerIDObservable.get()
+        set(value) { playerIDObservable.set(value) }
+    var actorType: ActorType
+        get() = actorTypeObservable.get()
+        set(value) { actorTypeObservable.set(value) }
+    var tournamentID: TournamentID
+        get() = tournamentIDObservable.get()
+        set(value) { tournamentIDObservable.set(value) }
+    var seed: Int
+        get() = seedObservable.get()
+        set(value) { seedObservable.set(value) }
+    var originalSeed: Int
+        get() = originalSeedObservable.get()
+        set(value) { originalSeedObservable.set(value) }
+    var pokemonTeamID: UUID?
+        get() = pokemonTeamIDObservable.get()
+        set(value) { pokemonTeamIDObservable.set(value) }
+    var currentMatchID: MatchID?
+        get() = currentMatchIDObservable.get()
+        set(value) { currentMatchIDObservable.set(value) }
+    var finalPlacement: Int
+        get() = finalPlacementObservable.get()
+        set(value) { finalPlacementObservable.set(value) }
+    var pokemonFinal: Boolean
+        get() = pokemonFinalObservable.get()
+        set(value) { pokemonFinalObservable.set(value) }
+    var lockPokemonOnSet: Boolean
+        get() = lockPokemonOnSetObservable.get()
+        set(value) { lockPokemonOnSetObservable.set(value) }
+
+    private fun <T, O : Observable<T>> registerObservable(observable: O): O {
+        return observable.registerObservable(subscriptionsMap) { emitChange() }
+    }
 
     private fun emitChange() = anyChangeObservable.emit((this))
-
-    override fun getAllObservables() = observables.asIterable()
 
     override fun getChangeObservable() = anyChangeObservable
 
@@ -114,9 +104,29 @@ class PlayerProperties(
         )
     }
 
+    fun displayInChat(
+        properties: PlayerProperties,
+        player: ServerPlayer,
+        padStart: Int = 0,
+        displaySeed: Boolean = false,
+        displayPokemon: Boolean = false,
+        displayCurrentMatch: Boolean = false,
+        displayPlacement: Boolean = false,
+    ) {
+        HELPER.displayInChatHelper(
+            properties = properties,
+            player = player,
+            padStart = padStart,
+            displaySeed = displaySeed,
+            displayPokemon = displayPokemon,
+            displayCurrentMatch = displayCurrentMatch,
+            displayPlacement = displayPlacement,
+        )
+    }
+
     companion object {
         private val HELPER = PlayerPropertiesHelper
-        fun loadFromNbt(nbt: CompoundTag) = HELPER.loadFromNBTHelper(nbt = nbt)
+        fun loadFromNbt(nbt: CompoundTag) = HELPER.loadFromNbtHelper(nbt = nbt)
     }
 
 }

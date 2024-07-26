@@ -1,6 +1,5 @@
 package com.cobblemontournament.common.commands.nodes
 
-import com.mojang.brigadier.context.CommandContext
-import net.minecraft.commands.CommandSourceStack
+import com.cobblemontournament.common.commands.CommandContext
 
-data class ExecutionNode(val node: (CommandContext<CommandSourceStack>) -> Int)
+data class ExecutionNode(val action: (CommandContext) -> Int)

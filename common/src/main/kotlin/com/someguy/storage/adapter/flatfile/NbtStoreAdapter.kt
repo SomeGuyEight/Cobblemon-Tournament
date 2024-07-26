@@ -19,9 +19,9 @@ package com.someguy.storage.adapter.flatfile
  * ) : OneToOneFileStoreAdapter<NbtCompound>(rootFolder, useNestedFolders, folderPerClass, "dat")
  */
 
-import com.someguy.storage.store.Store
-import com.someguy.storage.position.StorePosition
-import com.someguy.storage.classstored.ClassStored
+import com.someguy.storage.Store
+import com.someguy.storage.StorePosition
+import com.someguy.storage.ClassStored
 import java.io.File
 import java.util.UUID
 import net.minecraft.nbt.CompoundTag
@@ -32,16 +32,28 @@ import net.minecraft.nbt.NbtIo
  * help of Minecraft's [NbtIo]. This is arguably the best persistence method for [Store]s and is absolutely
  * the most efficient [FileStoreAdapter].
  */
+
 // Eight's implementation
 open class NbtStoreAdapter(
     rootFolder: String,
     useNestedFolders: Boolean,
     folderPerClass: Boolean,
-) : OneToOneFileStoreAdapter<CompoundTag>(rootFolder, useNestedFolders, folderPerClass, "dat") {
+) : OneToOneFileStoreAdapter<CompoundTag>(
+    rootFolder = rootFolder,
+    useNestedFolders = useNestedFolders,
+    folderPerClass = folderPerClass,
+    fileExtension = "dat",
+) {
 
-    override fun <P: StorePosition,T: ClassStored,St: Store<P, T>> serialize(store: St) = store.saveToNBT(CompoundTag())
+    override fun <P: StorePosition,T: ClassStored,St: Store<P, T>> serialize(
+        store: St,
+    ): CompoundTag {
+        return store.saveToNbt(nbt = CompoundTag())
+    }
 
-    override fun save(file: File,serialized: CompoundTag) = NbtIo.writeCompressed(serialized, file)
+    override fun save(file: File,serialized: CompoundTag) {
+        NbtIo.writeCompressed(serialized, file)
+    }
 
     override fun <P : StorePosition, T : ClassStored, St : Store<P, T>> load(
         file: File,
@@ -53,6 +65,7 @@ open class NbtStoreAdapter(
         } catch (exception: NoSuchMethodException) {
             storeClass.getConstructor(UUID::class.java).newInstance(uuid)
         }
+
         return try {
             val nbt = NbtIo.readCompressed(file)
             store.loadFromNbt(nbt)

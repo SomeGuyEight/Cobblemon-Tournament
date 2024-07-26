@@ -1,25 +1,24 @@
 package com.cobblemontournament.forge
 
 import com.cobblemontournament.common.CobblemonTournament
+import com.cobblemontournament.common.MOD_ID
 import com.cobblemontournament.forge.config.TournamentConfigForge
-import com.someguy.api.PlatformModImplementation
+import com.someguy.mod.PlatformModImplementation
 import net.minecraftforge.common.ForgeConfigSpec
 import net.minecraftforge.fml.ModLoadingContext
 import net.minecraftforge.fml.common.Mod
 import net.minecraftforge.fml.config.ModConfig
 
-@Suppress("unused")
-@Mod(CobblemonTournament.COMPANION.MOD_ID)
-object CobblemonTournamentForge : PlatformModImplementation( common = CobblemonTournament )
-{
-    private val commonSpec: ForgeConfigSpec
+@Mod(MOD_ID)
+@Suppress(("unused"))
+object CobblemonTournamentForge : PlatformModImplementation(common = CobblemonTournament) {
 
-    init
-    {
-        val ( _ , commonSpec ) = ForgeConfigSpec.Builder().configure {
-            builder -> TournamentConfigForge.initialize( builder )
-        }
-        this.commonSpec = commonSpec
+    private val commonSpec: ForgeConfigSpec =
+        ForgeConfigSpec.Builder().configure { builder ->
+            TournamentConfigForge.initialize(builder = builder)
+        }.value
+
+    init {
         initialize()
     }
 
@@ -27,9 +26,10 @@ object CobblemonTournamentForge : PlatformModImplementation( common = CobblemonT
     override fun initialize() = initializeCommon()
 
     override fun initializeConfig() {
-        ModLoadingContext.get().registerConfig( ModConfig.Type.COMMON, commonSpec )
+        ModLoadingContext.get().registerConfig(ModConfig.Type.COMMON, commonSpec)
     }
 
     // no platform specific events to register at this time
     override fun registerEvents() { }
+
 }

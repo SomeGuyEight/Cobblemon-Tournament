@@ -6,156 +6,202 @@ import net.minecraft.network.chat.Component
 import net.minecraft.network.chat.MutableComponent
 import net.minecraft.network.chat.Style
 import net.minecraft.server.level.ServerPlayer
-import java.util.UUID
 
-@Suppress( names = ["unused", "MemberVisibilityCanBePrivate"] )
-object ChatUtil
-{
-    val aqua = ChatFormatting.AQUA .toString()
-    val black = ChatFormatting.BLACK.toString()
-    val blue = ChatFormatting.BLUE.toString()
-    val gold = ChatFormatting.GOLD.toString()
-    val gray = ChatFormatting.GRAY.toString()
-    val green = ChatFormatting.GREEN.toString()
-    val purple = ChatFormatting.LIGHT_PURPLE.toString()
-    val red = ChatFormatting.RED.toString()
-    val yellow = ChatFormatting.YELLOW.toString()
-    val white = ChatFormatting.WHITE.toString()
-
-    val bold = ChatFormatting.BOLD.toString()
-    val italic = ChatFormatting.ITALIC.toString()
-    val obfuscated = ChatFormatting.OBFUSCATED.toString()
-    val strikethrough = ChatFormatting.STRIKETHROUGH.toString()
-    val underlined = ChatFormatting.UNDERLINE.toString()
-    val reset = ChatFormatting.RESET.toString()
-
-    fun shortUUID(uuid: UUID?) = uuid?.toString()?.substring(0, 8) ?: "null-uuid"
-
-    fun formatText(
-        text: String,
-        color: String  = white,
-        bold: Boolean = false,
-        italic: Boolean = false,
-        underlined: Boolean = false,
-        strikethrough: Boolean = false,
-        obfuscated: Boolean = false,
-    ): MutableComponent {
-        val component = Component.literal((color + String.format( text )))
-        return setStyle(component, bold, italic, underlined, strikethrough, obfuscated)
+fun getComponent(
+    text: String = "",
+    color: String = ChatUtil.WHITE_FORMAT,
+    padding: Pair<Int, Int> = 0 to 0,
+    bold: Boolean = false,
+    italic: Boolean = false
+): MutableComponent {
+    val component = if (padding.first > 0) {
+        Component.literal(color + text.padStart(padding.first))
+    } else {
+        Component.literal(color + text)
     }
+    return component.setStyle(bold, italic)
+}
 
-    fun formatTextBracketed(
-        text: String,
-        color: String = white, // text specifically
-        bracketColor: String = white,
-        spacingBefore: String = "",
-        spacingAfter: String    = "",
-        bold: Boolean = false,
-        italic: Boolean = false,
-        underlined: Boolean = false,
-        strikethrough: Boolean = false,
-        obfuscated: Boolean = false,
-    ): MutableComponent {
-        val component = formatText(
-            text = "${spacingBefore}[",
-            color = bracketColor,
-            bold = bold,
+fun getBracketedComponent(
+    text: String,
+    textColor: String = ChatUtil.WHITE_FORMAT,
+    bracketColor: String = ChatUtil.WHITE_FORMAT,
+    padding: Pair<Int, Int> = 0 to 0,
+    bold: Boolean = false,
+    italic: Boolean = false,
+    underlined: Boolean = false,
+): MutableComponent {
+    return getBracketedComponent(
+        component = getComponent(text = text, color = textColor, bold = bold),
+        bracketColor = bracketColor,
+        padding = padding,
+        bold = bold,
+        italic = italic,
+        underlined = underlined,
+    )
+}
+
+fun getBracketedComponent(
+    component: Component,
+    bracketColor: String = ChatUtil.WHITE_FORMAT,
+    padding: Pair<Int, Int> = 0 to 0,
+    bold: Boolean = false,
+    italic: Boolean = false,
+    underlined: Boolean = false,
+): MutableComponent {
+    val outerComponent = getComponent(
+        text = "[".padStart(padding.first),
+        color = bracketColor,
+        bold = bold,
+    )
+    outerComponent.append(component)
+    outerComponent.appendWith(
+        text = "]".padEnd(padding.second),
+        color = bracketColor,
+        bold = bold,
+    )
+    return outerComponent.setStyle(bold, italic, underlined)
+}
+
+fun getQuotedComponent(
+    text: String,
+    textColor: String = ChatUtil.WHITE_FORMAT,
+    quotationColor: String = ChatUtil.WHITE_FORMAT,
+    padding: Pair<Int, Int> = 0 to 0,
+    bold: Boolean = false,
+    italic: Boolean = false,
+    underlined: Boolean = false,
+): MutableComponent {
+    val component = getComponent(
+        text = "\"".padStart(padding.first),
+        color = quotationColor,
+        bold = bold,
+    )
+    component.appendWith(text = text, color = textColor, bold = bold)
+    component.appendWith(
+        text = "\"".padEnd(padding.second),
+        color = quotationColor,
+        bold = bold,
+    )
+    return component.setStyle(bold, italic, underlined)
+}
+
+fun getInteractableCommand(
+    command: String,
+    text: String = "(Interact)",
+    color: String = ChatUtil.WHITE_FORMAT,
+    bracketed: Boolean = false,
+    bracketColor: String = ChatUtil.WHITE_FORMAT,
+    bold: Boolean = false,
+): MutableComponent {
+    // TODO test & confirm 'String.format(value)' not needed
+    val component = Component
+        //.literal((color + (String.format(text))))
+        .literal(color + text)
+        .setStyle(Style.EMPTY.withBold(bold)
+            //.withClickEvent(ClickEvent(ClickEvent.Action.RUN_COMMAND, (String.format(command)))
+            .withClickEvent(ClickEvent(ClickEvent.Action.RUN_COMMAND, command))
         )
-        component.append( formatText(
-            text = text,
-            color = color,
-            bold = bold,
-        ))
-        component.append( formatText(
-            text = "]${spacingAfter}",
-            color = bracketColor,
-            bold = bold,
-        ))
-        return setStyle(component, bold, italic, underlined, strikethrough, obfuscated)
-    }
 
-    fun formatTextQuoted(
-        text            : String,
-        color           : String    = white, // text specifically
-        quotationColor  : String    = white,
-        spacingBefore   : String    = "",
-        spacingAfter    : String    = "",
-        bold            : Boolean   = false,
-        italic          : Boolean   = false,
-        underlined      : Boolean   = false,
-        strikethrough   : Boolean   = false,
-        obfuscated      : Boolean   = false
-    ): MutableComponent {
-        val component = formatText(
-            text = "${spacingBefore}\"",
-            color = quotationColor,
+    return if (bracketed) {
+        getBracketedComponent(component, bracketColor = bracketColor, bold = bold)
+    } else {
+        component
+    }
+}
+
+fun MutableComponent.setStyle(
+    bold: Boolean = false,
+    italic: Boolean = false,
+    underlined: Boolean = false,
+): MutableComponent {
+    val style = Style.EMPTY
+    bold ifTrue { style.withBold(true) }
+    italic ifTrue { style.withItalic(true) }
+    underlined ifTrue { style.withUnderlined(true) }
+    return this.setStyle(style)
+}
+
+fun ServerPlayer.displayInChat(
+    text: String,
+    color: String = ChatUtil.WHITE_FORMAT,
+    bold: Boolean = false,
+) {
+    this.displayClientMessage(getComponent(text, color, bold = bold), false)
+}
+
+fun MutableComponent.appendWith(
+    text: String,
+    color: String = ChatUtil.WHITE_FORMAT,
+    bold: Boolean = false,
+) {
+    this.append(getComponent(text = text, color = color, bold = bold))
+}
+
+fun MutableComponent.appendWithBracketed(
+    text: String,
+    textColor: String = ChatUtil.WHITE_FORMAT,
+    bracketColor: String = ChatUtil.WHITE_FORMAT,
+    padding: Pair<Int, Int> = 0 to 0,
+    bold: Boolean = false,
+    italic: Boolean = false,
+    underlined: Boolean = false,
+) {
+    this.append(
+        getBracketedComponent(
+            text = text,
+            textColor = textColor,
+            bracketColor = bracketColor,
+            padding = padding,
             bold = bold,
+            italic = italic,
+            underlined = underlined,
         )
-        component.append(formatText(
+    )
+}
+
+fun MutableComponent.appendWithQuoted(
+    text: String,
+    textColor: String = ChatUtil.WHITE_FORMAT,
+    quotationColor: String = ChatUtil.WHITE_FORMAT,
+    padding: Pair<Int, Int> = 0 to 0,
+    bold: Boolean = false,
+    italic: Boolean = false,
+    underlined: Boolean = false,
+) {
+    this.append(
+        getQuotedComponent(
             text = text,
-            color = color,
+            textColor = textColor,
+            quotationColor = quotationColor,
+            padding = padding,
             bold = bold,
-        ))
-        component.append(formatText(
-            text = "\"$spacingAfter",
-            color = quotationColor,
-            bold = bold,
-        ))
-        return setStyle(component, bold, italic, underlined, strikethrough, obfuscated)
-    }
+            italic = italic,
+            underlined = underlined,
+        )
+    )
+}
 
-    fun setStyle(
-        component: MutableComponent,
-        bold: Boolean = false,
-        italic: Boolean = false,
-        underlined: Boolean = false,
-        strikethrough: Boolean = false,
-        obfuscated: Boolean = false,
-    ): MutableComponent {
-        val style = Style.EMPTY
-        if (bold) {
-            style.withBold((true))
-        }
-        if (italic) {
-            style.withItalic((true))
-        }
-        if (underlined) {
-            style.withUnderlined((true))
-        }
-        if (strikethrough) {
-            style.withStrikethrough((true))
-        }
-        if (obfuscated) {
-            style.withObfuscated((true))
-        }
-        return component.setStyle(style)
-    }
+/*  TODO maybe
+    fun MutableComponent.appendWithParentheses() {
 
-    fun getInteractableCommand(
-        text: String,
-        command: String,
-        color: String,
-        bold: Boolean = false,
-    ): MutableComponent {
-        return Component
-            .literal((color + String.format(text)))
-            .setStyle(Style.EMPTY.withBold(bold)
-                .withClickEvent(
-                    ClickEvent(
-                        ClickEvent.Action.RUN_COMMAND,
-                        String.format(command)
-                    )
-                )
-            )
     }
+ */
 
-    fun displayInPlayerChat(
-        player: ServerPlayer,
-        text: String,
-        color: String = white,
-        bold: Boolean = false,
-    ) {
-        player.displayClientMessage(formatText(text, color, bold), (false))
-    }
+fun MutableComponent.appendWithCommand(
+    text: String,
+    command: String,
+    color: String = ChatUtil.WHITE_FORMAT,
+    bold: Boolean = false,
+) {
+    this.append(getInteractableCommand(command, text, color, bold))
+}
 
+object ChatUtil {
+    val AQUA_FORMAT by lazy { ChatFormatting.AQUA.toString() }
+    val GREEN_FORMAT by lazy { ChatFormatting.GREEN.toString() }
+    val PURPLE_FORMAT by lazy { ChatFormatting.LIGHT_PURPLE.toString() }
+    val RED_FORMAT by lazy { ChatFormatting.RED.toString() }
+    val YELLOW_FORMAT by lazy { ChatFormatting.YELLOW.toString() }
+    val WHITE_FORMAT by lazy { ChatFormatting.WHITE.toString() }
 }

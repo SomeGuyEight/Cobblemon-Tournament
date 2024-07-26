@@ -14,18 +14,19 @@ package com.someguy.storage.factory
  * interface PokemonStoreFactory
  */
 
-import com.someguy.storage.store.Store
-import com.someguy.storage.position.StorePosition
-import com.someguy.storage.classstored.ClassStored
+import com.someguy.storage.Store
+import com.someguy.storage.StorePosition
+import com.someguy.storage.ClassStored
 import java.util.UUID
 
 // Eight's implementation
-interface StoreFactory
-{
-    fun <P: StorePosition,C: ClassStored,St: Store<P,C>> getStore(
-        storeClass: Class<St>,
+interface StoreFactory {
+
+    fun <P: StorePosition, C : ClassStored, St : Store<P, C>> getStore(
+        storeClass: Class<out St>,
         storeID: UUID
     ): St?
 
     fun shutdown()
+
 }

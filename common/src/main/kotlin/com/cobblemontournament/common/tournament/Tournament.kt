@@ -1,89 +1,103 @@
 package com.cobblemontournament.common.tournament
 
-import com.cobblemon.mod.common.api.reactive.Observable
 import com.cobblemon.mod.common.api.reactive.SettableObservable
 import com.cobblemon.mod.common.api.reactive.SimpleObservable
-import com.cobblemontournament.common.api.TournamentStoreManager
+import com.cobblemontournament.common.api.storage.TournamentStoreManager
+import com.cobblemontournament.common.api.cobblemonchallenge.ChallengeFormat
+import com.cobblemontournament.common.api.storage.TournamentStore
+import com.cobblemontournament.common.match.MatchStatus
 import com.cobblemontournament.common.match.TournamentMatch
 import com.cobblemontournament.common.player.TournamentPlayer
 import com.cobblemontournament.common.tournament.properties.TournamentProperties
-import com.someguy.storage.classstored.ClassStored
-import com.cobblemontournament.common.api.storage.TournamentDataKeys.TOURNAMENT_PROPERTIES_KEY
-import com.cobblemontournament.common.api.storage.TournamentStore
-import com.cobblemontournament.common.match.MatchStatus
+import com.cobblemontournament.common.util.*
 import com.google.gson.JsonObject
-import com.someguy.storage.coordinates.StoreCoordinates
+import com.someguy.storage.ClassStored
+import com.someguy.storage.StoreCoordinates
+import com.someguy.storage.util.*
 import net.minecraft.nbt.CompoundTag
 import net.minecraft.server.level.ServerPlayer
 import java.util.UUID
 
 /** &#9888; (UUID) constructor is needed for serialization method */
-open class Tournament(protected val properties: TournamentProperties) : ClassStored {
+open class Tournament(
+    protected val properties: TournamentProperties
+) : ClassStored {
 
-    override val name get() = properties.name
-    override var uuid get() = properties.tournamentID
-        protected set(value) { properties.tournamentID = value }
-    private var tournamentStatus get() = properties.tournamentStatus
-        set(value) { properties.tournamentStatus = value }
-    private val tournamentType get() = properties.tournamentType
-    val challengeFormat get() = properties.challengeFormat
-    val maxParticipants get() = properties.maxParticipants
-    val teamSize get() = properties.teamSize
-    val groupSize get() = properties.groupSize
-    val minLevel get() = properties.minLevel
-    val maxLevel get() = properties.maxLevel
-    val showPreview get() = properties.showPreview
-    val totalRounds get() = properties.rounds.size
-    val totalMatches get() = properties.matches.size
-    val totalPlayers get() = properties.players.size
-    // TODO handle collection inside properties
-    private val rounds get() = properties.rounds
-    // TODO handle collection inside properties
-    private val matches get() = properties.matches
-    // TODO handle collection inside properties
-    protected val players get() = properties.players
+    override var storeCoordinates: SettableObservable<StoreCoordinates<*, *>?> =
+        SettableObservable(value = null)
 
-    override var storeCoordinates: SettableObservable<StoreCoordinates<*, *>?> = SettableObservable(value = null)
-    private val observables = mutableListOf<Observable<*>>()
     val anyChangeObservable = SimpleObservable<Tournament>()
 
-    constructor(uuid: UUID = UUID.randomUUID()) : this(TournamentProperties(uuid))
+    override val name: String get() = properties.name
+    override var uuid: TournamentID
+        get() = properties.tournamentID
+        protected set(value) { properties.tournamentID = value }
+    var tournamentStatus
+        get() = properties.tournamentStatus
+        private set(value) { properties.tournamentStatus = value }
+    val tournamentType: TournamentType get() = properties.tournamentType
+    val challengeFormat: ChallengeFormat get() = properties.challengeFormat
+    val maxParticipants: Int get() = properties.maxParticipants
+    val teamSize: Int get() = properties.teamSize
+    val groupSize:Int get() = properties.groupSize
+    val minLevel: Int get() = properties.minLevel
+    val maxLevel: Int get() = properties.maxLevel
+    val showPreview: Boolean get() = properties.showPreview
+    val totalRounds: Int get() = properties.rounds.size
+    val totalMatches: Int get() = properties.matches.size
+    val totalPlayers: Int get() = properties.players.size
+    // TODO handle collection inside properties
+    private val rounds get() = properties.rounds
+    private val matches get() = properties.matches
+    private val players get() = properties.players
 
-    override fun initialize(): Tournament {
-        registerObservable(observable = properties.anyChangeObservable)
-        return this
+    init {
+        properties.getChangeObservable().subscribe { emitChange() }
     }
+
+    /** &#9888; (UUID) constructor is needed for serialization method */
+    constructor(tournamentID: TournamentID = UUID.randomUUID()) :
+            this(TournamentProperties(tournamentID = tournamentID))
+
+    override fun initialize() = this
+
+    private fun emitChange() = anyChangeObservable.emit(this)
+
+    override fun getChangeObservable() = anyChangeObservable
 
     fun getPlayerSet() = players.values.toSet()
 
-    fun containsPlayerID(playerID: UUID) = players.contains(playerID)
-
-    fun getCurrentMatch(playerID: UUID): TournamentMatch? {
-        val player = players[playerID]
-            ?: return null
-        return if (player.tournamentID == uuid && players[player.uuid] != null) {
+    fun getCurrentMatch(playerID: PlayerID): TournamentMatch? {
+        val player = players[playerID] ?: return null
+        return if (player.tournamentID == uuid && (players[player.uuid] != null)) {
             matches[player.currentMatchID]
         } else {
             null
         }
     }
 
-    fun checkComplete(): Boolean {
+    fun containsPlayer(playerID: PlayerID) = players.contains(playerID)
+
+    fun checkIfComplete(): Boolean {
         return if (tournamentStatus == TournamentStatus.FINALIZED) {
             true
         } else when (tournamentType) {
             TournamentType.SINGLE_ELIMINATION -> {
                 val lastRoundIndex = rounds.size - 1
-                val lastRound = rounds.values.firstOrNull { it.roundIndex == lastRoundIndex }
-                    ?: return false // TODO log?
-                val lastMatchID = lastRound.getMatchID(roundMatchIndex = 0)
-                    ?: return false // TODO log?
+                val lastRound = rounds.values
+                    .firstOrNull { it.roundIndex == lastRoundIndex }
+                    ?: return false
+                val lastMatchID = lastRound
+                    .getMatchID(roundMatchIndex = 0)
+                    ?: return false
                 val lastMatch = matches[lastMatchID]
-                    ?: return false // TODO log?
-                return if (lastMatch.matchStatus == MatchStatus.FINALIZED) {
+                    ?: return false
+                return if (lastMatch.getUpdatedMatchStatus() == MatchStatus.FINALIZED) {
                     finalize()
                     return true
-                } else false
+                } else {
+                    false
+                }
             }
             else -> false
             // TODO add other tournament types
@@ -104,42 +118,41 @@ open class Tournament(protected val properties: TournamentProperties) : ClassSto
         // TODO add switch for other tournament types
         // this is for single elimination
         // - if the player won their last match, they should be #1 and never get here...
-        if ( player.uuid == finalMatch.victorID ) {
+        if ( player.currentMatchID == finalMatch.uuid ) {
             return 1
         }
-        return rounds[finalMatch.roundID]?.matchMapSize?.plus(other = 1) ?: -69420 // lolz
+        return rounds[finalMatch.roundID]
+            ?.matchMapSize
+            ?.plus(other = 1)
+            ?: -69420 // lolz
     }
 
-    private fun registerObservable(observable: Observable<*>): Observable<*> {
-        observables.add(observable)
-        observable.subscribe { anyChangeObservable.emit((this)) }
-        return observable
-    }
-
-    fun getAllObservables() = observables.asIterable()
-
-    override fun getChangeObservable() = anyChangeObservable
-
-    override fun saveToNBT(nbt: CompoundTag): CompoundTag {
-        nbt.put(TOURNAMENT_PROPERTIES_KEY, properties.saveToNBT(nbt = CompoundTag()))
+    override fun saveToNbt(nbt: CompoundTag): CompoundTag {
+        nbt.put(TOURNAMENT_PROPERTIES_KEY, properties.saveToNbt(nbt = CompoundTag()))
         return nbt
     }
+
+    override fun saveToJSON(json: JsonObject): JsonObject { TODO() }
+
     override fun loadFromNBT(nbt: CompoundTag): Tournament {
-        properties.setFromNBT(nbt = nbt.getCompound(TOURNAMENT_PROPERTIES_KEY))
+        properties.setFromNbt(nbt = nbt.getCompound(TOURNAMENT_PROPERTIES_KEY))
         return this
     }
-    override fun saveToJSON(json: JsonObject): JsonObject { TODO("Not yet implemented") }
-    override fun loadFromJSON(json: JsonObject): ClassStored { TODO("Not yet implemented") }
+
+    override fun loadFromJSON(json: JsonObject): ClassStored { TODO() }
 
     override fun printProperties() = properties.logDebug()
+
     fun displayOverviewInChat(player: ServerPlayer) = properties.displayInChat(player = player)
+
     fun displayResultsInChat(player: ServerPlayer) = properties.displayResultsInChat(player = player)
 
     companion object {
-        /** &#9888; Observables will be broken if [initialize] is not called after construction */
         fun loadFromNbt(nbt: CompoundTag): Tournament {
             return Tournament(
-                TournamentProperties.loadFromNbt(nbt = nbt.getCompound(TOURNAMENT_PROPERTIES_KEY))
+                TournamentProperties.loadFromNbt(
+                    nbt = nbt.getCompound(TOURNAMENT_PROPERTIES_KEY),
+                )
             )
         }
     }

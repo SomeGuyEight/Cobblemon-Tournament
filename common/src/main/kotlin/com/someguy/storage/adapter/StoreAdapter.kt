@@ -13,17 +13,21 @@ package com.someguy.storage.adapter
  * interface CobblemonAdapter<S>
  */
 
-import com.someguy.storage.store.Store
-import com.someguy.storage.position.StorePosition
-import com.someguy.storage.classstored.ClassStored
+import com.someguy.storage.Store
+import com.someguy.storage.StorePosition
+import com.someguy.storage.ClassStored
 import java.util.UUID
 
 // Eight's implementation
-interface StoreAdapter<Ser>
-{
+interface StoreAdapter<Ser> {
+
     /**
      * Attempts to load a store using the specified class and UUID. This would return null if
      * the file does not exist or if this store adapter doesn't know how to load this storage class.
      */
-    fun <P: StorePosition,T: ClassStored, St: Store<P,T>> load(storeClass: Class<St>, uuid: UUID): St?
+    fun <P : StorePosition, C : ClassStored, St : Store<P, C>> load(
+        storeClass: Class<St>,
+        uuid: UUID,
+    ): St?
+
 }

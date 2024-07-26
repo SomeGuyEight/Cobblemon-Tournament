@@ -12,11 +12,11 @@ package com.someguy.storage.adapter
  * data class SerializedStore<S>(val storeClass: Class<out PokemonStore<*>>, val uuid: UUID, val serializedForm: S)
  */
 
-import com.someguy.storage.store.Store
+import com.someguy.storage.Store
 import java.util.UUID
 
 data class SerializedStore<Ser>(
-    val storeClass: Class<out Store<*,*>>,
+    val storeClass: Class<out Store<*, *>>,
     val uuid: UUID,
     val serializedForm: Ser
 )

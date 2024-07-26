@@ -1,88 +1,65 @@
 package com.cobblemontournament.common.commands.testing.player
 
-import com.cobblemontournament.common.api.TournamentStoreManager
-import com.cobblemontournament.common.api.storage.TournamentBuilderStore
+import com.cobblemontournament.common.api.storage.TournamentStoreManager
+import com.cobblemontournament.common.commands.CommandContext
 import com.cobblemontournament.common.commands.builder.UnregisterPlayerCommand.unregisterPlayer
-import com.cobblemontournament.common.commands.nodes.builder.ActiveBuilderPlayersNode
-import com.cobblemontournament.common.commands.nodes.NodeKeys.BUILDER
-import com.cobblemontournament.common.commands.nodes.NodeKeys.BUILDER_NAME
-import com.cobblemontournament.common.commands.nodes.NodeKeys.PLAYER
-import com.cobblemontournament.common.commands.nodes.NodeKeys.PLAYER_ENTITY
-import com.cobblemontournament.common.commands.nodes.NodeKeys.TOURNAMENT
-import com.cobblemontournament.common.commands.nodes.NodeKeys.UNREGISTER
-import com.cobblemontournament.common.commands.nodes.NodeKeys.FAKE
-import com.cobblemontournament.common.tournamentbuilder.TournamentBuilder
-import com.cobblemontournament.common.util.ChatUtil
-import com.cobblemontournament.common.util.CommandUtil
+import com.cobblemontournament.common.commands.nodes.*
+import com.cobblemontournament.common.commands.suggestions.PlayerNameSuggestionProvider
+import com.cobblemontournament.common.util.*
 import com.mojang.brigadier.Command
 import com.mojang.brigadier.CommandDispatcher
-import com.mojang.brigadier.context.CommandContext
+import com.mojang.brigadier.arguments.StringArgumentType
 import net.minecraft.commands.CommandSourceStack
 import net.minecraft.commands.Commands
 
-object UnregisterFakePlayerCommand
-{
-    /**
-     * [TOURNAMENT] -> [BUILDER] -> [BUILDER_NAME] -> [PLAYER] -> [PLAYER_ENTITY]
-     *
-     * -> [UNREGISTER]-[FAKE] -> [unregisterFakePlayer]
-     *
-     *      literal     [TOURNAMENT]            ->
-     *      literal     [BUILDER]               ->
-     *      argument    [BUILDER_NAME] , StringType ->
-     *      literal     [PLAYER]                ->
-     *      argument    [PLAYER_ENTITY] , EntityType ->
-     *      literal     [UNREGISTER]-[FAKE]     ->
-     *      method      [unregisterFakePlayer]
-     */
+/**
+ * [TOURNAMENT]-[BUILDER]-[ACTIVE]-[BUILDER_NAME]-[PLAYER]-([UNREGISTER]+[FAKE])
+ */
+object UnregisterFakePlayerCommand {
+
+    private val execution: ExecutionNode by lazy { ExecutionNode { unregisterFakePlayer(it) } }
+
     fun register(dispatcher: CommandDispatcher<CommandSourceStack>) {
         dispatcher
-            .register(ActiveBuilderPlayersNode
+            .register(ActiveBuilderPlayerNode
                 .nest(Commands
-                    .literal("$UNREGISTER-$FAKE")
-                    .executes { ctx ->
-                        unregisterPlayer(ctx = ctx)
-                    }
+                    .literal(("$UNREGISTER-$FAKE"))
+                    .executes { ctx -> unregisterPlayer(ctx = ctx) }
+                    .then(Commands
+                        .argument(PLAYER_NAME, StringArgumentType.string())
+                        .suggests(PlayerNameSuggestionProvider())
+                        .executes(this.execution.action)
+                    )
                 )
             )
     }
 
-    fun unregisterFakePlayer( ctx: CommandContext<CommandSourceStack> ): Int {
-        var tournamentBuilder: TournamentBuilder? = null
-        var removed: Boolean? = null
+    private fun unregisterFakePlayer(ctx: CommandContext): Int {
+        val tournamentBuilder = ctx.getTournamentBuilderOrDisplayFail(
+            storeID = TournamentStoreManager.ACTIVE_STORE_ID
+        ) ?: return 0
 
-        val nodeEntries = CommandUtil.getNodeEntries( ctx )
-        for (entry in nodeEntries) {
-            when (entry.key) {
-                BUILDER_NAME -> {
-                    tournamentBuilder = TournamentStoreManager.getInstanceByName(
-                        storeClass = TournamentBuilderStore::class.java,
-                        name = entry.value,
-                        storeID = TournamentStoreManager.ACTIVE_STORE_ID
-                    ).first
-                }
-                PLAYER_ENTITY -> removed = tournamentBuilder?.removePlayerByName( entry.value )
-            }
+        val playerName = ctx.getNodeInputRangeOrDisplayFail(
+            nodeName = PLAYER_NAME
+        ) ?: return 0
+
+        if (!tournamentBuilder.containsPlayer(playerName)) {
+            ctx.source.player.displayCommandFail(
+                reason = "Tournament builder did not contain name."
+            )
+            return 0
+        } else if (!tournamentBuilder.removePlayer(playerName)) {
+            ctx.source.player.displayCommandFail(
+                reason = "Tournament builder failed to remove player."
+            )
+            return 0
         }
 
-        var success = 0
-        var color = ChatUtil.yellow
-        val text: String
-        if (tournamentBuilder == null) {
-            text = "Failed to UNREGISTER Fake Player b/c Tournament Builder was null"
-        } else if (removed == null || removed == false) {
-            text = "Failed to UNREGISTER Fake Player with ${tournamentBuilder.name} " +
-                    "b/c IDK..."
-        } else {
-            text = "Successfully UNREGISTERED Fake Player from Tournament Builder: \"${tournamentBuilder.name}\"."
-            color = ChatUtil.green
-            success = Command.SINGLE_SUCCESS
-        }
+        ctx.source.player.displayCommandSuccess(
+            text = "Unregistered fake player from: \"${tournamentBuilder.name}\"."
+        )
 
-        val player = ctx.source.player
-        if (player != null) {
-            ChatUtil.displayInPlayerChat( player, text, color )
-        }
-        return success
+        return Command.SINGLE_SUCCESS
     }
+
 }

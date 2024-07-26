@@ -1,27 +1,27 @@
 package com.cobblemontournament.common.api.storage
 
 import com.cobblemontournament.common.player.TournamentPlayer
-import com.someguy.storage.coordinates.StoreCoordinates
-import com.someguy.storage.position.simple.UuidPosition
+import com.google.gson.JsonObject
+import com.someguy.storage.util.StoreID
+import com.someguy.storage.StoreCoordinates
+import com.someguy.storage.position.UuidPosition
 import com.someguy.storage.store.DefaultStore
 import net.minecraft.nbt.CompoundTag
-import java.util.UUID
 
-class PlayerStore(storeID: UUID) : DefaultStore<TournamentPlayer>(storeID)
-{
-    override fun initializeSubclass() { }
+class PlayerStore(storeID: StoreID) : DefaultStore<TournamentPlayer>(storeID = storeID) {
 
     override fun loadFromNbt(nbt: CompoundTag): PlayerStore {
-        for (dataCompound in instancesDataSetNBT(nbt)) {
-            val player = TournamentPlayer().loadFromNBT(dataCompound)
-            player.storeCoordinates.set(StoreCoordinates(
-                store = this,
-                position = UuidPosition(player.uuid))
+        for (dataCompound in loadInstanceDataSetFromNbt(nbt = nbt)) {
+            val player = TournamentPlayer.loadFromNbt(nbt = dataCompound)
+            player.storeCoordinates.set(
+                StoreCoordinates(store = this, position = UuidPosition(uuid = player.uuid))
             )
             instances[player.uuid] = player.initialize()
         }
         initialize()
         return this
     }
+
+    override fun loadFromJson(json: JsonObject) = TODO("Not yet implemented")
 
 }

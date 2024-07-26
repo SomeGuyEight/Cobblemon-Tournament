@@ -23,9 +23,9 @@ package com.someguy.storage.adapter.flatfile
  */
 
 import com.cobblemontournament.common.CobblemonTournament.LOGGER
-import com.someguy.storage.store.Store
-import com.someguy.storage.position.StorePosition
-import com.someguy.storage.classstored.ClassStored
+import com.someguy.storage.Store
+import com.someguy.storage.StorePosition
+import com.someguy.storage.ClassStored
 import com.someguy.storage.adapter.StoreAdapterParent
 import java.io.File
 import java.util.UUID
@@ -35,52 +35,41 @@ abstract class OneToOneFileStoreAdapter<Ser>(
     private val rootFolder: String,
     private val useNestedFolders: Boolean,
     private val folderPerClass: Boolean,
-    private val fileExtension: String
-) : FileStoreAdapter<Ser>, StoreAdapterParent<Ser>()
-{
-    abstract fun save( file: File, serialized: Ser)
+    private val fileExtension: String,
+) : FileStoreAdapter<Ser>, StoreAdapterParent<Ser>() {
 
-    abstract fun <P: StorePosition,T: ClassStored,St: Store<P, T>> load(
+    abstract fun save(file: File, serialized: Ser)
+
+    abstract fun <P : StorePosition, C : ClassStored, St : Store<P, C>> load(
         file: File,
-        storeClass: Class<out St>, uuid: UUID
+        storeClass: Class<out St>,
+        uuid: UUID,
     ): St?
-
-    fun getFile(
-        storeClass: Class<out Store<*, *>>,
-        uuid: UUID
-    ): File
-    {
-        val className = storeClass.simpleName.lowercase()
-        val subfolder1 = if (folderPerClass) "$className/" else ""
-        val subfolder2 = if (useNestedFolders) "${uuid.toString().substring(0, 2)}/" else ""
-        val folder = if (!rootFolder.endsWith("/")) "$rootFolder/" else rootFolder
-        val fileName = if (folderPerClass) "$uuid.$fileExtension" else "$uuid-$className.$fileExtension"
-        val file = File(folder + subfolder1 + subfolder2, fileName)
-        file.parentFile.mkdirs()
-        return file
-    }
 
     override fun save(
         storeClass: Class<out Store<*, *>>,
-        uuid: UUID, serialized: Ser
-    )
-    {
+        uuid: UUID,
+        serialized: Ser,
+    ) {
         val file = getFile(storeClass, uuid)
-        val tempFile = File(file.absolutePath + ".temp")
+        val tempFile = File((file.absolutePath + ".temp"))
         tempFile.createNewFile()
         save(tempFile, serialized)
         tempFile.copyTo(file, overwrite = true)
         tempFile.delete()
     }
 
-    override fun <P: StorePosition,T: ClassStored,St: Store<P, T>> provide(storeClass: Class<St>, uuid: UUID): St? {
+    override fun <P: StorePosition,T: ClassStored,St: Store<P, T>> provide(
+        storeClass: Class<St>,
+        uuid: UUID
+    ): St? {
         val file = getFile(storeClass, uuid)
-        val tempFile = File(file.absolutePath + ".temp")
+        val tempFile = File((file.absolutePath + ".temp"))
         if (tempFile.exists()) {
             try {
                 val tempLoaded = load(tempFile, storeClass, uuid)
                 if (tempLoaded != null) {
-                    save(file, serialize(tempLoaded))
+                    save(file = file, serialized = serialize(store = tempLoaded))
                     return tempLoaded
                 }
             } finally {
@@ -90,13 +79,27 @@ abstract class OneToOneFileStoreAdapter<Ser>(
 
         return if (file.exists()) {
             load(file, storeClass, uuid)
-                ?: let {
+                ?: let { _ ->
                     LOGGER.error("TypeToStore save file for ${storeClass.simpleName} ($uuid) was corrupted. A fresh file will be created.")
                     storeClass.getConstructor(UUID::class.java).newInstance(uuid)
                 }
         } else {
             null
         }
+    }
+
+    private fun getFile(
+        storeClass: Class<out Store<*, *>>,
+        uuid: UUID,
+    ): File {
+        val className = storeClass.simpleName.lowercase()
+        val subfolder1 = if (folderPerClass) ("$className/") else ""
+        val subfolder2 = if (useNestedFolders) ("${uuid.toString().substring(0, 2)}/") else ""
+        val folder = if (!rootFolder.endsWith(("/"))) ("$rootFolder/") else rootFolder
+        val fileName = if (folderPerClass) ("$uuid.$fileExtension") else ("$uuid-$className.$fileExtension")
+        val file = File((folder + subfolder1 + subfolder2), fileName)
+        file.parentFile.mkdirs()
+        return file
     }
 
 }

@@ -4,7 +4,7 @@ import com.cobblemontournament.common.commands.builder.*
 import com.cobblemontournament.common.commands.match.MyMatchesCommand
 import com.cobblemontournament.common.commands.tournament.*
 import com.mojang.brigadier.CommandDispatcher
-import com.someguy.api.CommandManager
+import com.someguy.mod.commands.CommandManager
 import net.minecraft.commands.CommandBuildContext
 import net.minecraft.commands.CommandSourceStack
 import net.minecraft.commands.Commands.CommandSelection
@@ -30,7 +30,7 @@ object TournamentCommands : CommandManager {
 
         MyMatchesCommand.register(dispatcher)
 
-        MyActiveTournamentCurrentMatchCommand.register(dispatcher)
+        ActiveTournamentCurrentMatchCommand.register(dispatcher)
         TournamentInfoCommand.register(dispatcher)
 
         //TestCommands.register( dispatcher, registry, selection )
