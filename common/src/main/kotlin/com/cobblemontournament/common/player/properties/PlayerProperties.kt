@@ -1,12 +1,8 @@
 package com.cobblemontournament.common.player.properties
 
 import com.cobblemon.mod.common.api.battles.model.actor.ActorType
-import com.cobblemon.mod.common.api.reactive.Observable
-import com.cobblemon.mod.common.api.reactive.SettableObservable
-import com.cobblemon.mod.common.api.reactive.SimpleObservable
-import com.cobblemontournament.common.util.*
-import com.someguy.storage.Properties
-import com.someguy.storage.util.*
+import com.cobblemon.mod.common.api.reactive.*
+import com.sg8.properties.DefaultProperties
 import net.minecraft.nbt.CompoundTag
 import net.minecraft.server.level.ServerPlayer
 import java.util.UUID
@@ -14,85 +10,95 @@ import java.util.UUID
 class PlayerProperties(
     name: String = DEFAULT_PLAYER_NAME,
     actorType: ActorType = DEFAULT_ACTOR_TYPE,
-    playerID: PlayerID = UUID.randomUUID(),
-    tournamentID: TournamentID = UUID.randomUUID(),
+    uuid: UUID = UUID.randomUUID(),
+    tournamentID: UUID = UUID.randomUUID(),
     seed: Int = DEFAULT_SEED,
     originalSeed: Int = DEFAULT_SEED,
     pokemonTeamID: UUID? = DEFAULT_POKEMON_TEAM_ID,
-    currentMatchID: MatchID? = DEFAULT_CURRENT_MATCH_ID,
+    currentMatchID: UUID? = DEFAULT_CURRENT_MATCH_ID,
     finalPlacement: Int = DEFAULT_FINAL_PLACEMENT,
     pokemonFinal: Boolean = DEFAULT_POKEMON_FINAL,
     lockPokemonOnSet: Boolean = DEFAULT_LOCK_POKEMON_ON_SET,
-) : Properties<PlayerProperties>, Comparable<PlayerProperties> {
+) : DefaultProperties<PlayerProperties>,
+    Comparable<PlayerProperties> {
+    //Observable<PlayerProperties> by SimpleObservable() { // maybe??
 
     override val instance: PlayerProperties = this
     override val helper = PlayerPropertiesHelper
+    override val observable = SimpleObservable<PlayerProperties>()
+    private val subscriptionsMap: MutableMap<Observable<*>, ObservableSubscription<*>> = mutableMapOf()
 
-    private val anyChangeObservable = SimpleObservable<PlayerProperties>()
-    private val subscriptionsMap: SubscriptionMap = mutableMapOf()
-
-    private val nameObservable = registerObservable(SettableObservable(name))
-    private val playerIDObservable = registerObservable(SettableObservable(playerID))
-    private val actorTypeObservable = registerObservable(SettableObservable(actorType))
-    private val tournamentIDObservable = registerObservable(SettableObservable(tournamentID))
-    private val seedObservable = registerObservable(SettableObservable(seed))
-    private val originalSeedObservable = registerObservable(SettableObservable(originalSeed))
-    private val pokemonTeamIDObservable = registerObservable(SettableObservable(pokemonTeamID))
-    private val currentMatchIDObservable = registerObservable(SettableObservable(currentMatchID))
-    private val finalPlacementObservable = registerObservable(SettableObservable(finalPlacement))
-    private val pokemonFinalObservable = registerObservable(SettableObservable(pokemonFinal))
-    private val lockPokemonOnSetObservable =
-        registerObservable(SettableObservable(lockPokemonOnSet))
+    private val _name = SettableObservable(name).subscribe()
+    private val _uuid = SettableObservable(uuid).subscribe()
+    private val _actorType = SettableObservable(actorType).subscribe()
+    private val _tournamentID = SettableObservable(tournamentID).subscribe()
+    private val _seed = SettableObservable(seed).subscribe()
+    private val _originalSeed = SettableObservable(originalSeed).subscribe()
+    private val _pokemonTeamID = SettableObservable(pokemonTeamID).subscribe()
+    private val _currentMatchID = SettableObservable(currentMatchID).subscribe()
+    private val _finalPlacement = SettableObservable(finalPlacement).subscribe()
+    private val _pokemonFinal = SettableObservable(pokemonFinal).subscribe()
+    private val _lockPokemonOnSet = SettableObservable(lockPokemonOnSet).subscribe()
 
     var name: String
-        get() = nameObservable.get()
-        set(value) { nameObservable.set(value) }
-    var playerID: PlayerID
-        get() = playerIDObservable.get()
-        set(value) { playerIDObservable.set(value) }
+        get() = _name.get()
+        set(value) { _name.set(value) }
+    var uuid: UUID
+        get() = _uuid.get()
+        set(value) { _uuid.set(value) }
     var actorType: ActorType
-        get() = actorTypeObservable.get()
-        set(value) { actorTypeObservable.set(value) }
-    var tournamentID: TournamentID
-        get() = tournamentIDObservable.get()
-        set(value) { tournamentIDObservable.set(value) }
+        get() = _actorType.get()
+        set(value) { _actorType.set(value) }
+    var tournamentID: UUID
+        get() = _tournamentID.get()
+        set(value) { _tournamentID.set(value) }
     var seed: Int
-        get() = seedObservable.get()
-        set(value) { seedObservable.set(value) }
+        get() = _seed.get()
+        set(value) { _seed.set(value) }
     var originalSeed: Int
-        get() = originalSeedObservable.get()
-        set(value) { originalSeedObservable.set(value) }
+        get() = _originalSeed.get()
+        set(value) { _originalSeed.set(value) }
     var pokemonTeamID: UUID?
-        get() = pokemonTeamIDObservable.get()
-        set(value) { pokemonTeamIDObservable.set(value) }
-    var currentMatchID: MatchID?
-        get() = currentMatchIDObservable.get()
-        set(value) { currentMatchIDObservable.set(value) }
+        get() = _pokemonTeamID.get()
+        set(value) { _pokemonTeamID.set(value) }
+    var currentMatchID: UUID?
+        get() = _currentMatchID.get()
+        set(value) { _currentMatchID.set(value) }
     var finalPlacement: Int
-        get() = finalPlacementObservable.get()
-        set(value) { finalPlacementObservable.set(value) }
+        get() = _finalPlacement.get()
+        set(value) { _finalPlacement.set(value) }
     var pokemonFinal: Boolean
-        get() = pokemonFinalObservable.get()
-        set(value) { pokemonFinalObservable.set(value) }
+        get() = _pokemonFinal.get()
+        set(value) { _pokemonFinal.set(value) }
     var lockPokemonOnSet: Boolean
-        get() = lockPokemonOnSetObservable.get()
-        set(value) { lockPokemonOnSetObservable.set(value) }
+        get() = _lockPokemonOnSet.get()
+        set(value) { _lockPokemonOnSet.set(value) }
 
-    private fun <T, O : Observable<T>> registerObservable(observable: O): O {
-        return observable.registerObservable(subscriptionsMap) { emitChange() }
+
+    private fun <T, O : Observable<T>> replaceSubscription(old: O, new: O): O {
+        old.unsubscribe()
+        return new.subscribe()
     }
 
-    private fun emitChange() = anyChangeObservable.emit((this))
+    private fun <T, O : Observable<T>> O.subscribe(): O {
+        subscriptionsMap[this] = this.subscribe { emitChange() }
+        return this
+    }
 
-    override fun getChangeObservable() = anyChangeObservable
+    private fun <T, O : Observable<T>> O.unsubscribe(): O {
+        subscriptionsMap[this]?.unsubscribe()
+        return this
+    }
+
+    override fun emitChange() = observable.emit(this)
 
     override fun compareTo(other: PlayerProperties): Int {
         return compareValuesBy(
             a = this,
             b = other,
             { it.name },
+            { it.uuid },
             { it.actorType },
-            { it.playerID },
             { it.tournamentID },
             { it.seed },
             { it.originalSeed },
@@ -126,7 +132,7 @@ class PlayerProperties(
 
     companion object {
         private val HELPER = PlayerPropertiesHelper
-        fun loadFromNbt(nbt: CompoundTag) = HELPER.loadFromNbtHelper(nbt = nbt)
+        fun loadFromNbt(nbt: CompoundTag) = HELPER.loadFromNbt(nbt = nbt)
     }
 
 }

@@ -1,15 +1,19 @@
 package com.cobblemontournament.common.commands.builder
 
 import com.cobblemontournament.common.api.storage.TournamentStoreManager
-import com.cobblemontournament.common.api.storage.TournamentBuilderStore
-import com.cobblemontournament.common.commands.nodes.ExecutionNode
+import com.cobblemontournament.common.api.storage.store.TournamentBuilderStore
+import com.sg8.api.command.node.ExecutionNode
 import com.cobblemontournament.common.commands.nodes.*
+import com.cobblemontournament.common.commands.util.CommandUtil
 import com.cobblemontournament.common.tournamentbuilder.TournamentBuilder
-import com.cobblemontournament.common.util.*
+import com.cobblemontournament.common.tournamentbuilder.properties.TournamentBuilderProperties
 import com.mojang.brigadier.Command
 import com.mojang.brigadier.CommandDispatcher
 import com.mojang.brigadier.arguments.StringArgumentType
 import com.mojang.brigadier.context.CommandContext
+import com.sg8.api.command.getNodeInputRangeOrDisplayFail
+import com.sg8.util.displayCommandFail
+import com.sg8.util.displayCommandSuccess
 import net.minecraft.commands.CommandSourceStack
 import net.minecraft.commands.Commands
 
@@ -18,24 +22,23 @@ import net.minecraft.commands.Commands
  */
 object CreateTournamentBuilderCommand {
 
-    val executionNode by lazy { ExecutionNode { createNewBuilder(ctx = it) } }
+    val executionNode = ExecutionNode { createNewBuilder(ctx = it) }
 
     fun register(dispatcher: CommandDispatcher<CommandSourceStack>) {
-        dispatcher
-            .register(CreateBuilderNode
-                .nest(Commands
-                    .argument("$NEW$BUILDER_NAME", StringArgumentType.string())
-                    .executes(this.executionNode.action)
-                    // TODO add more optional properties to assign
-                )
+        dispatcher.register(CreateBuilderNode
+            .nest(Commands
+                // TODO add more optional properties to assign
+                .argument("$NEW$BUILDER_NAME", StringArgumentType.string())
+                .executes(this.executionNode.handler)
             )
+        )
     }
 
     private fun createNewBuilder(ctx: CommandContext<CommandSourceStack>): Int {
         val name = ctx.getNodeInputRangeOrDisplayFail(nodeName = "$NEW$BUILDER_NAME") ?: return 0
 
         CommandUtil.tryGetInstance(TournamentBuilderStore::class.java, name)
-            ?: let { _ ->
+            ?.run {
                 ctx.source.player.displayCommandFail(
                     reason = "A tournament builder named \"$name\" exists."
                 )
@@ -45,7 +48,7 @@ object CreateTournamentBuilderCommand {
         val success = TournamentStoreManager.addInstance(
             storeClass = TournamentBuilderStore::class.java,
             storeID = TournamentStoreManager.ACTIVE_STORE_ID,
-            instance = TournamentBuilder().initialize(),
+            instance = TournamentBuilder(TournamentBuilderProperties(name = name)).initialize(),
         )
 
         if (!success) {

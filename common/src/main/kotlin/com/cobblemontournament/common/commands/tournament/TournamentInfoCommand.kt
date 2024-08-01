@@ -1,10 +1,12 @@
 package com.cobblemontournament.common.commands.tournament
 
-import com.cobblemontournament.common.commands.CommandContext
+import com.sg8.api.command.CommandContext
 import com.cobblemontournament.common.commands.nodes.*
-import com.cobblemontournament.common.util.*
+import com.cobblemontournament.common.commands.util.getTournamentOrDisplayFail
 import com.mojang.brigadier.Command
 import com.mojang.brigadier.CommandDispatcher
+import com.sg8.api.command.getServerPlayerOrDisplayFail
+import com.sg8.api.command.node.ExecutionNode
 import net.minecraft.commands.CommandSourceStack
 import net.minecraft.commands.Commands
 
@@ -18,11 +20,11 @@ object TournamentInfoCommand {
     fun register(dispatcher: CommandDispatcher<CommandSourceStack>) {
         val overviewStack = Commands
             .literal(OVERVIEW)
-            .executes(this.executionNode.action)
+            .executes(this.executionNode.handler)
 
         val resultsStack = Commands
             .literal(RESULTS)
-            .executes(this.executionNode.action)
+            .executes(this.executionNode.handler)
 
         dispatcher.register(ActiveTournamentInfoNode.nest(overviewStack))
         dispatcher.register(ActiveTournamentInfoNode.nest(resultsStack))

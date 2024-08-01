@@ -1,6 +1,6 @@
 package com.cobblemontournament.common.commands.nodes
 
-import com.cobblemontournament.common.commands.nodes.nested.LiteralNestedNode
+import com.sg8.api.command.node.nested.LiteralNestedNode
 
 /**
  * [TOURNAMENT]-[MY_MATCHES]

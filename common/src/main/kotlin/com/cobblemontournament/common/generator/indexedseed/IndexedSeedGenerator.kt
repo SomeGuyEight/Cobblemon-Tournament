@@ -1,17 +1,18 @@
 package com.cobblemontournament.common.generator.indexedseed
 
-import com.cobblemontournament.common.util.ceilToPowerOfTwo
+import com.sg8.collections.SortType
+import com.sg8.util.ceilToPowerOfTwo
 
 object IndexedSeedGenerator {
 
     fun getIndexedSeedArray(seedCount: Int, sortType: SortType? = null): IndexedSeedList {
-        val finalSize = ceilToPowerOfTwo(seedCount)
+        val finalSize = seedCount.ceilToPowerOfTwo()
 
         var seedPairs = mutableListOf<Pair<Int, Int>>()
         seedPairs.add(1 to 2)
 
-        while ((seedPairs.size * 2) < finalSize) {
-            // add filler seed to collection b/c all current seeds processed ( filler seed == -1 )
+        while (seedPairs.size * 2 < finalSize) {
+            // add filler seed to collection b/c all current seeds processed (filler seed == -1 )
             val newPairs = mutableListOf<Pair<Int, Int>>()
             for (pair in seedPairs) {
                 newPairs.add(pair.first to -1)

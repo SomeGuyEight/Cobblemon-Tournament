@@ -1,25 +1,27 @@
 package com.cobblemontournament.common.match
 
+import com.cobblemon.mod.common.api.reactive.Observable
 import com.cobblemon.mod.common.api.reactive.SettableObservable
 import com.cobblemon.mod.common.api.reactive.SimpleObservable
 import com.cobblemontournament.common.CobblemonTournament
+import com.cobblemontournament.common.api.storage.MATCH_PROPERTIES_KEY
 import com.cobblemontournament.common.api.storage.TournamentStoreManager
 import com.cobblemontournament.common.match.properties.MatchProperties
-import com.cobblemontournament.common.api.storage.MatchStore
-import com.cobblemontournament.common.api.storage.PlayerStore
-import com.cobblemontournament.common.api.storage.TournamentStore
+import com.cobblemontournament.common.api.storage.store.*
+import com.cobblemontournament.common.match.properties.*
 import com.cobblemontournament.common.player.TournamentPlayer
 import com.cobblemontournament.common.tournament.Tournament
-import com.cobblemontournament.common.util.*
-import com.someguy.storage.ClassStored
 import com.google.gson.JsonObject
-import com.someguy.storage.util.PlayerID
-import com.someguy.storage.StoreCoordinates
+import com.sg8.util.GREEN_FORMAT
+import com.sg8.util.displayInChat
+import com.sg8.storage.StoreCoordinates
+import com.sg8.storage.TypeStored
 import net.minecraft.nbt.CompoundTag
 import net.minecraft.server.level.ServerPlayer
 import java.util.UUID
+import kotlin.collections.Map.Entry
 
-open class TournamentMatch(protected val properties: MatchProperties) : ClassStored {
+open class TournamentMatch(protected val properties: MatchProperties) : TypeStored {
 
     override var storeCoordinates: SettableObservable<StoreCoordinates<*, *>?> =
         SettableObservable(value = null)
@@ -27,46 +29,44 @@ open class TournamentMatch(protected val properties: MatchProperties) : ClassSto
     private val anyChangeObservable = SimpleObservable<TournamentMatch>()
 
     override val name: String get() = properties.name
-    override var uuid: MatchID
-        get() = properties.matchID
-        protected set(value) { properties.matchID = value }
-    val tournamentID: TournamentID get() = properties.tournamentID
-    val roundID: RoundID get() = properties.roundID
+    override val uuid: UUID get() = properties.uuid
+    val tournamentID: UUID get() = properties.tournamentID
+    val roundID: UUID get() = properties.roundID
     val roundIndex: Int get() = properties.roundIndex
     val tournamentMatchIndex: Int get() = properties.tournamentMatchIndex
     val roundMatchIndex: Int get() = properties.roundMatchIndex
-    val matchConnections: MatchConnections get() = properties.connections
+    val matchConnections: MatchConnections get() = properties.matchConnections
     private var matchStatus: MatchStatus
         get() = properties.matchStatus
         set(value) { properties.matchStatus = value }
-    private var victorID: VictorID?
+    private var victorID: UUID?
         get() = properties.victorID
         private set(value) { properties.victorID = value }
-    // TODO handle with observable
-    private val playerMap get() = properties.playerMap
+    private val mutablePlayerMap: MutablePlayerTeamMap get() = properties.playerMap
+    val playerMap: PlayerTeamMap get() = properties.playerMap
 
     init {
-        properties.getChangeObservable().subscribe { emitChange() }
+        properties.observable.subscribe { emitChange() }
     }
 
     /** &#9888; (UUID) constructor is needed for serialization method */
-    constructor(matchID: MatchID = UUID.randomUUID()) : this(MatchProperties(matchID = matchID))
+    constructor(uuid: UUID = UUID.randomUUID()) : this(MatchProperties(uuid = uuid))
 
     override fun initialize() = this
 
     private fun emitChange() = anyChangeObservable.emit(this)
 
-    override fun getChangeObservable() = anyChangeObservable
+    override fun getObservable(): Observable<TournamentMatch> = anyChangeObservable
 
-    fun playerEntrySet() = playerMap.toMutableMap()
+    fun playerEntrySet(): Set<Entry<UUID, Int>> = playerMap.entries
 
     fun containsPlayer(playerID: UUID) = playerMap.containsKey(playerID)
 
-    fun getPlayer(playerID: PlayerID) = playerMap[playerID]
+    fun getPlayer(playerUuid: UUID) = playerMap[playerUuid]
 
-    fun trySetPlayer(playerID: PlayerID, team: Int): Boolean {
-        return if (!playerMap.containsKey(playerID)) {
-            playerMap[playerID] = team
+    fun trySetPlayer(playerUuid: UUID, team: Int): Boolean {
+        return if (!playerMap.containsKey(playerUuid)) {
+            mutablePlayerMap[playerUuid] = team
             emitChange()
             true
         } else {
@@ -74,20 +74,15 @@ open class TournamentMatch(protected val properties: MatchProperties) : ClassSto
         }
     }
 
-    fun removePlayer(playerID: PlayerID): Pair<UUID, Int>? {
-        val teamIndex = playerMap.remove(playerID)
+    fun removePlayer(playerUuid: UUID): Pair<UUID, Int>? {
+        val teamIndex = mutablePlayerMap.remove(playerUuid)
         return if (teamIndex != null) {
             getUpdatedMatchStatus()
             emitChange()
-            playerID to teamIndex
+            playerUuid to teamIndex
         } else {
             null
         }
-    }
-
-    private fun getUpdatedProperties(): MatchProperties {
-        getUpdatedMatchStatus()
-        return properties
     }
 
     fun getUpdatedMatchStatus(): MatchStatus {
@@ -109,7 +104,7 @@ open class TournamentMatch(protected val properties: MatchProperties) : ClassSto
     }
 
     // TODO clean up & condense
-    fun updateVictorID(newVictorID: VictorID?) {
+    fun updateVictorID(newVictorID: UUID?) {
         if (victorID == newVictorID) {
             return
         }
@@ -126,7 +121,7 @@ open class TournamentMatch(protected val properties: MatchProperties) : ClassSto
             instanceID = tournamentID,
         )
 
-        val victorTeamIndex = playerMap[victorID]
+        val victorTeamIndex = victorID?.let { playerMap[it] }
         val victorNextMatch = matchConnections.victorNextMatch
             ?.let { nextMatchID ->
                 TournamentStoreManager.getInstance(
@@ -173,10 +168,7 @@ open class TournamentMatch(protected val properties: MatchProperties) : ClassSto
             val textStart = "Congratulations Trainer ${player.name}! You won first place"
             val textEnd = tournament?.let { " in \"${it.name}\"" } ?: "!"
             player.finalPlacement = 1
-            serverPlayer?.displayInChat(
-                text = textStart + textEnd,
-                color = ChatUtil.GREEN_FORMAT,
-            )
+            serverPlayer?.displayInChat(text = textStart + textEnd, color = GREEN_FORMAT)
             tournament?.checkIfComplete() ?: TODO()
         }
         player.currentMatchID = victorNextMatch?.uuid
@@ -200,10 +192,7 @@ open class TournamentMatch(protected val properties: MatchProperties) : ClassSto
                         "You finished in ${player.finalPlacement} place"
                 val textEnd = tournament?.let { " in \"${it.name}\"" } ?: "!"
 
-                serverPlayer.displayInChat(
-                    text = textStart + textEnd,
-                    color = ChatUtil.GREEN_FORMAT,
-                )
+                serverPlayer.displayInChat(text = textStart + textEnd, color = GREEN_FORMAT)
             }
         }
         player.currentMatchID = defeatedNextMatch?.uuid
@@ -224,7 +213,14 @@ open class TournamentMatch(protected val properties: MatchProperties) : ClassSto
 
     override fun loadFromJSON(json: JsonObject): TournamentMatch { TODO() }
 
-    override fun printProperties() = getUpdatedProperties().logDebug()
+    fun deepCopy() = TournamentMatch(properties.deepCopy())
+
+    fun copy() = TournamentMatch(properties.copy())
+
+    override fun printProperties() {
+        getUpdatedMatchStatus()
+        properties.printDebug()
+    }
 
     companion object {
         fun loadFromNbt(nbt: CompoundTag): TournamentMatch {

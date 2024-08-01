@@ -1,160 +1,89 @@
 package com.cobblemontournament.common.tournamentbuilder.properties
 
-import com.cobblemon.mod.common.api.reactive.Observable
-import com.cobblemon.mod.common.api.reactive.SettableObservable
-import com.cobblemon.mod.common.api.reactive.SimpleObservable
-import com.cobblemontournament.common.api.cobblemonchallenge.ChallengeFormat
-import com.cobblemontournament.common.util.*
+import com.cobblemon.mod.common.api.reactive.*
 import com.cobblemontournament.common.player.properties.PlayerProperties
-import com.cobblemontournament.common.tournament.TournamentType
 import com.cobblemontournament.common.tournament.properties.TournamentProperties
-import com.someguy.storage.Properties
+import com.sg8.collections.reactive.set.*
+import com.sg8.properties.DefaultProperties
 import net.minecraft.nbt.CompoundTag
 import net.minecraft.server.level.ServerPlayer
 import java.util.UUID
 
+typealias PlayersSet = ObservableSet<PlayerProperties>
+typealias MutablePlayersSet = MutableObservableSet<PlayerProperties>
+
 class TournamentBuilderProperties(
     name: String = DEFAULT_TOURNAMENT_BUILDER_NAME,
-    tournamentBuilderID: TournamentBuilderID = UUID.randomUUID(),
+    uuid: UUID = UUID.randomUUID(),
     tournamentProperties: TournamentProperties? = null,
-    players: MutableSet<PlayerProperties>? = null,
-) : Properties<TournamentBuilderProperties> {
+    playerSet: PlayersSet? = null,
+) : DefaultProperties<TournamentBuilderProperties> {
 
     override val instance = this
     override val helper = TournamentBuilderPropertiesHelper
+    override val observable = SimpleObservable<TournamentBuilderProperties>()
+    private val subscriptionsMap: MutableMap<Observable<*>, ObservableSubscription<*>> = mutableMapOf()
 
-    private val players: MutableSet<PlayerProperties> = players?.toMutableSet() ?: mutableSetOf()
-    private val tournamentProperties = tournamentProperties?.deepCopy() ?: TournamentProperties()
-
-    private val anyChangeObservable = SimpleObservable<TournamentBuilderProperties>()
-
-    private val nameObservable = subscribeTo(SettableObservable(name))
-    private val builderIDObservable = subscribeTo(SettableObservable(tournamentBuilderID))
+    private val _name = SettableObservable(name).subscribe()
+    private val _uuid = SettableObservable(uuid).subscribe()
+    private var _tournamentProperties = tournamentProperties?.deepCopy() ?: TournamentProperties()
+    private var _playerSet = playerSet?.mutableCopy() ?: observableSetOf()
 
     var name: String
-        get() = nameObservable.get()
-        set(value) { nameObservable.set(value) }
-    var tournamentBuilderID: TournamentBuilderID
-        get() = builderIDObservable.get()
-        set(value) { builderIDObservable.set(value) }
-    var tournamentType: TournamentType
-        get() = tournamentProperties.tournamentType
-        set(value) { tournamentProperties.tournamentType = value }
-    var challengeFormat: ChallengeFormat
-        get() = tournamentProperties.challengeFormat
-        set(value) { tournamentProperties.challengeFormat = value }
-    var maxParticipants: Int
-        get() = tournamentProperties.maxParticipants
-        set(value) { tournamentProperties.maxParticipants = value }
-    var teamSize: Int
-        get() = tournamentProperties.teamSize
-        set(value) { tournamentProperties.teamSize = value }
-    var groupSize: Int
-        get() = tournamentProperties.groupSize
-        set(value) { tournamentProperties.groupSize = value }
-    var minLevel: Int
-        get() = tournamentProperties.minLevel
-        set(value) { tournamentProperties.minLevel = value }
-    var maxLevel: Int
-        get() = tournamentProperties.maxLevel
-        set(value) { tournamentProperties.maxLevel = value }
-    var showPreview: Boolean
-        get() = tournamentProperties.showPreview
-        set (value) { tournamentProperties.showPreview = value }
+        get() = _name.get()
+        set(value) { _name.set(value) }
+    var uuid: UUID
+        get() = _uuid.get()
+        set(value) { _uuid.set(value) }
+    var tournamentProperties: TournamentProperties
+        get() = _tournamentProperties
+        set(value) {
+            replaceSubscription(_tournamentProperties.observable, value.observable)
+            _tournamentProperties = value
+        }
+    var playerSet: MutablePlayersSet
+        get() = _playerSet
+        set(value) { _playerSet = replaceSubscription(_playerSet, value) }
+
 
     init {
-        this.players.forEach { it.getChangeObservable().subscribe { emitChange() } }
-        this.tournamentProperties.getChangeObservable().subscribe { emitChange() }
+        _tournamentProperties.observable.subscribe()
+        _playerSet.subscribe()
     }
 
-    private fun <T, O : Observable<T>> subscribeTo(observable: O): O {
-        observable.subscribe { emitChange() }
-        return observable
+
+    private fun <T, O : Observable<T>> replaceSubscription(old: O, new: O): O {
+        old.unsubscribe()
+        return new.subscribe()
     }
 
-    private fun emitChange() = anyChangeObservable.emit(this)
-
-    override fun getChangeObservable() = anyChangeObservable
-
-    fun getTournamentProperties(
-        name: String,
-        tournamentID: TournamentID = UUID.randomUUID(),
-    ): TournamentProperties {
-        val copy = tournamentProperties.deepCopy()
-        copy.name = name
-        copy.tournamentID = tournamentID
-        return copy
+    private fun <T, O : Observable<T>> O.subscribe(): O {
+        subscriptionsMap[this] = this.subscribe { emitChange() }
+        return this
     }
 
-    fun containsPlayer(playerID: UUID) = players.firstOrNull { it.playerID == playerID } != null
+    private fun <T, O : Observable<T>> O.unsubscribe(): O {
+        subscriptionsMap[this]?.unsubscribe()
+        return this
+    }
 
-    fun containsPlayer(name: String) = players.firstOrNull { it.name == name } != null
+    override fun emitChange() = observable.emit(this)
 
-    fun getPlayersSize() = players.size
-
-    fun getPlayer(playerID: UUID) = players.firstOrNull { it.playerID == playerID }
-
-    fun getPlayer(name: String) = players.firstOrNull { it.name == name }
-
-    /** Returns an iterator over all elements of [TournamentBuilderProperties.players] */
-    fun getPlayersIterator() = players.iterator()
-
-    /**
-     * Returns a list containing all elements of [TournamentBuilderProperties.players]
-     * with a seed > 0
-     */
-    fun getSeededPlayers() = players.filter { it.seed > 0 }.toList()
-
-    /**
-     * Returns a list containing all elements of [TournamentBuilderProperties.players]
-     * with a seed < 1
-     */
-    fun getUnseededPlayers() = players.filter { it.seed < 1 }.toList()
-
-    fun getPlayersDeepCopy(): MutableSet<PlayerProperties> {
-        val playersCopy = mutableSetOf<PlayerProperties>()
-        for (player in this.players) {
+    fun getPlayersDeepCopy(): MutablePlayersSet {
+        val playersCopy: MutablePlayersSet = observableSetOf()
+        for (player in this.playerSet) {
             playersCopy.add(player.deepCopy())
         }
         return playersCopy
     }
 
-    fun addPlayer(playerProps: PlayerProperties): Boolean {
-        if (players.add(playerProps)) {
-            playerProps.getChangeObservable().subscribe { emitChange() }
-            return true
-        }
-        return false
-    }
+    fun getSeededPlayers() = playerSet.filter { it.seed > 0 }.toList()
 
-    fun removePlayer(playerID: UUID): Boolean {
-        if (players.removeIf { it.playerID == playerID }) {
-            emitChange()
-            return true
-        }
-        return false
-    }
-
-    fun removePlayer(name: String): Boolean {
-        if (players.removeIf { it.name == name }) {
-            emitChange()
-            return true
-        }
-        return false
-    }
+    fun getUnseededPlayers() = playerSet.filter { it.seed < 1 }.toList()
 
     fun <T : Comparable<T>> getPlayersSortedBy(
-        predicate: (PlayerProperties) -> Boolean = { true },
         selector: (PlayerProperties) -> T,
-    ): List<PlayerProperties> {
-        val list = mutableListOf<PlayerProperties>()
-        for (playerProps in players) {
-            if (predicate(playerProps)) {
-                list.add(playerProps)
-            }
-        }
-        return list.sortedBy { selector(it) }
-    }
+    ) = playerSet.elements.sortedBy { selector(it) }
 
     fun displayShortenedInChat(player: ServerPlayer) {
         helper.displayShortenedInChatHelper(properties = this, player = player)
@@ -164,11 +93,11 @@ class TournamentBuilderProperties(
         tournamentProperties.displaySlimInChat(player = player)
     }
 
-    fun printTournamentProperties() = tournamentProperties.logDebug()
+    fun printTournamentProperties() = tournamentProperties.printDebug()
 
     companion object {
         private val HELPER = TournamentBuilderPropertiesHelper
-        fun loadFromNbt(nbt: CompoundTag) = HELPER.loadFromNbtHelper(nbt = nbt)
+        fun loadFromNbt(nbt: CompoundTag) = HELPER.loadFromNbt(nbt = nbt)
     }
 
 }

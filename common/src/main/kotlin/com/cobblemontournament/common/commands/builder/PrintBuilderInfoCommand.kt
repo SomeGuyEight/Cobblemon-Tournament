@@ -1,12 +1,14 @@
 package com.cobblemontournament.common.commands.builder
 
-import com.cobblemontournament.common.commands.CommandContext
-import com.cobblemontournament.common.commands.nodes.ExecutionNode
+import com.sg8.api.command.CommandContext
+import com.sg8.api.command.node.ExecutionNode
 import com.cobblemontournament.common.commands.nodes.*
+import com.cobblemontournament.common.commands.util.getTournamentBuilderOrDisplayFail
 import com.cobblemontournament.common.tournamentbuilder.TournamentBuilder
-import com.cobblemontournament.common.util.*
 import com.mojang.brigadier.Command
 import com.mojang.brigadier.CommandDispatcher
+import com.sg8.api.command.getNodeInputRange
+import com.sg8.util.displayCommandFail
 import net.minecraft.commands.CommandSourceStack
 import net.minecraft.commands.Commands
 import net.minecraft.server.level.ServerPlayer
@@ -16,20 +18,20 @@ import net.minecraft.server.level.ServerPlayer
  */
 object PrintBuilderInfoCommand {
 
-    val executionNode by lazy { ExecutionNode { printInfo(ctx = it) } }
+    val executionNode = ExecutionNode { printInfo(ctx = it) }
 
     fun register(dispatcher: CommandDispatcher<CommandSourceStack>) {
         val overviewStack = Commands
             .literal(OVERVIEW)
-            .executes(this.executionNode.action)
+            .executes(this.executionNode.handler)
 
         val builderPropertiesStack = Commands
             .literal(BUILDER_PROPERTIES)
-            .executes(this.executionNode.action)
+            .executes(this.executionNode.handler)
 
         val playerPropertiesStack = Commands
             .literal(PLAYER_PROPERTIES)
-            .executes(this.executionNode.action)
+            .executes(this.executionNode.handler)
 
         dispatcher.register(ActiveBuilderInfoNode.nest(overviewStack))
         dispatcher.register(ActiveBuilderInfoNode.nest(builderPropertiesStack))
@@ -43,58 +45,40 @@ object PrintBuilderInfoCommand {
     private fun printInfo(ctx: CommandContext): Int {
         val tournamentBuilder = ctx.getTournamentBuilderOrDisplayFail(storeID = null) ?: return 0
 
-        return when {
+        when {
             ctx.getNodeInputRange(BUILDER_PROPERTIES) != null -> {
-                handleBuilderProperties(ctx.source.player, tournamentBuilder)
+                printBuilderProperties(ctx.source.player, tournamentBuilder)
             }
             ctx.getNodeInputRange(PLAYER_PROPERTIES) != null -> {
-                handlePlayerProperties(ctx.source.player, tournamentBuilder)
+                printPlayerProperties(ctx.source.player, tournamentBuilder)
             }
             ctx.getNodeInputRange(OVERVIEW) != null -> {
-                handleOverview(ctx.source.player, tournamentBuilder)
+                printOverview(ctx.source.player, tournamentBuilder)
             }
             else -> {
                 ctx.source.player.displayCommandFail(reason = "No valid input found in command")
                 return 0
             }
         }
-    }
-
-    private fun handleBuilderProperties(
-        player: ServerPlayer?,
-        tournamentBuilder: TournamentBuilder,
-    ): Int {
-        if (player != null) {
-            tournamentBuilder.displayPropertiesInChatSlim(player = player)
-        } else {
-            tournamentBuilder.printProperties()
-        }
         return Command.SINGLE_SUCCESS
     }
 
-    private fun handlePlayerProperties(
-        player: ServerPlayer?,
-        tournamentBuilder: TournamentBuilder,
-    ): Int {
-        if (player != null) {
-            tournamentBuilder.displayPlayersInChat(player, padStart = 2, displaySeed = true)
-        } else {
-            tournamentBuilder.printPlayerInfo()
-        }
-        return Command.SINGLE_SUCCESS
+    private fun printBuilderProperties(player: ServerPlayer?, builder: TournamentBuilder) {
+        player?. run { builder.displayPropertiesInChatSlim(player = player) }
+            ?: builder.printProperties()
     }
 
-    private fun handleOverview(
-        player: ServerPlayer?,
-        tournamentBuilder: TournamentBuilder,
-    ): Int {
-        if (player != null) {
-            tournamentBuilder.displayPropertiesInChat(player = player)
-        } else {
-            tournamentBuilder.printProperties()
-            tournamentBuilder.printPlayerInfo()
-        }
-        return Command.SINGLE_SUCCESS
+    private fun printPlayerProperties(player: ServerPlayer?, builder: TournamentBuilder) {
+        player?. run { builder.displayPlayersInChat(player, padStart = 2, displaySeed = true) }
+            ?: builder.printPlayerInfo()
+    }
+
+    private fun printOverview(player: ServerPlayer?, builder: TournamentBuilder) {
+        player?.run { builder.displayPropertiesInChat(player = player) }
+            ?: run {
+                builder.printProperties()
+                builder.printPlayerInfo()
+            }
     }
 
 }

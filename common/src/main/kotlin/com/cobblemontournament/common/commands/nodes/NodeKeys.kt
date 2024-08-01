@@ -44,9 +44,6 @@ const val ALL_MATCHES = "all-matches"
 
 const val ROUND = "round"
 
-const val PLAYER = "player"
-const val PLAYER_NAME = "player-name"
-const val PLAYER_ENTITY = "player-entity"
 const val PLAYER_PROPERTIES = "player-properties"
 const val ACTOR_TYPE = "actor-type"
 const val PLAYER_SEED = "player-seed"

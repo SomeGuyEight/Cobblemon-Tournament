@@ -1,61 +1,77 @@
 package com.cobblemontournament.common.round.properties
 
-import com.cobblemon.mod.common.api.reactive.Observable
-import com.cobblemon.mod.common.api.reactive.SettableObservable
-import com.cobblemon.mod.common.api.reactive.SimpleObservable
-import com.cobblemontournament.common.util.*
+import com.cobblemon.mod.common.api.reactive.*
 import com.cobblemontournament.common.round.RoundType
-import com.someguy.storage.Properties
-import com.someguy.storage.util.*
+import com.sg8.collections.reactive.map.*
+import com.sg8.properties.DefaultProperties
 import net.minecraft.nbt.CompoundTag
 import java.util.UUID
 
+typealias IndexedMatchMap = MutableObservableMap<Int, UUID>
+
 class RoundProperties(
-    roundID: RoundID = UUID.randomUUID(),
-    tournamentID: TournamentID = UUID.randomUUID(),
+    uuid: UUID = UUID.randomUUID(),
+    tournamentID: UUID = UUID.randomUUID(),
     roundIndex: Int = DEFAULT_ROUND_INDEX,
     roundType: RoundType = DEFAULT_ROUND_TYPE,
-    indexedMatchMap: IndexedMatchMap = mutableMapOf()
-) : Properties<RoundProperties> {
+    indexedMatchMap: IndexedMatchMap? = null,
+) : DefaultProperties<RoundProperties> {
 
     override val instance: RoundProperties = this
     override val helper = RoundPropertiesHelper
+    override val observable = SimpleObservable<RoundProperties>()
+    private val subscriptionsMap: MutableMap<Observable<*>, ObservableSubscription<*>> = mutableMapOf()
 
-    // TODO handle with observable
-    var indexedMatchMap: IndexedMatchMap = indexedMatchMap.toMutableMap()
+    private val _uuid = SettableObservable(uuid).subscribe()
+    private val _tournamentID = SettableObservable(tournamentID).subscribe()
+    private val _roundIndex = SettableObservable(roundIndex).subscribe()
+    private val _roundType = SettableObservable(roundType).subscribe()
+    private var _indexedMatchMap = indexedMatchMap?.mutableCopy() ?: observableMapOf()
 
-    private val anyChangeObservable = SimpleObservable<RoundProperties>()
-    private val subscriptionsMap: SubscriptionMap = mutableMapOf()
-
-    private val roundIDObservable = registerObservable(SettableObservable(roundID))
-    private val tournamentIDObservable = registerObservable(SettableObservable(tournamentID))
-    private val roundIndexObservable = registerObservable(SettableObservable(roundIndex))
-    private val roundTypeObservable = registerObservable(SettableObservable(roundType))
-
-    var roundID: RoundID
-        get() = roundIDObservable.get()
-        set(value) { roundIDObservable.set(value) }
-    var tournamentID: TournamentID
-        get() = tournamentIDObservable.get()
-        set(value) { tournamentIDObservable.set(value) }
+    val name: String get() = "Round $roundIndex [${roundType.name} type]"
+    var uuid: UUID
+        get() = _uuid.get()
+        set(value) { _uuid.set(value) }
+    var tournamentID: UUID
+        get() = _tournamentID.get()
+        set(value) { _tournamentID.set(value) }
     var roundIndex: Int
-        get() = roundIndexObservable.get()
-        set(value) { roundIndexObservable.set(value) }
+        get() = _roundIndex.get()
+        set(value) { _roundIndex.set(value) }
     var roundType: RoundType
-        get() = roundTypeObservable.get()
-        set(value) { roundTypeObservable.set(value) }
+        get() = _roundType.get()
+        set(value) { _roundType.set(value) }
+    var indexedMatchMap: IndexedMatchMap
+        get() = _indexedMatchMap
+        set(value) { _indexedMatchMap = replaceSubscription(old = _indexedMatchMap, new = value) }
 
-    private fun <T, O : Observable<T>> registerObservable(observable: O): O {
-        return observable.registerObservable(subscriptionsMap) { emitChange() }
+
+    init {
+        _indexedMatchMap.subscribe()
     }
 
-    private fun emitChange() = anyChangeObservable.emit(this)
+    private fun <T, O : Observable<T>> replaceSubscription(old: O, new: O): O {
+        old.unsubscribe()
+        return new.subscribe()
+    }
 
-    override fun getChangeObservable() = anyChangeObservable
+    private fun <T, O : Observable<T>> O.subscribe(): O {
+        subscriptionsMap[this] = this.subscribe { emitChange() }
+        return this
+    }
+
+    private fun <T, O : Observable<T>> O.unsubscribe(): O {
+        subscriptionsMap[this]?.unsubscribe()
+        return this
+    }
+
+    override fun emitChange() = observable.emit(this)
+
+    fun getMatchID(index: Int?): UUID? = index?.let { indexedMatchMap[it] }
 
     companion object {
         private val HELPER = RoundPropertiesHelper
-        fun loadFromNbt(nbt: CompoundTag) = HELPER.loadFromNbtHelper(nbt = nbt)
+        fun loadFromNbt(nbt: CompoundTag) = HELPER.loadFromNbt(nbt = nbt)
     }
 
 }

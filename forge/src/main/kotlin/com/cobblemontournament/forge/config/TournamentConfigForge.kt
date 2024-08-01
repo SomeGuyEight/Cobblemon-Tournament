@@ -1,8 +1,11 @@
 package com.cobblemontournament.forge.config
 
-import com.cobblemontournament.common.CobblemonTournament
+import com.cobblemontournament.common.*
+import com.cobblemontournament.common.api.cobblemonchallenge.ChallengeFormat
+import com.cobblemontournament.common.api.storage.*
 import com.cobblemontournament.common.config.TournamentConfig
-import com.cobblemontournament.common.util.*
+import com.cobblemontournament.common.tournament.TournamentType
+import com.sg8.util.getConstantOrNull
 import net.minecraftforge.common.ForgeConfigSpec.Builder
 import net.minecraftforge.common.ForgeConfigSpec.ConfigValue
 
@@ -31,15 +34,13 @@ object TournamentConfigForge {
             .comment("Amazing Tournament-Type description...")
             .define(TOURNAMENT_TYPE_KEY, TournamentConfig.defaultTournamentType().name)
 
-        val typeString = DEFAULT_TOURNAMENT_TYPE?.default
-        val type = typeString?.let { TournamentUtil.getTournamentTypeOrNull(value = it) }
+        val type = DEFAULT_TOURNAMENT_TYPE?.default?.getConstantOrNull<TournamentType>()
 
         DEFAULT_CHALLENGE_FORMAT = builder
             .comment("Amazing Challenge-Format description...")
             .define(CHALLENGE_FORMAT_KEY, TournamentConfig.defaultChallengeFormat().name)
 
-        val formatString = DEFAULT_CHALLENGE_FORMAT?.default
-        val format = formatString?.let { TournamentUtil.getChallengeFormatOrNull(value = it) }
+        val format = DEFAULT_CHALLENGE_FORMAT?.default?.getConstantOrNull<ChallengeFormat>()
 
         DEFAULT_MAX_PARTICIPANTS = builder
             .comment("Amazing Max-Participants description...")

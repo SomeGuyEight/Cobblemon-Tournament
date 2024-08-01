@@ -1,27 +1,30 @@
 package com.cobblemontournament.common.tournamentbuilder
 
 import com.cobblemon.mod.common.api.battles.model.actor.ActorType
+import com.cobblemon.mod.common.api.reactive.Observable
 import com.cobblemon.mod.common.api.reactive.SettableObservable
 import com.cobblemon.mod.common.api.reactive.SimpleObservable
-import com.cobblemontournament.common.api.TournamentData
+import com.cobblemontournament.common.api.storage.TOURNAMENT_BUILDER_PROPERTIES_KEY
+import com.cobblemontournament.common.api.tournament.TournamentData
 import com.cobblemontournament.common.api.cobblemonchallenge.ChallengeFormat
 import com.cobblemontournament.common.generator.TournamentGenerator
 import com.cobblemontournament.common.player.properties.PlayerProperties
 import com.cobblemontournament.common.player.properties.PlayerPropertiesHelper
 import com.cobblemontournament.common.tournament.TournamentType
 import com.cobblemontournament.common.tournament.properties.TournamentProperties
+import com.cobblemontournament.common.tournamentbuilder.properties.MutablePlayersSet
 import com.cobblemontournament.common.tournamentbuilder.properties.TournamentBuilderProperties
-import com.cobblemontournament.common.util.*
 import com.google.gson.JsonObject
-import com.someguy.storage.ClassStored
-import com.someguy.storage.StoreCoordinates
-import com.someguy.storage.util.NameSet
-import com.someguy.storage.util.PlayerID
+import com.sg8.util.YELLOW_FORMAT
+import com.sg8.storage.TypeStored
+import com.sg8.storage.StoreCoordinates
+import com.sg8.storage.NameSet
+import com.sg8.util.displayInChat
 import net.minecraft.nbt.CompoundTag
 import net.minecraft.server.level.ServerPlayer
 import java.util.UUID
 
-open class TournamentBuilder(protected val properties: TournamentBuilderProperties) : ClassStored {
+open class TournamentBuilder(protected val properties: TournamentBuilderProperties) : TypeStored {
 
     override var storeCoordinates: SettableObservable<StoreCoordinates<*, *>?> =
         SettableObservable(value = null)
@@ -31,76 +34,86 @@ open class TournamentBuilder(protected val properties: TournamentBuilderProperti
     override var name: String
         get() = properties.name
         set(value) { properties.name = value }
-    override var uuid: TournamentBuilderID
-        get() = properties.tournamentBuilderID
-        protected set (value) { properties.tournamentBuilderID = value }
+    override var uuid: UUID
+        get() = properties.uuid
+        protected set (value) { properties.uuid = value }
+    private val tournamentProperties get() = properties.tournamentProperties
+    private val players: MutablePlayersSet get() = properties.playerSet
+
     var tournamentType: TournamentType
-        get() = properties.tournamentType
-        set(value) { properties.tournamentType = value }
+        get() = tournamentProperties.tournamentType
+        set(value) { tournamentProperties.tournamentType = value }
     var challengeFormat: ChallengeFormat
-        get() = properties.challengeFormat
-        set(value) { properties.challengeFormat = value }
+        get() = tournamentProperties.challengeFormat
+        set(value) { tournamentProperties.challengeFormat = value }
     var maxParticipants: Int
-        get() = properties.maxParticipants
-        set(value) { properties.maxParticipants = value }
+        get() = tournamentProperties.maxParticipants
+        set(value) { tournamentProperties.maxParticipants = value }
     var teamSize: Int
-        get() = properties.teamSize
-        set(value) { properties.teamSize = value }
+        get() = tournamentProperties.teamSize
+        set(value) { tournamentProperties.teamSize = value }
     var groupSize: Int
-        get() = properties.groupSize
-        set(value) { properties.groupSize = value }
+        get() = tournamentProperties.groupSize
+        set(value) { tournamentProperties.groupSize = value }
     var minLevel: Int
-        get() = properties.minLevel
-        set(value) { properties.minLevel = value }
+        get() = tournamentProperties.minLevel
+        set(value) { tournamentProperties.minLevel = value }
     var maxLevel: Int
-        get() = properties.maxLevel
-        set(value) { properties.maxLevel = value }
+        get() = tournamentProperties.maxLevel
+        set(value) { tournamentProperties.maxLevel = value }
     var showPreview: Boolean
-        get() = properties.showPreview
-        set (value) { properties.showPreview = value }
+        get() = tournamentProperties.showPreview
+        set (value) { tournamentProperties.showPreview = value }
+
 
     init {
-        properties.getChangeObservable().subscribe { emitChange() }
+        properties.observable.subscribe { emitChange() }
     }
 
+
     /** &#9888; (UUID) constructor is needed for serialization method */
-    constructor(uuid: TournamentBuilderID = UUID.randomUUID()) :
-            this(TournamentBuilderProperties(tournamentBuilderID = uuid))
+    constructor(uuid: UUID = UUID.randomUUID()) :
+            this(TournamentBuilderProperties(uuid = uuid))
 
     override fun initialize() = this
 
     private fun emitChange() = anyChangeObservable.emit(this)
 
-    override fun getChangeObservable() = anyChangeObservable
+    override fun getObservable(): Observable<TournamentBuilder> = anyChangeObservable
 
     fun getTournamentProperties(
         name: String,
-        tournamentID: TournamentID = UUID.randomUUID(),
+        tournamentID: UUID = UUID.randomUUID(),
     ): TournamentProperties {
-        return properties.getTournamentProperties(name, tournamentID)
+        val copy = tournamentProperties.deepCopy()
+        copy.name = name
+        copy.uuid = tournamentID
+        return copy
     }
 
-    fun containsPlayer(playerID: PlayerID) = properties.containsPlayer(playerID)
+    fun containsPlayer(playerID: UUID) = players.firstOrNull { it.uuid == playerID } != null
 
-    fun containsPlayer(name: String) = properties.containsPlayer(name)
+    fun containsPlayer(name: String) = players.firstOrNull { it.name == name } != null
 
-    fun getPlayersNames(): NameSet {
-        val names = mutableSetOf<String>()
-        for (playerProps in properties.getPlayersIterator()) {
-            names.add(playerProps.name)
-        }
-        return names
-    }
+    fun getPlayersSize() = players.size
 
-    fun getPlayer(playerID: UUID) = properties.getPlayer(playerID = playerID)
+    fun getPlayer(playerID: UUID) = players.firstOrNull { it.uuid == playerID }
 
-    fun getPlayer(name: String) = properties.getPlayer(name = name)
+    fun getPlayer(name: String) = players.firstOrNull { it.name == name }
 
-    fun getPlayersSize() = properties.getPlayersSize()
+    fun getPlayersIterator() = players.iterator()
 
     fun getSeededPlayers() = properties.getSeededPlayers()
 
     fun getUnseededPlayers() = properties.getUnseededPlayers()
+
+    fun getPlayersNames(): NameSet {
+        val names = mutableSetOf<String>()
+        for (playerProps in players.iterator()) {
+            names.add(playerProps.name)
+        }
+        return names
+    }
 
     fun addPlayer(
         playerID: UUID,
@@ -108,24 +121,23 @@ open class TournamentBuilder(protected val properties: TournamentBuilderProperti
         actorType: ActorType? = null,
         seed: Int? = null,
     ): Boolean {
-        return if (!properties.containsPlayer(playerID = playerID)) {
-            properties.addPlayer(
-                playerProps = PlayerProperties(
+        if (!containsPlayer(playerID = playerID)) {
+            return players.add(
+                PlayerProperties(
                     name = playerName,
-                    actorType = (actorType ?: ActorType.PLAYER),
-                    playerID = playerID,
+                    actorType = actorType ?: ActorType.PLAYER,
+                    uuid = playerID,
                     tournamentID = uuid,
-                    seed = (seed ?: -1),
+                    seed = seed ?: -1,
                 )
             )
-        } else {
-            false
         }
+        return false
     }
 
-    fun removePlayer(playerID: UUID) = properties.removePlayer(playerID = playerID)
+    fun removePlayer(playerID: UUID) = players.removeIf { it.uuid == playerID }
 
-    fun removePlayer(name: String) = properties.removePlayer(name = name)
+    fun removePlayer(name: String) = players.removeIf { it.name == name }
 
     private fun toTournament(name: String): TournamentData? {
         return TournamentGenerator.toTournament(name = name, builder = this)
@@ -145,13 +157,17 @@ open class TournamentBuilder(protected val properties: TournamentBuilderProperti
     override fun saveToJSON(json: JsonObject): JsonObject { TODO() }
 
     override fun loadFromNBT(nbt: CompoundTag): TournamentBuilder {
-        properties.setFromNbt(nbt = nbt.getCompound(TOURNAMENT_BUILDER_PROPERTIES_KEY))
+        properties.setFromNbt(nbt.getCompound(TOURNAMENT_BUILDER_PROPERTIES_KEY))
         return this
     }
 
     override fun loadFromJSON(json: JsonObject): TournamentBuilder { TODO() }
 
-    override fun printProperties() = properties.logDebug()
+    fun deepCopy() = TournamentBuilder(properties.deepCopy())
+
+    fun copy() = TournamentBuilder(properties.copy())
+
+    override fun printProperties() = properties.printDebug()
 
     fun displayPropertiesInChat(player: ServerPlayer) = properties.displayInChat(player = player)
 
@@ -160,7 +176,7 @@ open class TournamentBuilder(protected val properties: TournamentBuilderProperti
     }
 
     fun printPlayerInfo() {
-        properties.getPlayersSortedBy { it.seed }.forEach { it.logDebug() }
+        properties.getPlayersSortedBy { it.seed }.forEach { it.printDebug() }
     }
 
     fun displayPlayersInChat(
@@ -171,9 +187,9 @@ open class TournamentBuilder(protected val properties: TournamentBuilderProperti
         displayCurrentMatch: Boolean = false,
         displayPlacement: Boolean = false
     ) {
-        if (properties.getPlayersSize() != 0) {
+        if (properties.playerSet.size != 0) {
             player.displayInChat(
-                text = "Players for Tournament Builder \"$name\":", ChatUtil.YELLOW_FORMAT,
+                text = "Players for Tournament Builder \"$name\":", color = YELLOW_FORMAT,
                 bold = true,
             )
             for ( playerProps in properties.getPlayersSortedBy { it.seed } ) {

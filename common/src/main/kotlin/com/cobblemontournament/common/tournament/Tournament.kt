@@ -1,27 +1,21 @@
 package com.cobblemontournament.common.tournament
 
-import com.cobblemon.mod.common.api.reactive.SettableObservable
-import com.cobblemon.mod.common.api.reactive.SimpleObservable
-import com.cobblemontournament.common.api.storage.TournamentStoreManager
+import com.cobblemon.mod.common.api.reactive.*
+import com.cobblemontournament.common.api.storage.*
 import com.cobblemontournament.common.api.cobblemonchallenge.ChallengeFormat
-import com.cobblemontournament.common.api.storage.TournamentStore
+import com.cobblemontournament.common.api.storage.store.TournamentStore
 import com.cobblemontournament.common.match.MatchStatus
 import com.cobblemontournament.common.match.TournamentMatch
 import com.cobblemontournament.common.player.TournamentPlayer
 import com.cobblemontournament.common.tournament.properties.TournamentProperties
-import com.cobblemontournament.common.util.*
 import com.google.gson.JsonObject
-import com.someguy.storage.ClassStored
-import com.someguy.storage.StoreCoordinates
-import com.someguy.storage.util.*
+import com.sg8.storage.StoreCoordinates
+import com.sg8.storage.TypeStored
 import net.minecraft.nbt.CompoundTag
 import net.minecraft.server.level.ServerPlayer
 import java.util.UUID
 
-/** &#9888; (UUID) constructor is needed for serialization method */
-open class Tournament(
-    protected val properties: TournamentProperties
-) : ClassStored {
+open class Tournament(protected val properties: TournamentProperties) : TypeStored {
 
     override var storeCoordinates: SettableObservable<StoreCoordinates<*, *>?> =
         SettableObservable(value = null)
@@ -29,9 +23,7 @@ open class Tournament(
     val anyChangeObservable = SimpleObservable<Tournament>()
 
     override val name: String get() = properties.name
-    override var uuid: TournamentID
-        get() = properties.tournamentID
-        protected set(value) { properties.tournamentID = value }
+    override val uuid: UUID get() = properties.uuid
     var tournamentStatus
         get() = properties.tournamentStatus
         private set(value) { properties.tournamentStatus = value }
@@ -43,61 +35,57 @@ open class Tournament(
     val minLevel: Int get() = properties.minLevel
     val maxLevel: Int get() = properties.maxLevel
     val showPreview: Boolean get() = properties.showPreview
-    val totalRounds: Int get() = properties.rounds.size
-    val totalMatches: Int get() = properties.matches.size
-    val totalPlayers: Int get() = properties.players.size
-    // TODO handle collection inside properties
-    private val rounds get() = properties.rounds
-    private val matches get() = properties.matches
-    private val players get() = properties.players
+    val totalRounds: Int get() = roundMap.size
+    val totalMatches: Int get() = matchMap.size
+    val totalPlayers: Int get() = playerMap.size
+    val roundMap get() = properties.roundMap
+    val matchMap get() = properties.matchMap
+    val playerMap get() = properties.playerMap
+
 
     init {
-        properties.getChangeObservable().subscribe { emitChange() }
+        properties.observable.subscribe { emitChange() }
     }
 
-    /** &#9888; (UUID) constructor is needed for serialization method */
-    constructor(tournamentID: TournamentID = UUID.randomUUID()) :
-            this(TournamentProperties(tournamentID = tournamentID))
+
+    constructor(tournamentUuid: UUID = UUID.randomUUID()) :
+            this(TournamentProperties(uuid = tournamentUuid))
 
     override fun initialize() = this
 
     private fun emitChange() = anyChangeObservable.emit(this)
 
-    override fun getChangeObservable() = anyChangeObservable
+    override fun getObservable() = anyChangeObservable
 
-    fun getPlayerSet() = players.values.toSet()
+    fun getPlayerSet() = playerMap.values.toSet()
 
-    fun getCurrentMatch(playerID: PlayerID): TournamentMatch? {
-        val player = players[playerID] ?: return null
-        return if (player.tournamentID == uuid && (players[player.uuid] != null)) {
-            matches[player.currentMatchID]
+    fun getCurrentMatch(playerUuid: UUID): TournamentMatch? {
+        val player = playerMap[playerUuid] ?: return null
+        return if (player.uuid == uuid && (playerMap[player.uuid] != null)) {
+            matchMap[player.currentMatchID]
         } else {
             null
         }
     }
 
-    fun containsPlayer(playerID: PlayerID) = players.contains(playerID)
+    fun containsPlayer(playerID: UUID) = playerMap.contains { it.value.playerID == playerID }
 
     fun checkIfComplete(): Boolean {
         return if (tournamentStatus == TournamentStatus.FINALIZED) {
             true
         } else when (tournamentType) {
             TournamentType.SINGLE_ELIMINATION -> {
-                val lastRoundIndex = rounds.size - 1
-                val lastRound = rounds.values
-                    .firstOrNull { it.roundIndex == lastRoundIndex }
-                    ?: return false
-                val lastMatchID = lastRound
-                    .getMatchID(roundMatchIndex = 0)
-                    ?: return false
-                val lastMatch = matches[lastMatchID]
-                    ?: return false
-                return if (lastMatch.getUpdatedMatchStatus() == MatchStatus.FINALIZED) {
-                    finalize()
-                    return true
-                } else {
-                    false
-                }
+                val lastRoundIndex = roundMap.size - 1
+                roundMap.firstValueOrNull { it.value.roundIndex == lastRoundIndex }
+                    ?.getMatchID(roundMatchIndex = 0)
+                    ?.let { lastMatchID -> matchMap[lastMatchID] }
+                    ?.let { lastMatch ->
+                        if (lastMatch.getUpdatedMatchStatus() == MatchStatus.FINALIZED) {
+                            finalize()
+                            return true
+                        }
+                    }
+                return false
             }
             else -> false
             // TODO add other tournament types
@@ -108,23 +96,17 @@ open class Tournament(
         tournamentStatus = TournamentStatus.FINALIZED
         TournamentStoreManager.transferInstance(
             storeClass = TournamentStore::class.java,
-            storeID = TournamentStoreManager.ACTIVE_STORE_ID,
+            currentStoreID = TournamentStoreManager.ACTIVE_STORE_ID,
             newStoreID = TournamentStoreManager.INACTIVE_STORE_ID,
             instance = this,
         )
     }
 
     fun getFinalPlacement(player: TournamentPlayer, finalMatch: TournamentMatch): Int {
-        // TODO add switch for other tournament types
-        // this is for single elimination
-        // - if the player won their last match, they should be #1 and never get here...
-        if ( player.currentMatchID == finalMatch.uuid ) {
+        if (player.currentMatchID == finalMatch.uuid) {
             return 1
         }
-        return rounds[finalMatch.roundID]
-            ?.matchMapSize
-            ?.plus(other = 1)
-            ?: -69420 // lolz
+        return roundMap[finalMatch.roundID]?.matchMapSize?.plus(other = 1) ?: -69420 // lolz
     }
 
     override fun saveToNbt(nbt: CompoundTag): CompoundTag {
@@ -139,22 +121,51 @@ open class Tournament(
         return this
     }
 
-    override fun loadFromJSON(json: JsonObject): ClassStored { TODO() }
+    override fun loadFromJSON(json: JsonObject): Tournament { TODO() }
 
-    override fun printProperties() = properties.logDebug()
+    fun deepCopy() = Tournament(properties.deepCopy())
 
-    fun displayOverviewInChat(player: ServerPlayer) = properties.displayInChat(player = player)
+    fun copy() = Tournament(properties.copy())
 
-    fun displayResultsInChat(player: ServerPlayer) = properties.displayResultsInChat(player = player)
+    override fun printProperties() = properties.printDebug()
+
+    fun displayOverviewInChat(player: ServerPlayer) = properties.displayInChat(player)
+
+    fun displayResultsInChat(player: ServerPlayer) = properties.displayResultsInChat(player)
 
     companion object {
+
         fun loadFromNbt(nbt: CompoundTag): Tournament {
             return Tournament(
-                TournamentProperties.loadFromNbt(
-                    nbt = nbt.getCompound(TOURNAMENT_PROPERTIES_KEY),
-                )
+                TournamentProperties.loadFromNbt(nbt.getCompound(TOURNAMENT_PROPERTIES_KEY))
             )
         }
+
+        fun victorNextMatchIndex(roundMatchIndex: Int, roundIndex: Int, roundCount: Int): Int? {
+            return if (roundIndex + 1 < roundCount) {
+                roundMatchIndex shr 1
+            } else {
+                null
+            }
+        }
+
+        fun defeatedNextMatchIndex(tournamentType: TournamentType): Int? {
+            return when (tournamentType) {
+                TournamentType.SINGLE_ELIMINATION -> null
+                TournamentType.DOUBLE_ELIMINATION -> TODO()
+                TournamentType.ROUND_ROBIN -> TODO()
+                TournamentType.VGC -> TODO()
+            }
+        }
+
+        fun previousMatchIndices(roundMatchIndex: Int, roundIndex: Int): Pair<Int?, Int?> {
+            return if (roundIndex > 0) {
+                (roundMatchIndex * 2) to ((roundMatchIndex * 2) + 1)
+            } else {
+                null to null
+            }
+        }
+
     }
 
 }

@@ -1,57 +1,19 @@
 package com.cobblemontournament.common.player.properties
 
 import com.cobblemon.mod.common.api.battles.model.actor.ActorType
-import com.cobblemontournament.common.util.*
-import com.someguy.storage.PropertiesHelper
-import com.someguy.storage.util.*
+import com.cobblemontournament.common.api.storage.*
+import com.sg8.properties.PropertiesHelper
+import com.sg8.util.*
 import net.minecraft.nbt.CompoundTag
 import net.minecraft.server.level.ServerPlayer
 import org.slf4j.helpers.Util
 
 object PlayerPropertiesHelper : PropertiesHelper<PlayerProperties> {
 
-    override fun setFromNbtHelper(mutable: PlayerProperties, nbt: CompoundTag): PlayerProperties {
-        mutable.name = nbt.getString(PLAYER_NAME_KEY)
-        mutable.actorType = enumValueOf<ActorType>(nbt.getString(ACTOR_TYPE_KEY))
-        mutable.playerID = nbt.getUUID(PLAYER_ID_KEY)
-        mutable.tournamentID = nbt.getUUID(TOURNAMENT_ID_KEY)
-        mutable.seed = nbt.getInt(SEED_KEY)
-        mutable.originalSeed = nbt.getInt(ORIGINAL_SEED_KEY)
-        mutable.finalPlacement = nbt.getInt(FINAL_PLACEMENT_KEY)
-        mutable.pokemonTeamID = nbt.getNullableUUID(POKEMON_TEAM_ID_KEY)
-        mutable.currentMatchID = nbt.getNullableUUID(CURRENT_MATCH_ID_KEY)
-        mutable.pokemonFinal = nbt.getBoolean(POKEMON_FINAL_KEY)
-        mutable.lockPokemonOnSet = nbt.getBoolean(LOCK_POKEMON_ON_SET_KEY)
-        return mutable
-    }
-
-    override fun deepCopyHelper(properties: PlayerProperties): PlayerProperties {
-        val props = PlayerProperties (
-            name = properties.name,
-            actorType = properties.actorType,
-            playerID = properties.playerID,
-            tournamentID = properties.tournamentID,
-            seed = properties.seed,
-            originalSeed = properties.originalSeed,
-            finalPlacement = properties.finalPlacement,
-            pokemonTeamID = properties.pokemonTeamID,
-            currentMatchID = properties.currentMatchID,
-            pokemonFinal = properties.pokemonFinal,
-            lockPokemonOnSet = properties.lockPokemonOnSet,
-        )
-        return props
-    }
-
-    fun deepCopyPlayers(players: MutableSet<PlayerProperties>): MutableSet<PlayerProperties> {
-        val copy = mutableSetOf<PlayerProperties>()
-        players.forEach { copy.add(it.deepCopy()) }
-        return copy
-    }
-
-    override fun saveToNbtHelper(properties: PlayerProperties, nbt: CompoundTag): CompoundTag {
+    override fun saveToNbt(properties: PlayerProperties, nbt: CompoundTag): CompoundTag {
         nbt.putString(PLAYER_NAME_KEY, properties.name)
         nbt.putString(ACTOR_TYPE_KEY, properties.actorType.name)
-        nbt.putUUID(PLAYER_ID_KEY, properties.playerID)
+        nbt.putUUID(PLAYER_ID_KEY, properties.uuid)
         nbt.putUUID(TOURNAMENT_ID_KEY, properties.tournamentID)
         nbt.putInt(SEED_KEY, properties.seed)
         nbt.putInt(ORIGINAL_SEED_KEY, properties.originalSeed)
@@ -63,57 +25,68 @@ object PlayerPropertiesHelper : PropertiesHelper<PlayerProperties> {
         return nbt
     }
 
-    fun savePlayersToNbt(players: Iterator<PlayerProperties>, nbt: CompoundTag): CompoundTag {
-        var size = 0
-        players.forEach { properties ->
-            nbt.put((PLAYER_PROPERTIES_KEY + size++), properties.saveToNbt(nbt = CompoundTag()))
-        }
-        nbt.putInt(SIZE_KEY, size)
-        return nbt
-    }
-
-    override fun loadFromNbtHelper(nbt: CompoundTag): PlayerProperties {
+    override fun loadFromNbt(nbt: CompoundTag): PlayerProperties {
         return PlayerProperties(
             name = nbt.getString(PLAYER_NAME_KEY),
-            actorType = enumValueOf<ActorType>(nbt.getString(ACTOR_TYPE_KEY)),
-            playerID = nbt.getUUID(PLAYER_ID_KEY),
+            actorType = nbt.getConstantStrict<ActorType>(ACTOR_TYPE_KEY),
+            uuid = nbt.getUUID(PLAYER_ID_KEY),
             tournamentID = nbt.getUUID(TOURNAMENT_ID_KEY),
             seed = nbt.getInt(SEED_KEY),
             originalSeed = nbt.getInt(ORIGINAL_SEED_KEY),
             finalPlacement = nbt.getInt(FINAL_PLACEMENT_KEY),
-            pokemonTeamID = nbt.getNullableUUID(POKEMON_TEAM_ID_KEY),
-            currentMatchID = nbt.getNullableUUID(CURRENT_MATCH_ID_KEY),
+            pokemonTeamID = nbt.getUuidOrNull(POKEMON_TEAM_ID_KEY),
+            currentMatchID = nbt.getUuidOrNull(CURRENT_MATCH_ID_KEY),
             pokemonFinal = nbt.getBoolean(POKEMON_FINAL_KEY),
             lockPokemonOnSet = nbt.getBoolean(LOCK_POKEMON_ON_SET_KEY),
         )
     }
 
-    fun loadPlayersFromNbt(nbt: CompoundTag): MutableSet<PlayerProperties> {
-        val players = mutableSetOf<PlayerProperties>()
-        if (nbt.contains(SIZE_KEY) && (nbt.getInt(SIZE_KEY) != 0) ) {
-            val size = nbt.getInt(SIZE_KEY)
-            for (i in 0 until size) {
-                players.add(
-                    loadFromNbtHelper(nbt = nbt.getCompound((PLAYER_PROPERTIES_KEY + i)))
-                )
-            }
-        }
-        return players
+    override fun setFromNbt(mutable: PlayerProperties, nbt: CompoundTag): PlayerProperties {
+        mutable.name = nbt.getString(PLAYER_NAME_KEY)
+        mutable.actorType = nbt.getConstantStrict<ActorType>(ACTOR_TYPE_KEY)
+        mutable.uuid = nbt.getUUID(PLAYER_ID_KEY)
+        mutable.tournamentID = nbt.getUUID(TOURNAMENT_ID_KEY)
+        mutable.seed = nbt.getInt(SEED_KEY)
+        mutable.originalSeed = nbt.getInt(ORIGINAL_SEED_KEY)
+        mutable.finalPlacement = nbt.getInt(FINAL_PLACEMENT_KEY)
+        mutable.pokemonTeamID = nbt.getUuidOrNull(POKEMON_TEAM_ID_KEY)
+        mutable.currentMatchID = nbt.getUuidOrNull(CURRENT_MATCH_ID_KEY)
+        mutable.pokemonFinal = nbt.getBoolean(POKEMON_FINAL_KEY)
+        mutable.lockPokemonOnSet = nbt.getBoolean(LOCK_POKEMON_ON_SET_KEY)
+        return mutable
     }
 
-    override fun logDebugHelper(properties: PlayerProperties) {
+    override fun deepCopy(properties: PlayerProperties) = copy(properties)
+
+    override fun copy(properties: PlayerProperties): PlayerProperties {
+        return PlayerProperties(
+            name = properties.name,
+            actorType = properties.actorType,
+            uuid = properties.uuid,
+            tournamentID = properties.tournamentID,
+            seed = properties.seed,
+            originalSeed = properties.originalSeed,
+            finalPlacement = properties.finalPlacement,
+            pokemonTeamID = properties.pokemonTeamID,
+            currentMatchID = properties.currentMatchID,
+            pokemonFinal = properties.pokemonFinal,
+            lockPokemonOnSet = properties.lockPokemonOnSet,
+        )
+    }
+
+    override fun printDebug(properties: PlayerProperties) {
         Util.report(("Player \"${properties.name}\" (${properties.actorType}) " +
-                "[${properties.playerID.shortUUID() }]"))
+                "[${properties.uuid.short() }]"))
         Util.report(("- Seed: ${properties.seed} [Original: ${properties.originalSeed}]"))
-        Util.report(("- Pokemon Team ID: [${properties.pokemonTeamID.shortUUID()}] " +
+        Util.report(("- Pokemon Team ID: [${properties.pokemonTeamID.short()}] " +
                 "(Final: ${properties.pokemonFinal})"))
-        Util.report(("- Current Match: [${properties.currentMatchID.shortUUID()}]"))
+        Util.report(("- Current Match: [${properties.currentMatchID.short()}]"))
         if (properties.finalPlacement > 0) {
             Util.report(("- Final Placement: ${properties.finalPlacement}"))
         }
     }
 
-    override fun displayInChatHelper(properties: PlayerProperties, player: ServerPlayer) {
+    override fun displayInChat(properties: PlayerProperties, player: ServerPlayer) {
         displayInChatHelper(
             properties = properties,
             player = player,
@@ -139,12 +112,12 @@ object PlayerPropertiesHelper : PropertiesHelper<PlayerProperties> {
         )
         titleComponent.appendWithQuoted(
             text = properties.name,
-            textColor = ChatUtil.AQUA_FORMAT,
+            textColor = AQUA_FORMAT,
             padding = 0 to 1,
         )
         titleComponent.appendWithBracketed(
-            text = properties.playerID.shortUUID(),
-            textColor = ChatUtil.AQUA_FORMAT,
+            text = properties.uuid.short(),
+            textColor = AQUA_FORMAT,
             bold = true,
         )
 
@@ -154,13 +127,13 @@ object PlayerPropertiesHelper : PropertiesHelper<PlayerProperties> {
             val seedComponent = getComponent(text = "  Seed ", padding = padStart to 0)
             seedComponent.appendWithBracketed(
                 text = "${properties.seed}",
-                textColor = ChatUtil.YELLOW_FORMAT,
+                textColor = YELLOW_FORMAT,
                 bold = true,
             )
             seedComponent.appendWith(text = " Original ")
             seedComponent.appendWithBracketed(
                 text = "${properties.originalSeed}",
-                textColor = ChatUtil.YELLOW_FORMAT,
+                textColor = YELLOW_FORMAT,
                 bold = true,
             )
             player.displayClientMessage(seedComponent, (false))
@@ -171,13 +144,13 @@ object PlayerPropertiesHelper : PropertiesHelper<PlayerProperties> {
 //            val pokemonComponent = ChatUtil.formatText(text = "$spacing  Pokemon Team ID ")
 //            pokemonComponent.appendWithBracketed(
 //                text = ChatUtil.shortUUID(uuid = properties.pokemonTeamID),
-//                textColor = ChatUtil.yellow,
+//                textColor = YELLOW_FORMAT,
 //                bold = true,
 //            )
 //            pokemonComponent.appendWith(text = " Team Final ")
 //            pokemonComponent.appendWithBracketed(
 //                text = "${properties.pokemonFinal}",
-//                textColor = ChatUtil.yellow,
+//                textColor = YELLOW_FORMAT,
 //                bold = true,
 //            )
 //            player.displayClientMessage(pokemonComponent, (false))
@@ -186,8 +159,8 @@ object PlayerPropertiesHelper : PropertiesHelper<PlayerProperties> {
         if (displayCurrentMatch) {
             val matchComponent = getComponent(text = "  Current Match ".padStart(padStart))
             matchComponent.appendWithBracketed(
-                text = (properties.currentMatchID.shortUUID()),
-                textColor = ChatUtil.YELLOW_FORMAT,
+                text = (properties.currentMatchID.short()),
+                textColor = YELLOW_FORMAT,
                 bold = true,
             )
             player.displayClientMessage(matchComponent, (false))
@@ -196,7 +169,7 @@ object PlayerPropertiesHelper : PropertiesHelper<PlayerProperties> {
             val placementText = getComponent(text = "  Final Placement ".padStart(padStart))
             placementText.appendWithBracketed(
                 text = "${properties.finalPlacement}",
-                textColor = ChatUtil.YELLOW_FORMAT,
+                textColor = YELLOW_FORMAT,
                 bold = true,
             )
             player.displayClientMessage(placementText, (false))

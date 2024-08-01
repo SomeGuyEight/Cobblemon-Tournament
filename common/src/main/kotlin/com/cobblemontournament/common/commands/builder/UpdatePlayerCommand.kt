@@ -1,15 +1,24 @@
 package com.cobblemontournament.common.commands.builder
 
+import com.cobblemon.mod.common.api.battles.model.actor.ActorType
 import com.cobblemontournament.common.CobblemonTournament
 import com.cobblemontournament.common.api.storage.TournamentStoreManager
-import com.cobblemontournament.common.commands.CommandContext
+import com.sg8.api.command.CommandContext
 import com.cobblemontournament.common.commands.nodes.*
 import com.cobblemontournament.common.commands.suggestions.PlayerNameSuggestionProvider
-import com.cobblemontournament.common.util.*
+import com.cobblemontournament.common.commands.util.getTournamentBuilderOrDisplayFail
 import com.mojang.brigadier.Command
 import com.mojang.brigadier.CommandDispatcher
 import com.mojang.brigadier.arguments.IntegerArgumentType
 import com.mojang.brigadier.arguments.StringArgumentType
+import com.sg8.api.command.getNodeInputRange
+import com.sg8.api.command.node.ExecutionNode
+import com.sg8.api.command.node.PLAYER
+import com.sg8.api.command.node.PLAYER_NAME
+import com.sg8.util.displayCommandFail
+import com.sg8.util.displayCommandSuccess
+import com.sg8.util.displayInChat
+import com.sg8.util.getConstantOrNull
 import net.minecraft.commands.CommandSourceStack
 import net.minecraft.commands.Commands
 
@@ -20,38 +29,36 @@ import net.minecraft.commands.Commands
  */
 object UpdatePlayerCommand {
 
-    val executionNode by lazy { ExecutionNode { updatePlayer(ctx = it) } }
+    val executionNode = ExecutionNode { updatePlayer(ctx = it) }
 
     fun register(dispatcher: CommandDispatcher<CommandSourceStack>) {
-        dispatcher
-            .register(ActiveBuilderPlayerNode
-                .nest(Commands
-                    .literal(UPDATE)
-                    .then(Commands
-                        .argument(PLAYER_NAME, StringArgumentType.string())
-                        .suggests(PlayerNameSuggestionProvider())
+        dispatcher.register(ActiveBuilderPlayerNode
+            .nest(Commands
+                .literal(UPDATE)
+                .then(Commands
+                    .argument(PLAYER_NAME, StringArgumentType.string())
+                    .suggests(PlayerNameSuggestionProvider())
+//                    .then(Commands
+//                        .literal(ACTOR_TYPE)
 //                        .then(Commands
-//                            .literal(ACTOR_TYPE)
-//                            .then(Commands
-//                                .argument("$NEW$ACTOR_TYPE", StringArgumentType.string())
-//                                .suggests(ActorTypeSuggestionProvider())
-//                                .executes(this.executionNode.handler)
-//                            )
+//                            .argument("$NEW$ACTOR_TYPE", StringArgumentType.string())
+//                            .suggests(ActorTypeSuggestionProvider())
+//                            .executes(this.executionNode.handler)
 //                        )
+//                    )
+                    .then(Commands
+                        .literal(SEED)
                         .then(Commands
-                            .literal(SEED)
-                            .then(Commands
-                                .argument("$NEW$PLAYER_SEED", IntegerArgumentType.integer(-1))
-                                .executes(this.executionNode.action)
-                            )
+                            .argument("$NEW$PLAYER_SEED", IntegerArgumentType.integer(-1))
+                            .executes(this.executionNode.handler)
                         )
                     )
                 )
             )
+        )
     }
 
     private fun updatePlayer(ctx: CommandContext): Int {
-        val player = ctx.source.player
         val tournamentBuilder = ctx.getTournamentBuilderOrDisplayFail(
             storeID = TournamentStoreManager.ACTIVE_STORE_ID,
         ) ?: return 0
@@ -59,8 +66,8 @@ object UpdatePlayerCommand {
         val playerProperties = ctx
             .getNodeInputRange(PLAYER_NAME)
             ?.let { tournamentBuilder.getPlayer(it) }
-            ?: let { _ ->
-                player.displayCommandFail(reason = "Player properties were null")
+            ?: run {
+                ctx.source.player.displayCommandFail(reason = "Player properties were null")
                 return 0
             }
 
@@ -70,37 +77,39 @@ object UpdatePlayerCommand {
             ?.let { seed ->
                 playerProperties.seed = seed
                 playerProperties.originalSeed = seed
+                true
             }
-            ?.let { true }
             ?: false
 
         val actorTypeUpdated: Boolean = ctx
             .getNodeInputRange(nodeName = "$NEW$ACTOR_TYPE")
-            ?.let { TournamentUtil.getActorTypeOrNull(it) }
-            ?.let { playerProperties.actorType = it }
-            ?.let { true }
+            ?.getConstantOrNull<ActorType>()
+            ?.let { type ->
+                playerProperties.actorType = type
+                true
+            }
             ?: false
 
-        val builderName = tournamentBuilder.name
-        val playerName = playerProperties.name
-
         if (!seedUpdated && !actorTypeUpdated) {
-            player.displayCommandFail(
-                reason = "Failed inside of tournament builder \"$builderName\""
+            ctx.source.player.displayCommandFail(
+                reason = "Failed inside of tournament builder \"${tournamentBuilder.name}\""
             )
             return 0
         }
 
-        val updatedPlayer = CobblemonTournament.getServerPlayer(playerProperties.playerID)
+        CobblemonTournament.getServerPlayer(playerProperties.uuid)
+            ?.let { updatedPlayer ->
+                if (updatedPlayer != ctx.source.player) {
+                    updatedPlayer.displayInChat(
+                        text = "Your properties were updated " +
+                                "in tournament builder \"${tournamentBuilder.name}\"!",
+                    )
+                }
+            }
 
-        if (updatedPlayer != null && updatedPlayer != player) {
-            updatedPlayer.displayInChat(
-                text = "Your properties were updated in tournament builder \"$builderName\"!",
-            )
-        }
-
-        player.displayCommandSuccess(
-            text = "Updated $playerName properties in tournament builder \"$builderName\"",
+        ctx.source.player.displayCommandSuccess(
+            text = "Updated ${playerProperties.name} properties " +
+                    "in tournament builder \"${tournamentBuilder.name}\"",
         )
 
         return Command.SINGLE_SUCCESS

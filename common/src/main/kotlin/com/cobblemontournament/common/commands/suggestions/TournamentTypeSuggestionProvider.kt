@@ -1,6 +1,6 @@
 package com.cobblemontournament.common.commands.suggestions
 
-import com.cobblemontournament.common.commands.CommandContext
+import com.sg8.api.command.CommandContext
 import com.cobblemontournament.common.tournament.TournamentType
 import com.mojang.brigadier.suggestion.SuggestionProvider
 import com.mojang.brigadier.suggestion.Suggestions

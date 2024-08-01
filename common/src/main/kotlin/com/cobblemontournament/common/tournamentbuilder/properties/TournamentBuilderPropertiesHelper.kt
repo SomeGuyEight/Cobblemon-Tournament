@@ -1,110 +1,98 @@
 package com.cobblemontournament.common.tournamentbuilder.properties
 
-import com.cobblemontournament.common.api.cobblemonchallenge.ChallengeFormat
+import com.cobblemontournament.common.api.storage.*
 import com.cobblemontournament.common.player.properties.PlayerProperties
 import com.cobblemontournament.common.player.properties.PlayerPropertiesHelper
-import com.cobblemontournament.common.player.properties.PlayerPropertiesHelper.loadPlayersFromNbt
-import com.cobblemontournament.common.player.properties.PlayerPropertiesHelper.savePlayersToNbt
-import com.cobblemontournament.common.tournament.TournamentType
 import com.cobblemontournament.common.tournament.properties.TournamentProperties
-import com.cobblemontournament.common.util.*
-import com.someguy.storage.PropertiesHelper
+import com.sg8.collections.reactive.set.loadObservableSetOf
+import com.sg8.collections.reactive.set.observableSetOf
+import com.sg8.collections.reactive.set.saveToNbt
+import com.sg8.properties.PropertiesHelper
+import com.sg8.util.*
 import net.minecraft.nbt.CompoundTag
+import net.minecraft.nbt.Tag
 import net.minecraft.server.level.ServerPlayer
 import org.slf4j.helpers.Util
 
 object TournamentBuilderPropertiesHelper : PropertiesHelper<TournamentBuilderProperties> {
 
-    override fun setFromNbtHelper(
-        mutable: TournamentBuilderProperties,
-        nbt: CompoundTag,
-    ): TournamentBuilderProperties {
-        mutable.name = nbt.getString(TOURNAMENT_BUILDER_NAME_KEY)
-        mutable.tournamentBuilderID = nbt.getUUID(TOURNAMENT_BUILDER_ID_KEY)
-        mutable.tournamentType = enumValueOf<TournamentType>(nbt.getString(TOURNAMENT_TYPE_KEY))
-        mutable.challengeFormat = enumValueOf<ChallengeFormat>(nbt.getString(CHALLENGE_FORMAT_KEY))
-        mutable.maxParticipants = nbt.getInt(MAX_PARTICIPANTS_KEY)
-        mutable.teamSize = nbt.getInt(TEAM_SIZE_KEY)
-        mutable.groupSize = nbt.getInt(GROUP_SIZE_KEY)
-        mutable.minLevel = nbt.getInt(MIN_LEVEL_KEY)
-        mutable.maxLevel = nbt.getInt(MAX_LEVEL_KEY)
-        mutable.showPreview = nbt.getBoolean(SHOW_PREVIEW_KEY)
-        for (playerProps in loadPlayersFromNbt(nbt = nbt.getCompound(PLAYER_SET_KEY))) {
-            mutable.addPlayer(playerProps = playerProps)
-        }
-        return mutable
-    }
-
-    override fun deepCopyHelper(
-        properties: TournamentBuilderProperties,
-    ): TournamentBuilderProperties {
-        return TournamentBuilderProperties(
-            name = properties.name,
-            tournamentBuilderID = properties.tournamentBuilderID,
-            tournamentProperties = TournamentProperties(
-                tournamentType = properties.tournamentType,
-                challengeFormat = properties.challengeFormat,
-                maxParticipants = properties.maxParticipants,
-                teamSize = properties.teamSize,
-                groupSize = properties.groupSize,
-                minLevel = properties.minLevel,
-                maxLevel = properties.maxLevel,
-                showPreview = properties.showPreview,
-            ),
-            players = properties.getPlayersDeepCopy(),
-        )
-    }
-
-    override fun saveToNbtHelper(
+    override fun saveToNbt(
         properties: TournamentBuilderProperties,
         nbt: CompoundTag,
     ): CompoundTag {
         nbt.putString(TOURNAMENT_BUILDER_NAME_KEY, properties.name)
-        nbt.putUUID(TOURNAMENT_BUILDER_ID_KEY, properties.tournamentBuilderID)
-        nbt.putString(TOURNAMENT_TYPE_KEY, properties.tournamentType.name)
-        nbt.putString(CHALLENGE_FORMAT_KEY, properties.challengeFormat.name)
-        nbt.putInt(MAX_PARTICIPANTS_KEY, properties.maxParticipants)
-        nbt.putInt(TEAM_SIZE_KEY, properties.teamSize)
-        nbt.putInt(GROUP_SIZE_KEY, properties.groupSize)
-        nbt.putInt(MIN_LEVEL_KEY, properties.minLevel)
-        nbt.putInt(MAX_LEVEL_KEY, properties.maxLevel)
-        nbt.putBoolean(SHOW_PREVIEW_KEY, properties.showPreview)
-        nbt.put(
-            PLAYER_SET_KEY,
-            savePlayersToNbt(players = properties.getPlayersIterator(), nbt = CompoundTag())
-        )
+        nbt.putUUID(TOURNAMENT_BUILDER_ID_KEY, properties.uuid)
+        nbt.put(TOURNAMENT_PROPERTIES_KEY, properties.tournamentProperties.saveToNbt(nbt))
+        nbt.putPlayersSet(properties)
         return nbt
     }
 
-    override fun loadFromNbtHelper(nbt: CompoundTag): TournamentBuilderProperties {
+    override fun loadFromNbt(nbt: CompoundTag): TournamentBuilderProperties {
         return TournamentBuilderProperties(
             name = nbt.getString(TOURNAMENT_BUILDER_NAME_KEY),
-            tournamentBuilderID = nbt.getUUID(TOURNAMENT_BUILDER_ID_KEY),
-            tournamentProperties = TournamentProperties(
-                tournamentType = enumValueOf<TournamentType>(nbt.getString(TOURNAMENT_TYPE_KEY)),
-                challengeFormat = enumValueOf<ChallengeFormat>(nbt.getString(CHALLENGE_FORMAT_KEY)),
-                maxParticipants = nbt.getInt(MAX_PARTICIPANTS_KEY),
-                teamSize = nbt.getInt(TEAM_SIZE_KEY),
-                groupSize = nbt.getInt(GROUP_SIZE_KEY),
-                minLevel = nbt.getInt(MIN_LEVEL_KEY),
-                maxLevel = nbt.getInt(MAX_LEVEL_KEY),
-                showPreview = nbt.getBoolean(SHOW_PREVIEW_KEY),
+            uuid = nbt.getUUID(TOURNAMENT_BUILDER_ID_KEY),
+            tournamentProperties = TournamentProperties.loadFromNbt(
+                nbt.getCompound(TOURNAMENT_PROPERTIES_KEY)
             ),
-            players = loadPlayersFromNbt(nbt = nbt.getCompound(PLAYER_SET_KEY)),
+            playerSet = nbt.getPlayersSet(),
         )
     }
 
-    override fun logDebugHelper(properties: TournamentBuilderProperties) {
+    override fun setFromNbt(
+        mutable: TournamentBuilderProperties,
+        nbt: CompoundTag,
+    ): TournamentBuilderProperties {
+        mutable.name = nbt.getString(TOURNAMENT_BUILDER_NAME_KEY)
+        mutable.uuid = nbt.getUUID(TOURNAMENT_BUILDER_ID_KEY)
+        mutable.tournamentProperties = TournamentProperties.loadFromNbt(
+            nbt.getCompound(TOURNAMENT_PROPERTIES_KEY)
+        )
+        val playersSet = nbt.getPlayersSet()
+        mutable.playerSet.retainAll(playersSet)
+        mutable.playerSet.addAll(playersSet)
+        return mutable
+    }
+
+    private fun CompoundTag.putPlayersSet(properties: TournamentBuilderProperties): Tag? {
+        val elementHandler = { player: PlayerProperties -> player.saveToNbt(CompoundTag()) }
+        val playersSetNbt =  properties.playerSet.saveToNbt(elementHandler)
+        return this.put(PLAYER_SET_KEY, playersSetNbt)
+    }
+
+    private fun CompoundTag.getPlayersSet(): MutablePlayersSet {
+        val elementHandler = { nbt: CompoundTag -> PlayerProperties.loadFromNbt(nbt) }
+        val playersSetNbt = this.getCompound(PLAYER_SET_KEY)
+        return playersSetNbt.loadObservableSetOf(elementHandler)
+    }
+
+    override fun deepCopy(properties: TournamentBuilderProperties): TournamentBuilderProperties {
+        val playersCopy = observableSetOf<PlayerProperties, MutablePlayersSet>()
+        properties.playerSet.forEach { playersCopy.add(it.deepCopy()) }
+        properties.playerSet.clear()
+        properties.playerSet.addAll(playersCopy)
+        return copy(properties)
+    }
+
+    override fun copy(properties: TournamentBuilderProperties): TournamentBuilderProperties {
+        return TournamentBuilderProperties(
+            name = properties.name,
+            uuid = properties.uuid,
+            tournamentProperties = properties.tournamentProperties,
+            playerSet = properties.playerSet,
+        )
+    }
+
+    override fun printDebug(properties: TournamentBuilderProperties) {
         Util.report("Tournament Builder \"${properties.name}\" " +
-                "[${properties.tournamentBuilderID.shortUUID()}]")
+                "[${properties.uuid.short()}]")
         properties.printTournamentProperties()
         Util.report("  Players:")
         for (player in properties.getPlayersSortedBy { it.seed }) {
-            player.logDebug()
+            player.printDebug()
         }
     }
 
-    override fun displayInChatHelper(
+    override fun displayInChat(
         properties: TournamentBuilderProperties,
         player: ServerPlayer,
     ) {
@@ -119,13 +107,13 @@ object TournamentBuilderPropertiesHelper : PropertiesHelper<TournamentBuilderPro
         val titleComponent = getComponent(text = "Tournament Builder ")
         titleComponent.appendWithQuoted(
             text = properties.name,
-            textColor = ChatUtil.PURPLE_FORMAT,
+            textColor = PURPLE_FORMAT,
             padding = 0 to 1,
             bold = true,
         )
         titleComponent.appendWithBracketed(
-            text = properties.tournamentBuilderID.shortUUID(),
-            textColor = ChatUtil.PURPLE_FORMAT,
+            text = properties.uuid.short(),
+            textColor = PURPLE_FORMAT,
         )
 
         player.displayClientMessage(titleComponent, false)
@@ -134,8 +122,8 @@ object TournamentBuilderPropertiesHelper : PropertiesHelper<TournamentBuilderPro
 
         val playerComponent = getComponent(text = "  Player Count ")
         playerComponent.appendWithBracketed(
-            text = properties.getPlayersSize().toString(),
-            textColor = ChatUtil.YELLOW_FORMAT,
+            text = properties.playerSet.size.toString(),
+            textColor = YELLOW_FORMAT,
         )
 
         player.displayClientMessage(playerComponent, false)

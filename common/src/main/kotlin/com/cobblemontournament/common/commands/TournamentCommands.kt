@@ -4,12 +4,13 @@ import com.cobblemontournament.common.commands.builder.*
 import com.cobblemontournament.common.commands.match.MyMatchesCommand
 import com.cobblemontournament.common.commands.tournament.*
 import com.mojang.brigadier.CommandDispatcher
-import com.someguy.mod.commands.CommandManager
+import com.sg8.api.modimplementation.CommandImplementation
+import com.sg8.test.command.ReactiveSetTestCommand
 import net.minecraft.commands.CommandBuildContext
 import net.minecraft.commands.CommandSourceStack
 import net.minecraft.commands.Commands.CommandSelection
 
-object TournamentCommands : CommandManager {
+object TournamentCommands : CommandImplementation {
 
     override fun registerCommands(
         dispatcher: CommandDispatcher<CommandSourceStack>,
@@ -33,10 +34,11 @@ object TournamentCommands : CommandManager {
         ActiveTournamentCurrentMatchCommand.register(dispatcher)
         TournamentInfoCommand.register(dispatcher)
 
-        //TestCommands.register( dispatcher, registry, selection )
-        //TestChatFormating.register( dispatcher, registry, selection )
-        //RegisterFakePlayerCommand.register( dispatcher, registry, selection )
-        //UnregisterFakePlayerCommand.register( dispatcher, registry, selection )
+        ReactiveSetTestCommand.register(dispatcher)
+        //TestCommands.register(dispatcher)
+        //TestChatFormating.register(dispatcher)
+        //RegisterFakePlayerCommand.register(dispatcher)
+        //UnregisterFakePlayerCommand.register(dispatcher)
     }
 
 }

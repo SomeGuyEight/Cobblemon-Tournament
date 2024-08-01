@@ -2,12 +2,20 @@ package com.cobblemontournament.common.commands.builder
 
 import com.cobblemon.mod.common.api.battles.model.actor.ActorType
 import com.cobblemontournament.common.api.storage.TournamentStoreManager
-import com.cobblemontournament.common.commands.CommandContext
+import com.sg8.api.command.CommandContext
 import com.cobblemontournament.common.commands.nodes.*
-import com.cobblemontournament.common.util.*
+import com.cobblemontournament.common.commands.util.getTournamentBuilder
 import com.mojang.brigadier.Command
 import com.mojang.brigadier.CommandDispatcher
 import com.mojang.brigadier.arguments.IntegerArgumentType
+import com.sg8.api.command.getNodeInputRange
+import com.sg8.api.command.getPlayerEntityArgumentOrDisplayFail
+import com.sg8.api.command.node.ExecutionNode
+import com.sg8.api.command.node.PLAYER
+import com.sg8.api.command.node.PLAYER_ENTITY
+import com.sg8.util.displayCommandFail
+import com.sg8.util.displayCommandSuccess
+import com.sg8.util.displayInChat
 import net.minecraft.commands.CommandSourceStack
 import net.minecraft.commands.Commands
 import net.minecraft.commands.arguments.EntityArgument
@@ -17,26 +25,25 @@ import net.minecraft.commands.arguments.EntityArgument
  */
 object RegisterPlayerCommand {
 
-    val executionNode by lazy { ExecutionNode { registerPlayer(ctx = it) } }
+    val executionNode = ExecutionNode { registerPlayer(ctx = it) }
 
     fun register(dispatcher: CommandDispatcher<CommandSourceStack>) {
-        dispatcher
-            .register(ActiveBuilderPlayerNode
-                .nest(Commands
-                    .literal(REGISTER)
+        dispatcher.register(ActiveBuilderPlayerNode
+            .nest(Commands
+                .literal(REGISTER)
+                .then(Commands
+                    .argument(PLAYER_ENTITY, EntityArgument.player())
+                    .executes(this.executionNode.handler)
                     .then(Commands
-                        .argument(PLAYER_ENTITY, EntityArgument.player())
-                        .executes(this.executionNode.action)
+                        .literal(SEED)
                         .then(Commands
-                            .literal(SEED)
-                            .then(Commands
-                                .argument(PLAYER_SEED, IntegerArgumentType.integer(-1))
-                                .executes(this.executionNode.action)
-                            )
+                            .argument(PLAYER_SEED, IntegerArgumentType.integer(-1))
+                            .executes(this.executionNode.handler)
                         )
                     )
                 )
             )
+        )
     }
 
     private fun registerPlayer(ctx: CommandContext): Int {
@@ -44,19 +51,19 @@ object RegisterPlayerCommand {
 
         val tournamentBuilder = ctx
             .getTournamentBuilder(TournamentStoreManager.INACTIVE_STORE_ID)
-            ?: let { _ ->
+            ?: run {
                 player.displayCommandFail(reason = "Tournament builder was null")
                 return 0
             }
 
-        val seed = ctx.getNodeInputRange(SEED)?.let { Integer.parseInt(it) }
+        val seed = ctx.getNodeInputRange(PLAYER_SEED)?.let { Integer.parseInt(it) }
 
         val newPlayer = ctx.getPlayerEntityArgumentOrDisplayFail() ?: return 0
 
         val builderName = tournamentBuilder.name
         val newPlayerName = newPlayer.name.string
 
-        if (tournamentBuilder.getPlayer(newPlayerName) != null) {
+        tournamentBuilder.getPlayer(newPlayerName)?.run {
             player.displayCommandFail(
                 reason = "'$newPlayerName' already registered with $builderName"
             )

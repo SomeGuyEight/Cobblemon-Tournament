@@ -1,9 +1,10 @@
 package com.cobblemontournament.common.commands.nodes
 
-import com.cobblemontournament.common.commands.nodes.nested.LiteralNestedNode
-import com.cobblemontournament.common.commands.nodes.nested.RequiredNestedNode
+import com.sg8.api.command.node.nested.LiteralNestedNode
+import com.sg8.api.command.node.nested.RequiredNestedNode
 import com.cobblemontournament.common.commands.suggestions.BuilderNameSuggestionProvider
 import com.mojang.brigadier.arguments.StringArgumentType
+import com.sg8.api.command.node.PLAYER
 
 /**
  * [TOURNAMENT]-[BUILDER]

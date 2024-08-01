@@ -1,8 +1,10 @@
 package com.cobblemontournament.common.generator
 
-import com.cobblemontournament.common.api.TournamentData
+import com.cobblemontournament.common.api.MatchSet
+import com.cobblemontournament.common.api.PlayerSet
+import com.cobblemontournament.common.api.RoundSet
+import com.cobblemontournament.common.api.tournament.TournamentData
 import com.cobblemontournament.common.generator.indexedseed.IndexedSeedGenerator
-import com.cobblemontournament.common.generator.indexedseed.SortType
 import com.cobblemontournament.common.match.TournamentMatch
 import com.cobblemontournament.common.match.properties.MatchProperties
 import com.cobblemontournament.common.player.TournamentPlayer
@@ -14,8 +16,12 @@ import com.cobblemontournament.common.tournament.Tournament
 import com.cobblemontournament.common.tournament.TournamentType
 import com.cobblemontournament.common.tournament.properties.TournamentProperties
 import com.cobblemontournament.common.tournamentbuilder.TournamentBuilder
-import com.cobblemontournament.common.util.*
+import com.sg8.collections.SortType
+import com.sg8.util.ceilToPowerOfTwo
+import com.sg8.collections.reactive.map.MutableObservableMap
 import java.util.UUID
+
+typealias OrderedPlayers = List<PlayerProperties>
 
 object TournamentGenerator {
 
@@ -73,9 +79,9 @@ object TournamentGenerator {
         val matches = getMatches(matchProperties, tournamentProperties)
         val players = getPlayers(sortedPlayers, tournamentProperties)
 
-        rounds.forEach { tournamentProperties.rounds[it.uuid] = it }
-        matches.forEach { tournamentProperties.matches[it.uuid] = it }
-        players.forEach { tournamentProperties.players[it.uuid] = it }
+        rounds.forEach { tournamentProperties.roundMap[it.uuid] = it }
+        matches.forEach { tournamentProperties.matchMap[it.uuid] = it }
+        players.forEach { tournamentProperties.playerMap[it.uuid] = it }
 
         val tournament = Tournament(tournamentProperties).initialize()
 
@@ -116,8 +122,7 @@ object TournamentGenerator {
     }
 
     private fun getRoundCountSingleElimination(builder: TournamentBuilder): Int {
-        val playerCount = builder.getPlayersSize()
-        var bracketSlots = ceilToPowerOfTwo(playerCount)
+        var bracketSlots = builder.getPlayersSize().ceilToPowerOfTwo()
         // -1 b/c first shift divides the total players in half
         // & gets the first round match count
         var rounds = -1
@@ -151,7 +156,7 @@ object TournamentGenerator {
         seededPlayers: List<PlayerProperties>,
         unseededPlayers: List<PlayerProperties>,
         tournamentProps: TournamentProperties,
-    ): OrderedPlayerProperties {
+    ): OrderedPlayers {
         val orderedPlayers = ArrayList(seededPlayers.toList())
         orderedPlayers.sortWith(Comparator.comparing(PlayerProperties::seed))
 
@@ -178,15 +183,15 @@ object TournamentGenerator {
 
             orderedPlayers.removeAt(i)
             orderedPlayers.add(
-                i, // index in list
+                i, // index
                 PlayerProperties(
-                    name            = nextPlayer.name,
-                    actorType       = nextPlayer.actorType,
-                    playerID        = nextPlayer.playerID,
-                    tournamentID    = tournamentProps.tournamentID,
-                    seed            = i + 1,
-                    originalSeed    = nextPlayer.seed,
-                    pokemonTeamID   = nextPlayer.pokemonTeamID,
+                    name = nextPlayer.name,
+                    actorType = nextPlayer.actorType,
+                    uuid = nextPlayer.uuid,
+                    tournamentID = tournamentProps.uuid,
+                    seed = i + 1,
+                    originalSeed = nextPlayer.seed,
+                    pokemonTeamID = nextPlayer.pokemonTeamID,
                 )
             )
         }
@@ -202,7 +207,7 @@ object TournamentGenerator {
     private fun handleFirstRound(
         rounds: MutableSet<RoundProperties>,
         matches: MutableSet<MatchProperties>,
-        orderedPlayerProps: OrderedPlayerProperties,
+        orderedPlayerProps: OrderedPlayers,
         builder: TournamentBuilder,
         tournamentProps: TournamentProperties,
     ) {
@@ -214,11 +219,11 @@ object TournamentGenerator {
             tournamentProperties = tournamentProps,
         )
         val firstRound = RoundProperties(
-            roundID = firstRoundID,
-            tournamentID = tournamentProps.tournamentID,
+            uuid = firstRoundID,
+            tournamentID = tournamentProps.uuid,
             roundIndex = 0,
             roundType = RoundType.PRIMARY,
-            indexedMatchMap = getMatchMap(firstRoundMatches),
+            indexedMatchMap = MutableObservableMap(getMatchMap(firstRoundMatches)),
         )
         rounds.add(firstRound)
         matches.addAll(firstRoundMatches)
@@ -227,13 +232,13 @@ object TournamentGenerator {
 
     private fun getMatchMap(matches: MutableSet<MatchProperties>): MutableMap<Int,UUID> {
         val matchMap = mutableMapOf<Int,UUID>()
-        matches.forEach { matchMap[it.roundMatchIndex] = it.matchID }
+        matches.forEach { matchMap[it.roundMatchIndex] = it.uuid }
         return matchMap
     }
 
     private fun getFirstRoundMatches(
-        roundID: RoundID,
-        orderedPlayerProperties: OrderedPlayerProperties,
+        roundID: UUID,
+        orderedPlayerProperties: OrderedPlayers,
         builder: TournamentBuilder,
         tournamentProperties: TournamentProperties,
     ): MutableSet<MatchProperties> {
@@ -256,24 +261,24 @@ object TournamentGenerator {
             val player1 = getProperties(seed1)
             val player2 = getProperties(seed2)
             val playerMap = mutableMapOf<UUID,Int>()
-            val matchID: MatchID = UUID.randomUUID()
+            val matchID: UUID = UUID.randomUUID()
             player1?.let {
                 player1.currentMatchID = matchID
-                playerMap[player1.playerID] = 1
+                playerMap[player1.uuid] = 1
             }
             player2?.let {
                 player2.currentMatchID = matchID
-                playerMap[player2.playerID] = 2
+                playerMap[player2.uuid] = 2
             }
             matches.add(
                 MatchProperties(
-                    matchID = matchID,
-                    tournamentID = tournamentProperties.tournamentID,
+                    uuid = matchID,
+                    tournamentID = tournamentProperties.uuid,
                     roundID = roundID,
                     roundIndex = 0,
                     tournamentMatchIndex = i,
                     roundMatchIndex = i,
-                    playerMap = playerMap,
+                    playerMap = MutableObservableMap(playerMap),
                 )
             )
         }
@@ -297,8 +302,8 @@ object TournamentGenerator {
             for (i in 0 until matchesThisRound) {
                 roundMatches.add(
                     MatchProperties(
-                        matchID = UUID.randomUUID(),
-                        tournamentID = tournamentProperties.tournamentID,
+                        uuid = UUID.randomUUID(),
+                        tournamentID = tournamentProperties.uuid,
                         roundID = roundID,
                         roundIndex = roundIndex,
                         tournamentMatchIndex = (tournamentMatchIndex++),
@@ -309,11 +314,11 @@ object TournamentGenerator {
 
             val roundMatchMap = getMatchMap(roundMatches)
             val newRound = RoundProperties(
-                roundID = roundID,
-                tournamentID = tournamentProperties.tournamentID,
+                uuid = roundID,
+                tournamentID = tournamentProperties.uuid,
                 roundIndex = roundIndex,
                 roundType = RoundType.PRIMARY,
-                indexedMatchMap = roundMatchMap,
+                indexedMatchMap = MutableObservableMap(roundMatchMap),
             )
             rounds.add(newRound)
             matches.addAll(roundMatches)
@@ -323,48 +328,37 @@ object TournamentGenerator {
     private fun setMatchConnections(
         matchProperties: Set<MatchProperties>,
         roundProperties: Set<RoundProperties>,
-        // TODO when other tournament types implemented
-        //tournamentType: TournamentType,
     ) {
         for (match in matchProperties) {
             val currentRound = roundProperties.firstOrNull { round ->
-                round.roundID == match.roundID
+                round.uuid == match.roundID
             } ?: continue
 
             val nextIndex = currentRound.roundIndex + 1
             val nextRound = roundProperties.firstOrNull { it.roundIndex == nextIndex }
 
             if (nextRound != null) {
-                TournamentUtil.victorNextMatchIndex(
+                Tournament.victorNextMatchIndex(
                     roundMatchIndex = match.roundMatchIndex,
                     roundIndex = currentRound.roundIndex,
                     roundCount = roundProperties.size,
                 )?.let { nextMatchIndex ->
-                    match.connections.victorNextMatch = nextRound.indexedMatchMap[nextMatchIndex]
+                    match.matchConnections.victorNextMatch = nextRound.getMatchID(nextMatchIndex)
                 }
             }
-
-            // TODO when other tournament types implemented
-            //val defeatedIndex = TournamentRound.defeatedNextMatchIndex(
-            //    match.roundMatchIndex,
-            //    tournamentType
-            //)
 
             val previousIndex = currentRound.roundIndex - 1
             val previousRound = roundProperties.firstOrNull { it.roundIndex == previousIndex }
             if (previousRound != null) {
-                val (evenIndex, oddIndex) = TournamentUtil.previousMatchIndices(
+                val (evenIndex, oddIndex) = Tournament.previousMatchIndices(
                     roundMatchIndex = match.roundMatchIndex,
                     roundIndex = currentRound.roundIndex,
                 )
-                val evenMatchID = previousRound.indexedMatchMap[evenIndex]
-                val oddMatchID = previousRound.indexedMatchMap[oddIndex]
-                if (evenMatchID != null && evenIndex != null) {
-                    match.connections.addPrevious(evenIndex, evenMatchID)
-                }
-                if (oddMatchID != null && oddIndex != null) {
-                    match.connections.addPrevious(oddIndex, oddMatchID)
-                }
+
+                val evenMatchID = previousRound.getMatchID(evenIndex)
+                val oddMatchID = previousRound.getMatchID(oddIndex)
+                match.matchConnections.addPreviousMatch(evenIndex, evenMatchID)
+                match.matchConnections.addPreviousMatch(oddIndex, oddMatchID)
             }
         }
     }
@@ -372,7 +366,7 @@ object TournamentGenerator {
     private fun handleFirstRoundByes(
         tournamentProperties: TournamentProperties,
         matchProperties: Set<MatchProperties>,
-        playerProperties: OrderedPlayerProperties,
+        playerProperties: OrderedPlayers,
     ) {
         for (match in matchProperties) {
             if (match.roundIndex != 0 || match.playerMap.isEmpty()) {
@@ -385,10 +379,8 @@ object TournamentGenerator {
                     // match is a bye -> set victorID & progress team
                     match.victorID = entries.first().key
                     for ((uuid, _) in entries) {
-                        val player = playerProperties.firstOrNull { playerProps ->
-                            playerProps.playerID == uuid
-                        } ?: continue
-                        player.currentMatchID = match.connections.victorNextMatch
+                        val player = playerProperties.firstOrNull { it.uuid == uuid } ?: continue
+                        player.currentMatchID = match.matchConnections.victorNextMatch
                     }
                 }
             }
@@ -400,11 +392,11 @@ object TournamentGenerator {
         tournamentProperties: TournamentProperties,
     ): RoundSet {
         val rounds = mutableSetOf<TournamentRound>()
-        for (finalProperties in roundProperties) {
-            if (finalProperties.tournamentID != tournamentProperties.tournamentID) {
-                finalProperties.tournamentID = tournamentProperties.tournamentID
+        for (props in roundProperties) {
+            if (props.tournamentID != tournamentProperties.uuid) {
+                props.tournamentID = tournamentProperties.uuid
             }
-            val round = TournamentRound(finalProperties).initialize()
+            val round = TournamentRound(props).initialize()
             rounds.add(round)
         }
         return rounds
@@ -415,26 +407,26 @@ object TournamentGenerator {
         tournamentProperties: TournamentProperties
     ): MatchSet {
         val matches = mutableSetOf<TournamentMatch>()
-        for (finalProperties in matchProperties) {
-            if (finalProperties.tournamentID != tournamentProperties.tournamentID) {
-                finalProperties.tournamentID = tournamentProperties.tournamentID
+        for (props in matchProperties) {
+            if (props.tournamentID != tournamentProperties.uuid) {
+                props.tournamentID = tournamentProperties.uuid
             }
-            val match = TournamentMatch(finalProperties).initialize()
+            val match = TournamentMatch(props).initialize()
             matches.add(match)
         }
         return matches
     }
 
     private fun getPlayers(
-        playerProperties: OrderedPlayerProperties,
+        playerProperties: OrderedPlayers,
         tournamentProperties: TournamentProperties,
     ): PlayerSet {
         val players = mutableSetOf<TournamentPlayer>()
-        for (finalProperties in playerProperties) {
-            if (finalProperties.tournamentID != tournamentProperties.tournamentID) {
-                finalProperties.tournamentID = tournamentProperties.tournamentID
+        for (props in playerProperties) {
+            if (props.tournamentID != tournamentProperties.uuid) {
+                props.tournamentID = tournamentProperties.uuid
             }
-            val player = TournamentPlayer(finalProperties).initialize()
+            val player = TournamentPlayer(props).initialize()
             players.add(player)
         }
         return players

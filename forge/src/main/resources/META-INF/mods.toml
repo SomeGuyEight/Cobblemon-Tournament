@@ -22,7 +22,7 @@ description='''
 #dependencies #optional
 [[dependencies.cobblemontournament]] #optional
     modId="forge" #mandatory #the modid of the dependency
-    mandatory=true #mandatory # Does this dependency have to exist - if not, ordering below must be specified
+    mandatory=true #mandatory # Does this dependency have to exist - if not, the ordering below must be specified
     versionRange="[47,)" #mandatory # The version range of the dependency
     ordering="NONE" # An ordering relationship for the dependency - BEFORE or AFTER required if the relationship is not mandatory
     side="BOTH" # Side this dependency is applied on - BOTH, CLIENT or SERVER

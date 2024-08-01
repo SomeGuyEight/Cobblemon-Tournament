@@ -1,14 +1,21 @@
 package com.cobblemontournament.common.commands.builder
 
+import com.cobblemontournament.common.api.cobblemonchallenge.ChallengeFormat
 import com.cobblemontournament.common.api.storage.TournamentStoreManager
-import com.cobblemontournament.common.commands.CommandContext
+import com.sg8.api.command.CommandContext
 import com.cobblemontournament.common.commands.nodes.*
-import com.cobblemontournament.common.util.*
+import com.cobblemontournament.common.commands.util.getTournamentBuilder
+import com.cobblemontournament.common.tournament.TournamentType
 import com.mojang.brigadier.Command
 import com.mojang.brigadier.CommandDispatcher
 import com.mojang.brigadier.arguments.BoolArgumentType
 import com.mojang.brigadier.arguments.IntegerArgumentType
 import com.mojang.brigadier.arguments.StringArgumentType
+import com.sg8.api.command.getNodeInputRange
+import com.sg8.api.command.node.ExecutionNode
+import com.sg8.util.displayCommandFail
+import com.sg8.util.displayCommandSuccess
+import com.sg8.util.getConstantOrNull
 import net.minecraft.commands.CommandSourceStack
 import net.minecraft.commands.Commands
 
@@ -19,18 +26,17 @@ import net.minecraft.commands.Commands
  */
 object UpdateBuilderCommand {
 
-    val executionNode by lazy { ExecutionNode { updateBuilderProperties(ctx = it) } }
+    val executionNode = ExecutionNode { updateBuilderProperties(ctx = it) }
 
     fun register(dispatcher: CommandDispatcher<CommandSourceStack>) {
-        dispatcher
-            .register(ActiveBuilderNameNode
-                .nest(Commands
-                    .literal(UPDATE)
+        dispatcher.register(ActiveBuilderNameNode
+            .nest(Commands
+                .literal(UPDATE)
+                .then(Commands
+                    .literal(NAME)
                     .then(Commands
-                        .literal(NAME)
-                        .then(Commands
-                            .argument("$NEW$BUILDER_NAME", StringArgumentType.string())
-                            .executes(this.executionNode.action)
+                        .argument("$NEW$BUILDER_NAME", StringArgumentType.string())
+                        .executes(this.executionNode.handler)
                     )
                 )
 //                .then(Commands
@@ -38,7 +44,7 @@ object UpdateBuilderCommand {
 //                    .then(Commands
 //                        .argument("$NEW$TOURNAMENT_TYPE", StringArgumentType.string())
 //                        .suggests(TournamentTypeSuggestionProvider())
-//                        .executes(this.executionNode.handler)
+//                        .executes(this.executionNode.action)
 //                    )
 //                )
 //                .then( Commands
@@ -46,37 +52,35 @@ object UpdateBuilderCommand {
 //                    .then(Commands
 //                        .argument("$NEW$CHALLENGE_FORMAT", StringArgumentType.string() )
 //                        .suggests(ChallengeFormatSuggestionProvider())
-//                        .executes { ctx ->
-//                            updateBuilderProperties(ctx = ctx)
-//                        }
+//                        .executes(this.executionNode.action)
 //                    )
 //                )
                 .then(Commands
                     .literal(MAX_PARTICIPANTS)
                     .then(Commands
                         .argument("$NEW$MAX_PARTICIPANTS", IntegerArgumentType.integer())
-                        .executes(this.executionNode.action)
+                        .executes(this.executionNode.handler)
                     )
                 )
 //                .then(Commands
 //                    .literal(TEAM_SIZE)
 //                    .then(Commands
 //                        .argument("$NEW$TEAM_SIZE", IntegerArgumentType.integer())
-//                        .executes(this.executionNode.handler)
+//                        .executes(this.executionNode.action)
 //                    )
 //                )
 //                .then(Commands
 //                    .literal(GROUP_SIZE)
 //                    .then(Commands
 //                        .argument("$NEW$GROUP_SIZE", IntegerArgumentType.integer())
-//                        .executes(this.executionNode.handler)
+//                        .executes(this.executionNode.action)
 //                    )
 //                )
                 .then(Commands
                     .literal(LEVEL)
                     .then(Commands
                         .argument("$NEW$LEVEL", IntegerArgumentType.integer())
-                        .executes(this.executionNode.action)
+                        .executes(this.executionNode.handler)
                     )
                 )
 //                .then(Commands
@@ -85,7 +89,7 @@ object UpdateBuilderCommand {
 //                        .argument("$NEW$MIN_LEVEL", IntegerArgumentType.integer())
 //                        .then(Commands
 //                            .argument("$NEW$MAX_LEVEL", IntegerArgumentType.integer())
-//                            .executes(this.executionNode.handler)
+//                            .executes(this.executionNode.action)
 //                        )
 //                    )
 //                )
@@ -93,7 +97,7 @@ object UpdateBuilderCommand {
                     .literal(SHOW_PREVIEW)
                     .then(Commands
                         .argument("$NEW$SHOW_PREVIEW", BoolArgumentType.bool())
-                        .executes(this.executionNode.action)
+                        .executes(this.executionNode.handler)
                     )
                 )
             )
@@ -105,7 +109,7 @@ object UpdateBuilderCommand {
 
         val tournamentBuilder = ctx
             .getTournamentBuilder(TournamentStoreManager.INACTIVE_STORE_ID)
-            ?: let { _ ->
+            ?: run {
                 player.displayCommandFail(reason = "Tournament Builder was null")
                 return 0
             }
@@ -113,11 +117,11 @@ object UpdateBuilderCommand {
         ctx.getNodeInputRange(nodeName = "$NEW$BUILDER_NAME")?.let { tournamentBuilder.name = it }
 
         ctx.getNodeInputRange(nodeName = "$NEW$TOURNAMENT_TYPE")
-            ?.let { TournamentUtil.getTournamentTypeOrNull(it) }
+            ?.getConstantOrNull<TournamentType>()
             ?.let { tournamentBuilder.tournamentType = it }
 
         ctx.getNodeInputRange(nodeName = "$NEW$CHALLENGE_FORMAT")
-            ?.let { TournamentUtil.getChallengeFormatOrNull(it) }
+            ?.getConstantOrNull<ChallengeFormat>()
             ?.let { tournamentBuilder.challengeFormat = it }
 
         ctx.getNodeInputRange(nodeName = "$NEW$MAX_PARTICIPANTS")

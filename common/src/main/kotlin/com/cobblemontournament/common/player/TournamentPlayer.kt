@@ -1,35 +1,31 @@
 package com.cobblemontournament.common.player
 
 import com.cobblemon.mod.common.api.battles.model.actor.ActorType
-import com.cobblemon.mod.common.api.reactive.SettableObservable
-import com.cobblemon.mod.common.api.reactive.SimpleObservable
+import com.cobblemon.mod.common.api.reactive.*
+import com.cobblemontournament.common.api.storage.PLAYER_PROPERTIES_KEY
 import com.cobblemontournament.common.player.properties.PlayerProperties
-import com.cobblemontournament.common.util.*
-import com.someguy.storage.ClassStored
 import com.google.gson.JsonObject
-import com.someguy.storage.util.PlayerID
-import com.someguy.storage.StoreCoordinates
+import com.sg8.storage.*
 import net.minecraft.nbt.CompoundTag
 import net.minecraft.server.level.ServerPlayer
 import java.util.UUID
 
-open class TournamentPlayer(protected val properties: PlayerProperties) : ClassStored {
+open class TournamentPlayer(protected val properties: PlayerProperties) : TypeStored {
 
     override var storeCoordinates: SettableObservable<StoreCoordinates<*, *>?> =
         SettableObservable(value = null)
 
     private val anyChangeObservable = SimpleObservable<TournamentPlayer>()
 
+    val playerID: UUID get() = properties.uuid
     override val name: String get() = properties.name
-    override var uuid: PlayerID
-        get() = properties.playerID
-        protected set(value) { properties.playerID = value }
-    val tournamentID: TournamentID get() = properties.tournamentID
+    override val uuid: UUID get() = properties.uuid
+    val tournamentID: UUID get() = properties.tournamentID
     val actorType: ActorType get() = properties.actorType
     val seed: Int get() = properties.seed
     val originalSeed: Int get() = properties.originalSeed
     val lockPokemonOnSet: Boolean get() = properties.lockPokemonOnSet
-    var currentMatchID: MatchID?
+    var currentMatchID: UUID?
         get() = properties.currentMatchID
         set(value) { properties.currentMatchID = value }
     var finalPlacement: Int
@@ -50,18 +46,18 @@ open class TournamentPlayer(protected val properties: PlayerProperties) : ClassS
         protected set(value) { properties.pokemonFinal = value }
 
     init {
-        properties.getChangeObservable().subscribe { emitChange() }
+        properties.observable.subscribe { emitChange() }
     }
 
     /** &#9888; (UUID) constructor is needed for serialization method */
-    constructor(playerID: PlayerID = UUID.randomUUID()) :
-           this(PlayerProperties(playerID = playerID))
+    constructor(playerUuid: UUID = UUID.randomUUID()) :
+           this(PlayerProperties(uuid = playerUuid))
 
     override fun initialize() = this
 
     private fun emitChange() = anyChangeObservable.emit(this)
 
-    override fun getChangeObservable() = anyChangeObservable
+    override fun getObservable(): Observable<TournamentPlayer> = anyChangeObservable
 
     override fun saveToNbt(nbt: CompoundTag): CompoundTag {
         nbt.put(PLAYER_PROPERTIES_KEY, properties.saveToNbt(nbt = CompoundTag()))
@@ -75,7 +71,11 @@ open class TournamentPlayer(protected val properties: PlayerProperties) : ClassS
         return this
     }
 
-    override fun loadFromJSON(json: JsonObject): ClassStored { TODO() }
+    override fun loadFromJSON(json: JsonObject): TypeStored { TODO() }
+
+    fun deepCopy() = TournamentPlayer(properties.deepCopy())
+
+    fun copy() = TournamentPlayer(properties.copy())
 
     fun displayInChat(
         player: ServerPlayer,
@@ -96,7 +96,7 @@ open class TournamentPlayer(protected val properties: PlayerProperties) : ClassS
         )
     }
 
-    override fun printProperties() = properties.logDebug()
+    override fun printProperties() = properties.printDebug()
 
     companion object {
         fun loadFromNbt(nbt: CompoundTag): TournamentPlayer {
