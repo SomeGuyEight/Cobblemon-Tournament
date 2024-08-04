@@ -1,6 +1,7 @@
 package com.sg8.collections.reactive.collection
 
 import com.cobblemon.mod.common.api.Priority
+import com.sg8.collections.reactive.subscriptions.CollectionSubscription
 
 
 interface MutableObservableCollection<T, C : Collection<T>> :
@@ -8,7 +9,7 @@ interface MutableObservableCollection<T, C : Collection<T>> :
     MutableCollection<T> {
 
     fun subscribe(
-        priority: Priority,
+        priority: Priority = Priority.NORMAL,
         anyChangeHandler: (Pair<C, T>) -> Unit,
         additionHandler: ((Pair<C, T>) -> Unit)? = null,
         removalHandler: ((Pair<C, T>) -> Unit)? = null,
@@ -16,7 +17,11 @@ interface MutableObservableCollection<T, C : Collection<T>> :
 
     override fun add(element: T): Boolean
 
+    fun addIf(element: T, predicate: (C) -> Boolean): Boolean
+
     override fun remove(element: T): Boolean
+
+    fun removeIf(predicate: (T) -> Boolean): Boolean
 
     override fun addAll(elements: Collection<T>): Boolean
 

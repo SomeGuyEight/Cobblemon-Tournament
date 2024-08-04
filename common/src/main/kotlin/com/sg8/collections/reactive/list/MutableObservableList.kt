@@ -1,21 +1,30 @@
 package com.sg8.collections.reactive.list
 
 import com.cobblemon.mod.common.api.Priority
-import com.cobblemon.mod.common.api.reactive.*
-import com.sg8.collections.*
-import com.sg8.collections.reactive.collection.*
+import com.cobblemon.mod.common.api.reactive.Observable
+import com.cobblemon.mod.common.api.reactive.SimpleObservable
+import com.sg8.collections.reactive.collection.MutableObservableCollection
+import com.sg8.collections.reactive.collection.getElementObservables
+import com.sg8.collections.reactive.subscriptions.IndexedListSubscription
+import com.sg8.collections.reactive.subscriptions.ListSubscription
+import com.sg8.collections.removeIf
 
 
-class MutableObservableList<T>(
+open class MutableObservableList<T>(
     list: Collection<T> = setOf(),
-    elementHandler: (T) -> Set<Observable<*>> = { it.getObservables() },
+    elementHandler: (T) -> Set<Observable<*>> = { it.getElementObservables() },
 ) : MutableObservableCollection<T, List<T>>,
     ObservableList<T>(list, elementHandler),
     MutableList<T> {
 
     private val additionObservable = SimpleObservable<Pair<List<T>, T>>()
     private val removalObservable = SimpleObservable<Pair<List<T>, T>>()
-    private val orderMutationObservable = SimpleObservable<Pair<List<T>, Set<T>>>()
+    private val setObservable = SimpleObservable<Pair<List<T>, Pair<T, T>>>()
+    private val swapObservable = SimpleObservable<Pair<List<T>, Pair<T, T>>>()
+    private val additionObservableIndexed = SimpleObservable<Triple<List<T>, T, Int>>()
+    private val removalObservableIndexed = SimpleObservable<Triple<List<T>, T, Int>>()
+    private val setObservableIndexed = SimpleObservable<Triple<List<T>, Pair<T, T>, Int>>()
+    private val swapObservableIndexed = SimpleObservable<Triple<List<T>, Pair<T, T>, Pair<Int, Int>>>()
 
     override fun subscribe(
         priority: Priority,
@@ -35,73 +44,87 @@ class MutableObservableList<T>(
         anyChangeHandler: (Pair<List<T>, T>) -> Unit,
         additionHandler: ((Pair<List<T>, T>) -> Unit)?,
         removalHandler: ((Pair<List<T>, T>) -> Unit)?,
-        orderMutationHandler: ((Pair<List<T>, Set<T>>) -> Unit)?,
+        setHandler: ((Pair<List<T>, Pair<T, T>>) -> Unit)?,
+        swapHandler: ((Pair<List<T>, Pair<T, T>>) -> Unit)?,
     ): ListSubscription<T> {
+        @Suppress("DuplicatedCode")
         return ListSubscription(
             anyChange = this.subscribe(priority, anyChangeHandler),
             addition = additionHandler?.let { additionObservable.subscribe(priority, it) },
             removal = removalHandler?.let { removalObservable.subscribe(priority, it) },
-            orderMutation = orderMutationHandler?.let { orderMutationObservable.subscribe(priority, it) },
+            set = setHandler?.let { setObservable.subscribe(priority, it) },
+            swap = swapHandler?.let { swapObservable.subscribe(priority, it) },
         )
     }
 
-    override fun register(element: T): Boolean {
-        elementHandler(element).forEach{ observable ->
-            subscriptionMap[observable] = observable.subscribe { emitAnyChange(element) }
-        }
-        emitAddition(element)
+    fun subscribeIndexed(
+        priority: Priority,
+        additionHandler: ((Triple<List<T>, T, Int>) -> Unit)?,
+        removalHandler: ((Triple<List<T>, T, Int>) -> Unit)?,
+        setHandler: ((Triple<List<T>, Pair<T, T>, Int>) -> Unit)?,
+        swapHandler: ((Triple<List<T>, Pair<T, T>, Pair<Int, Int>>) -> Unit)?,
+    ): IndexedListSubscription<T> {
+        return IndexedListSubscription(
+            addition = additionHandler?.let { additionObservableIndexed.subscribe(priority, it) },
+            removal = removalHandler?.let { removalObservableIndexed.subscribe(priority, it) },
+            set = setHandler?.let { setObservableIndexed.subscribe(priority, it) },
+            swap = swapHandler?.let { swapObservableIndexed.subscribe(priority, it) },
+        )
+    }
+
+    private fun emitAddition(element: T, index: Int): Boolean {
+        register(element)
+        additionObservable.emit(list to element)
+        additionObservableIndexed.emit(Triple(list, element, index))
         return emitAnyChange(element)
     }
 
-    private fun unregister(element: T): Boolean {
-        elementHandler(element).forEach{ subscriptionMap.remove(it)?.unsubscribe() }
-        emitRemoval(element)
+    private fun emitRemoval(element: T, index: Int): Boolean {
+        unregister(element)
+        removalObservable.emit(list to element)
+        removalObservableIndexed.emit(Triple(list, element, index))
         return emitAnyChange(element)
     }
 
-    private fun emitAddition(element: T) {
-        additionObservable.emit(list as List<T> to element)
+    private fun emitSet(elements: Pair<T, T>, index: Int): Boolean {
+        register(elements.first)
+        unregister(elements.second)
+        setObservable.emit(list to elements)
+        setObservableIndexed.emit(Triple(list, elements, index))
+        emitAnyChange(elements.first)
+        emitAnyChange(elements.second)
+        return true
     }
 
-    private fun emitRemoval(element: T) {
-        removalObservable.emit(list as List<T> to element)
+    private fun emitSwap(elements: Pair<T, T>, indices: Pair<Int, Int>): Boolean {
+        swapObservable.emit(list to elements)
+        swapObservableIndexed.emit(Triple(list, elements, indices))
+        emitAnyChange(elements.first)
+        emitAnyChange(elements.second)
+        return true
     }
 
-    private fun emitOrderMutation(elements: Set<T>) {
-        orderMutationObservable.emit(list as List<T> to elements)
-        elements.forEach{ emitAnyChange(it) }
-    }
-
-    override operator fun iterator() = list.iterator()
+    override operator fun iterator() = MutableObservableListIterator(this)
 
     override fun listIterator() = MutableObservableListIterator(this)
 
     override fun listIterator(index: Int) = MutableObservableListIterator(this, index)
 
-    override fun subList(fromIndex: Int, toIndex: Int): MutableList<T> = list.subList(fromIndex, toIndex)
-
-    fun swapIf(indexOne: Int, indexTwo: Int, predicate: () -> Boolean): Boolean {
-        return predicate().also { if (it) swap(indexOne, indexTwo) }
+    override fun subList(fromIndex: Int, toIndex: Int): MutableObservableSubList<T> {
+        return MutableObservableSubList(this, fromIndex, toIndex, elementHandler)
     }
 
-    fun swap(indexOne: Int, indexTwo: Int) {
-        val one = list[indexOne]
-        val two = list.set(indexTwo, one)
-        list[indexOne] = two
-        emitOrderMutation(setOf(one, two))
-    }
-
-    fun addIf(element: T, predicate: () -> Boolean): Boolean {
-        return if (predicate()) add(element) else false
+    override fun addIf(element: T, predicate: (List<T>) -> Boolean): Boolean {
+        return if (predicate(list)) add(element) else false
     }
 
     override fun add(element: T): Boolean {
         list.add(element)
-        return register(element)
+        return emitAddition(element, lastIndex)
     }
 
-    fun addIf(index: Int, element: T, predicate: () -> Boolean): Boolean {
-        return if (predicate()) {
+    fun addAtIf(index: Int, element: T, predicate: (List<T>) -> Boolean): Boolean {
+        return if (predicate(list)) {
             add(index, element)
             true
         } else {
@@ -111,83 +134,82 @@ class MutableObservableList<T>(
 
     override fun add(index: Int, element: T) {
         list.add(index, element)
-        register(element)
+        emitAddition(element, index)
+    }
+
+    fun setIf(index: Int, element: T, predicate: (T) -> Boolean): T? {
+        return  if (predicate(list[index])) set(index, element) else null
     }
 
     override operator fun set(index: Int, element: T): T {
-        return list.set(index, element).also { replaced ->
-            register(element)
-            unregister(replaced)
+        return list.set(index, element).also { emitSet(element to it, index) }
+    }
+
+    fun swapIf(indexOne: Int, indexTwo: Int, predicate: () -> Boolean): Boolean {
+        return predicate().also { if (it) swap(indexOne, indexTwo) }
+    }
+
+    fun swap(indexOne: Int, indexTwo: Int) {
+        val one = list[indexOne]
+        val two = list.set(indexTwo, one)
+        list[indexOne] = two
+        emitSwap(one to two, indexOne to indexTwo)
+    }
+
+    override fun removeIf(predicate: (T) -> Boolean): Boolean = iterator().removeIf(predicate)
+
+    override fun remove(element: T): Boolean {
+        val indexOf = list.indexOfFirst { it == element }
+        if (indexOf == -1) {
+            return false
         }
+        list.removeAt(indexOf)
+        return emitRemoval(element, indexOf)
     }
 
-    fun removeIf(predicate: (T) -> Boolean): Boolean {
-        var removed = false
-        list.forEach { element ->
-            if (predicate(element) && remove(element) && !removed) {
-                removed = true
-            }
-        }
-        return removed
+    override fun removeAt(index: Int): T {
+        val element = list.removeAt(index)
+        emitRemoval(element, index)
+        return element
     }
-
-    fun removeIf(element: T, predicate: (List<T>) -> Boolean): Boolean {
-        return if (list.contains(element) && predicate(list)) remove(element) else false
-    }
-
-    override fun remove(element: T) = if (list.remove(element)) unregister(element) else false
 
     fun removeAtIf(index: Int, predicate: (T) -> Boolean): T? {
-        return if (predicate(list[index])) removeAt(index) else null
+        val element = list[index]
+        if (predicate(element)) {
+            list.removeAt(index)
+            emitRemoval(element, index)
+        }
+        return element
     }
 
-    override fun removeAt(index: Int): T = list.removeAt(index).also { unregister(it) }
-
     override fun addAll(elements: Collection<T>): Boolean {
-        val newElements = elements.unsharedElements(list)
-        return if (list.addAll(newElements)) {
-            newElements.forEach { register(it) }
-            true
-        } else {
-            false
-        }
+        elements.forEach { add(it) }
+        return true
     }
 
     override fun addAll(index: Int, elements: Collection<T>): Boolean {
-        val newElements = elements.unsharedElements(list)
-        return if (list.addAll(index, newElements)) {
-            newElements.forEach { register(it) }
-            true
-        } else {
-            false
-        }
+        var currentIndex = index
+        elements.forEach { add(currentIndex++, it) }
+        return true
     }
 
     override fun removeAll(elements: Collection<T>): Boolean {
-        val sharedElements = elements.sharedElements(list)
-        return if (list.removeAll(sharedElements)) {
-            sharedElements.forEach { unregister(it) }
-            true
-        } else {
-            false
+        var mutated = false
+        elements.forEach { element ->
+            if (removeIf { it == element } && !mutated) {
+                mutated = true
+            }
         }
+        return mutated
     }
 
     override fun retainAll(elements: Collection<T>): Boolean {
-        val removedElements = list.unsharedElements(elements)
-        return if (list.retainAll(elements)) {
-            removedElements.forEach { unregister(it) }
-            true
-        } else {
-            false
-        }
+        return removeIf { !elements.contains(it) }
     }
 
     override fun clear() {
-        if (list.isNotEmpty()) {
-            val elements = list.toSet()
-            list.clear()
-            elements.forEach { unregister(it) }
+        while (isNotEmpty()) {
+            removeAt(0)
         }
     }
 }

@@ -5,12 +5,10 @@ import com.cobblemon.mod.common.api.reactive.ObservableSubscription
 import com.cobblemon.mod.common.api.reactive.SimpleObservable
 import com.cobblemon.mod.common.util.getPlayer
 import com.google.gson.JsonObject
-import com.sg8.storage.datakeys.SIZE_KEY
-import com.sg8.storage.datakeys.STORE_DATA_KEY
-import com.sg8.storage.datakeys.STORE_ID_KEY
 import net.minecraft.nbt.CompoundTag
 import net.minecraft.server.level.ServerPlayer
 import java.util.UUID
+
 
 abstract class DefaultStore <T : TypeStored>(uuid: UUID) :
     Store<UuidPosition, T>(uuid = uuid) {
@@ -139,21 +137,21 @@ abstract class DefaultStore <T : TypeStored>(uuid: UUID) :
     }
 
     override fun saveToNbt(nbt: CompoundTag): CompoundTag {
-        nbt.putUUID(STORE_ID_KEY, this.uuid )
+        nbt.putUUID(DataKeys.STORE_ID, this.uuid )
         for ((index, instance) in instances.values.withIndex() ) {
-            nbt.put(STORE_DATA_KEY + index, instance.saveToNbt(nbt = CompoundTag()))
+            nbt.put(DataKeys.STORE_DATA + index, instance.saveToNbt(nbt = CompoundTag()))
         }
-        nbt.putInt(SIZE_KEY, instances.size)
+        nbt.putInt(DataKeys.SIZE, instances.size)
         return nbt
     }
 
     override fun saveToJson(json: JsonObject): JsonObject { TODO("Not yet implemented") }
 
     protected fun loadInstanceDataSetFromNbt(nbt: CompoundTag): Set<CompoundTag> {
-        val size = nbt.getInt(SIZE_KEY)
+        val size = nbt.getInt(DataKeys.SIZE)
         val set = mutableSetOf<CompoundTag>()
         for (i in 0..< size) {
-            set.add(nbt.getCompound(STORE_DATA_KEY + i))
+            set.add(nbt.getCompound(DataKeys.STORE_DATA + i))
         }
         return set
     }

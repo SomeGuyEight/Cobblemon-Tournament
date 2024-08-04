@@ -17,11 +17,13 @@ import com.cobblemontournament.common.tournament.TournamentType
 import com.cobblemontournament.common.tournament.properties.TournamentProperties
 import com.cobblemontournament.common.tournamentbuilder.TournamentBuilder
 import com.sg8.collections.SortType
-import com.sg8.util.ceilToPowerOfTwo
 import com.sg8.collections.reactive.map.MutableObservableMap
+import com.sg8.util.ceilToPowerOfTwo
 import java.util.UUID
 
+
 typealias OrderedPlayers = List<PlayerProperties>
+
 
 object TournamentGenerator {
 

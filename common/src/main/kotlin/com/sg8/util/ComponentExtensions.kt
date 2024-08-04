@@ -1,7 +1,9 @@
 package com.sg8.util
 
+import net.minecraft.ChatFormatting
 import net.minecraft.network.chat.MutableComponent
 import net.minecraft.network.chat.Style
+
 
 fun MutableComponent.setStyle(
     bold: Boolean = false,
@@ -17,13 +19,13 @@ fun MutableComponent.setStyle(
 
 fun MutableComponent.appendWith(
     text: String,
-    color: String = WHITE_FORMAT,
+    color: ChatFormatting = ChatFormatting.WHITE,
     bold: Boolean = false,
     italic: Boolean = false,
     underlined: Boolean = false,
 ) {
     this.append(
-        getComponent(
+        ComponentUtil.getComponent(
             text = text,
             color = color,
             bold = bold,
@@ -35,15 +37,15 @@ fun MutableComponent.appendWith(
 
 fun MutableComponent.appendWithBracketed(
     text: String,
-    textColor: String = WHITE_FORMAT,
-    bracketColor: String = WHITE_FORMAT,
+    textColor: ChatFormatting = ChatFormatting.WHITE,
+    bracketColor: ChatFormatting = ChatFormatting.WHITE,
     bold: Boolean = false,
     italic: Boolean = false,
     underlined: Boolean = false,
     padding: Pair<Int, Int> = 0 to 0,
 ) {
     this.append(
-        getBracketedComponent(
+        ComponentUtil.getBracketedComponent(
             text = text,
             textColor = textColor,
             bracketColor = bracketColor,
@@ -57,15 +59,15 @@ fun MutableComponent.appendWithBracketed(
 
 fun MutableComponent.appendWithQuoted(
     text: String,
-    textColor: String = WHITE_FORMAT,
-    quoteColor: String = WHITE_FORMAT,
+    textColor: ChatFormatting = ChatFormatting.WHITE,
+    quoteColor: ChatFormatting = ChatFormatting.WHITE,
     bold: Boolean = false,
     italic: Boolean = false,
     underlined: Boolean = false,
     padding: Pair<Int, Int> = 0 to 0,
 ) {
     this.append(
-        getQuotedComponent(
+        ComponentUtil.getQuotedComponent(
             text = text,
             textColor = textColor,
             quoteColor = quoteColor,
@@ -80,25 +82,25 @@ fun MutableComponent.appendWithQuoted(
 fun MutableComponent.appendWithCommand(
     command: String,
     text: String = "Interact",
-    color: String = WHITE_FORMAT,
+    color: ChatFormatting = ChatFormatting.WHITE,
     bold: Boolean = false,
 ) {
     this.append(
-        getInteractableComponent(command = command, text = text, color = color, bold = bold)
+        ComponentUtil.getInteractableComponent(command = command, text = text, color = color, bold = bold)
     )
 }
 
 fun MutableComponent.appendWithBracketedCommand(
     command: String,
     text: String = "Interact",
-    textColor: String = WHITE_FORMAT,
-    bracketColor: String = WHITE_FORMAT,
+    textColor: ChatFormatting = ChatFormatting.WHITE,
+    bracketColor: ChatFormatting = ChatFormatting.WHITE,
     bold: Boolean = false,
     padding: Pair<Int, Int> = 0 to 0,
 ) {
     this.appendWith(text = "[".padStart(padding.first), color = bracketColor, bold = bold)
     this.append(
-        getInteractableComponent(command = command, text = text, color = textColor, bold = bold)
+        ComponentUtil.getInteractableComponent(command = command, text = text, color = textColor, bold = bold)
     )
     this.appendWith(text = "]".padEnd(padding.second), color = bracketColor, bold = bold)
 }

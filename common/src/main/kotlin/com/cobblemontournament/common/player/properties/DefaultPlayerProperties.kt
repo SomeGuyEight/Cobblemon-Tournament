@@ -2,6 +2,7 @@ package com.cobblemontournament.common.player.properties
 
 import com.cobblemon.mod.common.api.battles.model.actor.ActorType
 
+
 const val DEFAULT_PLAYER_NAME = "Player Name"
 val DEFAULT_ACTOR_TYPE = ActorType.PLAYER
 const val DEFAULT_SEED = -1

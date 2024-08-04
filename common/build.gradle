@@ -13,6 +13,18 @@ dependencies {
     mappings(loom.officialMojangMappings())
     modApi "dev.architectury:architectury:${rootProject.architectury_version}"
     modImplementation "com.cobblemon:mod:${rootProject.cobblemon_version}"
+
+    //testImplementation(kotlin("test"))
+
+    // https://mvnrepository.com/artifact/org.junit.jupiter/junit-jupiter
+    testImplementation 'org.junit.jupiter:junit-jupiter:5.11.0-M2'
+}
+
+//test {
+tasks.test {
+    useJUnitPlatform()
+//    useJUnitPlatform()
+//    testLogging.showStandardStreams=true
 }
 
 publishing {

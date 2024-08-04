@@ -2,6 +2,7 @@ package com.sg8.util
 
 import java.lang.NullPointerException
 
+
 /**
  * @return (`this`) -> [filterNot] & [lowercase]
  *

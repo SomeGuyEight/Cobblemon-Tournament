@@ -17,10 +17,9 @@ package com.sg8.storage
 
 import com.cobblemon.mod.common.CobblemonNetwork.sendPacket
 import com.cobblemon.mod.common.api.net.NetworkPacket
-import com.cobblemon.mod.common.api.reactive.Observable
 import com.cobblemon.mod.common.api.reactive.SimpleObservable
-import com.sg8.storage.factory.StoreFactory
 import com.google.gson.JsonObject
+import com.sg8.storage.factory.StoreFactory
 import net.minecraft.nbt.CompoundTag
 import net.minecraft.server.level.ServerPlayer
 import java.util.UUID

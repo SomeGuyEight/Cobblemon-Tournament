@@ -1,10 +1,17 @@
 package com.cobblemontournament.common.tournament.properties
 
-import com.cobblemontournament.common.api.*
+import com.cobblemontournament.common.api.MutableMatchMap
+import com.cobblemontournament.common.api.MutablePlayerMap
+import com.cobblemontournament.common.api.MutableRoundMap
+import com.cobblemontournament.common.api.RoundEntry
+import com.cobblemontournament.common.api.RoundMap
 import com.cobblemontournament.common.api.match.MatchManager
 import com.cobblemontournament.common.api.cobblemonchallenge.ChallengeFormat
-import com.cobblemontournament.common.api.storage.*
-import com.cobblemontournament.common.api.storage.store.*
+import com.cobblemontournament.common.api.storage.DataKeys
+import com.cobblemontournament.common.api.storage.TournamentStoreManager
+import com.cobblemontournament.common.api.storage.store.MatchStore
+import com.cobblemontournament.common.api.storage.store.PlayerStore
+import com.cobblemontournament.common.api.storage.store.TournamentStore
 import com.cobblemontournament.common.match.MatchStatus
 import com.cobblemontournament.common.match.TournamentMatch
 import com.cobblemontournament.common.player.TournamentPlayer
@@ -13,11 +20,18 @@ import com.cobblemontournament.common.tournament.TournamentStatus
 import com.cobblemontournament.common.tournament.TournamentType
 import com.sg8.collections.addIf
 import com.sg8.collections.reactive.map.MutableObservableMap
-import com.sg8.collections.reactive.map.loadObservableMapOf
-import com.sg8.collections.reactive.map.observableMapOf
+import com.sg8.collections.reactive.map.loadMutableObservableMapOf
+import com.sg8.collections.reactive.map.mutableObservableMapOf
 import com.sg8.collections.reactive.map.saveToNbt
 import com.sg8.properties.PropertiesHelper
-import com.sg8.util.*
+import com.sg8.util.appendWith
+import com.sg8.util.appendWithBracketed
+import com.sg8.util.appendWithQuoted
+import com.sg8.util.ComponentUtil
+import com.sg8.util.displayInChat
+import com.sg8.util.getConstantStrict
+import com.sg8.util.short
+import net.minecraft.ChatFormatting
 import net.minecraft.nbt.CompoundTag
 import net.minecraft.server.level.ServerPlayer
 import org.slf4j.helpers.Util
@@ -27,35 +41,35 @@ import java.util.UUID
 object TournamentPropertiesHelper: PropertiesHelper<TournamentProperties> {
 
     override fun saveToNbt(properties: TournamentProperties, nbt: CompoundTag): CompoundTag {
-        nbt.putString(TOURNAMENT_NAME_KEY, properties.name)
-        nbt.putUUID(TOURNAMENT_ID_KEY, properties.uuid)
-        nbt.putString(TOURNAMENT_STATUS_KEY, properties.tournamentStatus.name)
-        nbt.putString(TOURNAMENT_TYPE_KEY, properties.tournamentType.name)
-        nbt.putString(CHALLENGE_FORMAT_KEY, properties.challengeFormat.name)
-        nbt.putInt(MAX_PARTICIPANTS_KEY, properties.maxParticipants)
-        nbt.putInt(TEAM_SIZE_KEY, properties.teamSize)
-        nbt.putInt(GROUP_SIZE_KEY, properties.groupSize)
-        nbt.putInt(MIN_LEVEL_KEY, properties.minLevel)
-        nbt.putInt(MAX_LEVEL_KEY, properties.maxLevel)
-        nbt.putBoolean(SHOW_PREVIEW_KEY, properties.showPreview )
+        nbt.putString(DataKeys.TOURNAMENT_NAME, properties.name)
+        nbt.putUUID(DataKeys.TOURNAMENT_ID, properties.uuid)
+        nbt.putString(DataKeys.TOURNAMENT_STATUS, properties.tournamentStatus.name)
+        nbt.putString(DataKeys.TOURNAMENT_TYPE, properties.tournamentType.name)
+        nbt.putString(DataKeys.CHALLENGE_FORMAT, properties.challengeFormat.name)
+        nbt.putInt(DataKeys.MAX_PARTICIPANTS, properties.maxParticipants)
+        nbt.putInt(DataKeys.TEAM_SIZE, properties.teamSize)
+        nbt.putInt(DataKeys.GROUP_SIZE, properties.groupSize)
+        nbt.putInt(DataKeys.MIN_LEVEL, properties.minLevel)
+        nbt.putInt(DataKeys.MAX_LEVEL, properties.maxLevel)
+        nbt.putBoolean(DataKeys.SHOW_PREVIEW, properties.showPreview )
         nbt.putRoundMap(properties.roundMap)
         return nbt
     }
 
     override fun loadFromNbt(nbt: CompoundTag): TournamentProperties {
-        val tournamentID = nbt.getUUID(TOURNAMENT_ID_KEY)
+        val tournamentID = nbt.getUUID(DataKeys.TOURNAMENT_ID)
         return TournamentProperties(
-            name = nbt.getString(TOURNAMENT_NAME_KEY),
+            name = nbt.getString(DataKeys.TOURNAMENT_NAME),
             uuid = tournamentID,
-            tournamentStatus = nbt.getConstantStrict<TournamentStatus>(TOURNAMENT_STATUS_KEY),
-            tournamentType = nbt.getConstantStrict<TournamentType>(TOURNAMENT_TYPE_KEY),
-            challengeFormat = nbt.getConstantStrict<ChallengeFormat>(CHALLENGE_FORMAT_KEY),
-            teamSize = nbt.getInt(TEAM_SIZE_KEY),
-            groupSize = nbt.getInt(GROUP_SIZE_KEY),
-            maxParticipants = nbt.getInt(MAX_PARTICIPANTS_KEY),
-            minLevel = nbt.getInt(MIN_LEVEL_KEY),
-            maxLevel = nbt.getInt(MAX_LEVEL_KEY),
-            showPreview = nbt.getBoolean(SHOW_PREVIEW_KEY),
+            tournamentStatus = nbt.getConstantStrict<TournamentStatus>(DataKeys.TOURNAMENT_STATUS),
+            tournamentType = nbt.getConstantStrict<TournamentType>(DataKeys.TOURNAMENT_TYPE),
+            challengeFormat = nbt.getConstantStrict<ChallengeFormat>(DataKeys.CHALLENGE_FORMAT),
+            teamSize = nbt.getInt(DataKeys.TEAM_SIZE),
+            groupSize = nbt.getInt(DataKeys.GROUP_SIZE),
+            maxParticipants = nbt.getInt(DataKeys.MAX_PARTICIPANTS),
+            minLevel = nbt.getInt(DataKeys.MIN_LEVEL),
+            maxLevel = nbt.getInt(DataKeys.MAX_LEVEL),
+            showPreview = nbt.getBoolean(DataKeys.SHOW_PREVIEW),
             roundMap = nbt.getRoundMap(),
             matchMap = loadMatchMap(tournamentID = tournamentID),
             playerMap = loadPlayerMap(tournamentID = tournamentID),
@@ -66,18 +80,18 @@ object TournamentPropertiesHelper: PropertiesHelper<TournamentProperties> {
         mutable: TournamentProperties,
         nbt: CompoundTag,
     ): TournamentProperties {
-        val tournamentID = nbt.getUUID(TOURNAMENT_ID_KEY)
-        mutable.name = nbt.getString(TOURNAMENT_NAME_KEY)
+        val tournamentID = nbt.getUUID(DataKeys.TOURNAMENT_ID)
+        mutable.name = nbt.getString(DataKeys.TOURNAMENT_NAME)
         mutable.uuid = tournamentID
-        mutable.tournamentStatus = nbt.getConstantStrict<TournamentStatus>(TOURNAMENT_STATUS_KEY)
-        mutable.tournamentType = nbt.getConstantStrict<TournamentType>(TOURNAMENT_TYPE_KEY)
-        mutable.challengeFormat = nbt.getConstantStrict<ChallengeFormat>(CHALLENGE_FORMAT_KEY)
-        mutable.teamSize = nbt.getInt(TEAM_SIZE_KEY)
-        mutable.groupSize = nbt.getInt(GROUP_SIZE_KEY)
-        mutable.maxParticipants = nbt.getInt(MAX_PARTICIPANTS_KEY)
-        mutable.minLevel = nbt.getInt(MIN_LEVEL_KEY)
-        mutable.maxLevel = nbt.getInt(MAX_LEVEL_KEY)
-        mutable.showPreview = nbt.getBoolean(SHOW_PREVIEW_KEY)
+        mutable.tournamentStatus = nbt.getConstantStrict<TournamentStatus>(DataKeys.TOURNAMENT_STATUS)
+        mutable.tournamentType = nbt.getConstantStrict<TournamentType>(DataKeys.TOURNAMENT_TYPE)
+        mutable.challengeFormat = nbt.getConstantStrict<ChallengeFormat>(DataKeys.CHALLENGE_FORMAT)
+        mutable.teamSize = nbt.getInt(DataKeys.TEAM_SIZE)
+        mutable.groupSize = nbt.getInt(DataKeys.GROUP_SIZE)
+        mutable.maxParticipants = nbt.getInt(DataKeys.MAX_PARTICIPANTS)
+        mutable.minLevel = nbt.getInt(DataKeys.MIN_LEVEL)
+        mutable.maxLevel = nbt.getInt(DataKeys.MAX_LEVEL)
+        mutable.showPreview = nbt.getBoolean(DataKeys.SHOW_PREVIEW)
         mutable.roundMap = nbt.getRoundMap()
         mutable.matchMap = loadMatchMap(tournamentID = tournamentID)
         mutable.playerMap = loadPlayerMap(tournamentID = tournamentID)
@@ -87,19 +101,19 @@ object TournamentPropertiesHelper: PropertiesHelper<TournamentProperties> {
     private fun CompoundTag.putRoundMap(roundMap: RoundMap) {
         val entryHandler = { entry: RoundEntry -> entry.value.saveToNbt(CompoundTag()) }
         val roundMapNbt = roundMap.saveToNbt(entryHandler)
-        this.put(ROUND_MAP_KEY, roundMapNbt)
+        this.put(DataKeys.ROUND_MAP, roundMapNbt)
     }
 
     private fun CompoundTag.getRoundMap(): MutableObservableMap<UUID, TournamentRound> {
         val entryHandler = { roundNbt: CompoundTag,->
             TournamentRound.loadFromNbt(roundNbt).let { round -> round.uuid to round }
         }
-        val roundMapNbt = this.getCompound(ROUND_DATA_KEY)
-        return roundMapNbt.loadObservableMapOf(entryHandler)
+        val roundMapNbt = this.getCompound(DataKeys.ROUND_DATA)
+        return roundMapNbt.loadMutableObservableMapOf(entryHandler)
     }
 
     private fun loadMatchMap(tournamentID: UUID): MutableMatchMap {
-        val map: MutableMatchMap = observableMapOf()
+        val map: MutableMatchMap = mutableObservableMapOf()
         TournamentStoreManager.getStoreIterator(
             storeClass = MatchStore::class.java,
             storeID = tournamentID
@@ -110,7 +124,7 @@ object TournamentPropertiesHelper: PropertiesHelper<TournamentProperties> {
     }
 
     private fun loadPlayerMap(tournamentID: UUID): MutablePlayerMap {
-        val map: MutablePlayerMap = observableMapOf()
+        val map: MutablePlayerMap = mutableObservableMapOf()
         TournamentStoreManager.getStoreIterator(
             storeClass = PlayerStore::class.java,
             storeID = tournamentID,
@@ -121,15 +135,15 @@ object TournamentPropertiesHelper: PropertiesHelper<TournamentProperties> {
     }
 
     override fun deepCopy(properties: TournamentProperties): TournamentProperties {
-        val roundMap: MutableRoundMap = observableMapOf()
+        val roundMap: MutableRoundMap = mutableObservableMapOf()
         properties.roundMap.forEach { roundMap[it.key] = it.value.deepCopy() }
         properties.roundMap = roundMap
 
-        val matchMap: MutableMatchMap = observableMapOf()
+        val matchMap: MutableMatchMap = mutableObservableMapOf()
         properties.matchMap.forEach { matchMap[it.key] = it.value.deepCopy() }
         properties.matchMap = matchMap
 
-        val playerMap: MutablePlayerMap = observableMapOf()
+        val playerMap: MutablePlayerMap = mutableObservableMapOf()
         properties.playerMap.forEach { playerMap[it.key] = it.value.deepCopy() }
         properties.playerMap = playerMap
 
@@ -182,36 +196,36 @@ object TournamentPropertiesHelper: PropertiesHelper<TournamentProperties> {
         displaySlimInChatHelper(properties, player)
 
         if (properties.roundMap.isNotEmpty() || properties.matchMap.isNotEmpty()) {
-            val titleComponent = getComponent(
+            val titleComponent = ComponentUtil.getComponent(
                 text = "  Rounds ",
-                color = YELLOW_FORMAT,
+                color = ChatFormatting.YELLOW,
                 bold = true,
             )
             titleComponent.appendWithBracketed(
                 text = "${properties.roundMap.size}",
-                textColor = YELLOW_FORMAT,
+                textColor = ChatFormatting.YELLOW,
             )
             titleComponent.appendWith(text = " - ")
             titleComponent.appendWith(
                 text = "Matches ",
-                color = YELLOW_FORMAT,
+                color = ChatFormatting.YELLOW,
                 bold = true,
             )
             titleComponent.appendWithBracketed(
                 text = "${properties.matchMap.size}",
-                textColor = YELLOW_FORMAT,
+                textColor = ChatFormatting.YELLOW,
             )
             player.displayClientMessage(titleComponent, false)
         }
         if (properties.playerMap.isNotEmpty()) {
-            val titleComponent = getComponent(
+            val titleComponent = ComponentUtil.getComponent(
                 text = "  Players ",
-                color = AQUA_FORMAT,
+                color = ChatFormatting.AQUA,
                 bold = true,
             )
             titleComponent.appendWithBracketed(
                 text = "${properties.playerMap.size}",
-                textColor = AQUA_FORMAT,
+                textColor = ChatFormatting.AQUA,
             )
             player.displayClientMessage(titleComponent, false)
 
@@ -222,36 +236,42 @@ object TournamentPropertiesHelper: PropertiesHelper<TournamentProperties> {
     }
 
     private fun displayTitleInChatHelper(properties: TournamentProperties, player: ServerPlayer) {
-        val component = getComponent(text = "Tournament ", color = GREEN_FORMAT)
+        val component = ComponentUtil.getComponent(
+            text = "Tournament ",
+            color = ChatFormatting.GREEN,
+        )
         component.appendWith(text = "\"")
-        component.appendWith(text = properties.name, color = GREEN_FORMAT)
+        component.appendWith(text = properties.name, color = ChatFormatting.GREEN)
         component.appendWith(text = "\" ")
-        component.appendWithBracketed(text = properties.uuid.short(), textColor = GREEN_FORMAT)
+        component.appendWithBracketed(
+            text = properties.uuid.short(),
+            textColor = ChatFormatting.GREEN,
+        )
         component.appendWith(text = " ")
         component.appendWithBracketed(
             text = properties.tournamentStatus.name,
-            textColor = YELLOW_FORMAT,
+            textColor = ChatFormatting.YELLOW,
         )
         player.displayClientMessage(component, false)
     }
 
     fun displaySlimInChatHelper(properties: TournamentProperties, player: ServerPlayer) {
-        val typeAndFormat = getBracketedComponent(
+        val typeAndFormat = ComponentUtil.getBracketedComponent(
             text = "${properties.tournamentType}",
-            textColor = YELLOW_FORMAT,
+            textColor = ChatFormatting.YELLOW,
             padding = 2 to 0,
         )
         typeAndFormat.appendWithBracketed(
             text = "${properties.challengeFormat}",
-            textColor = YELLOW_FORMAT,
+            textColor = ChatFormatting.YELLOW,
             padding = 1 to 0,
         )
         player.displayClientMessage(typeAndFormat, (false))
 
-        val maxParticipants = getComponent(text = "  Max Participants ")
+        val maxParticipants = ComponentUtil.getComponent(text = "  Max Participants ")
         maxParticipants.appendWithBracketed(
             text = "${properties.maxParticipants}",
-            textColor = YELLOW_FORMAT,
+            textColor = ChatFormatting.YELLOW,
         )
         player.displayClientMessage(maxParticipants, false)
 
@@ -272,8 +292,11 @@ object TournamentPropertiesHelper: PropertiesHelper<TournamentProperties> {
          */
 
         // TODO temp until level range is released for CobblemonChallenge
-        val level = getComponent(text = "  Level ")
-        level.appendWithBracketed(text = "${properties.maxLevel}", textColor = YELLOW_FORMAT)
+        val level = ComponentUtil.getComponent(text = "  Level ")
+        level.appendWithBracketed(
+            text = "${properties.maxLevel}",
+            textColor = ChatFormatting.YELLOW,
+        )
         player.displayClientMessage(level, false)
 
        /*
@@ -290,8 +313,11 @@ object TournamentPropertiesHelper: PropertiesHelper<TournamentProperties> {
         player.displayClientMessage(levelRange, false)
         */
 
-        val preview = getComponent(text = "  Show Preview ")
-        preview.appendWithBracketed(text = "${properties.showPreview}", textColor = YELLOW_FORMAT)
+        val preview = ComponentUtil.getComponent(text = "  Show Preview ")
+        preview.appendWithBracketed(
+            text = "${properties.showPreview}",
+            textColor = ChatFormatting.YELLOW,
+        )
         player.displayClientMessage(preview, false)
     }
 
@@ -330,7 +356,7 @@ object TournamentPropertiesHelper: PropertiesHelper<TournamentProperties> {
         val firstMatch = matches[0]
         player.displayInChat(
             text = "Round ${firstMatch.roundID} [${firstMatch.roundID.short()}]",
-            color = YELLOW_FORMAT,
+            color = ChatFormatting.YELLOW,
             bold = true,
         )
         var roundIndex = firstMatch.roundIndex
@@ -339,7 +365,7 @@ object TournamentPropertiesHelper: PropertiesHelper<TournamentProperties> {
                 roundIndex = match.roundIndex
                 player.displayInChat(
                     text = "Round $roundIndex [${match.roundID.short()}]",
-                    color = YELLOW_FORMAT,
+                    color = ChatFormatting.YELLOW,
                     bold = true,
                 )
             }
@@ -383,14 +409,14 @@ object TournamentPropertiesHelper: PropertiesHelper<TournamentProperties> {
             displayTitleInChatHelper(properties, player)
             displaySlimInChatHelper(properties, player)
 
-            player.displayInChat(text = "Final Placements:", color = GREEN_FORMAT)
+            player.displayInChat(text = "Final Placements:", color = ChatFormatting.YELLOW)
             for (tournamentPlayer in finalizedPlayers) {
                 displayFinalPlacementInChat(player, tournamentPlayer)
             }
         }
 
         if (competingPlayers.isNotEmpty()) {
-            player.displayInChat(text = "Players still competing:", color = GREEN_FORMAT)
+            player.displayInChat(text = "Players still competing:", color = ChatFormatting.YELLOW)
             for (tournamentPlayer in competingPlayers) {
                 displayFinalPlacementInChat(player, tournamentPlayer)
             }
@@ -401,22 +427,22 @@ object TournamentPropertiesHelper: PropertiesHelper<TournamentProperties> {
         player: ServerPlayer,
         tournamentPlayer: TournamentPlayer,
     ) {
-        val component = getBracketedComponent(
+        val component = ComponentUtil.getBracketedComponent(
             text = tournamentPlayer.finalPlacement.toString(),
-            textColor = GREEN_FORMAT,
+            textColor = ChatFormatting.GREEN,
             padding = 2 to 0,
             bold = true,
         )
         component.appendWith(text = " Player ")
         component.appendWithQuoted(
             text = tournamentPlayer.name,
-            textColor = AQUA_FORMAT,
+            textColor = ChatFormatting.AQUA,
             padding = 0 to 1,
             bold = true,
         )
         component.appendWithBracketed(
             text = tournamentPlayer.uuid.short(),
-            textColor = AQUA_FORMAT,
+            textColor = ChatFormatting.AQUA,
         )
         component.appendWith(text = " Original Seed ")
         component.appendWithBracketed(text = tournamentPlayer.originalSeed.toString())

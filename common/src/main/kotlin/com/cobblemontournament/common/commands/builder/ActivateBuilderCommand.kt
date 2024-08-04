@@ -4,14 +4,11 @@ import com.cobblemontournament.common.api.storage.TournamentStoreManager
 import com.cobblemontournament.common.api.storage.store.TournamentBuilderStore
 import com.cobblemontournament.common.commands.nodes.*
 import com.cobblemontournament.common.commands.util.getTournamentBuilderOrDisplayFail
-import com.mojang.brigadier.Command
-import com.mojang.brigadier.CommandDispatcher
+import com.mojang.brigadier.*
 import com.mojang.brigadier.context.CommandContext
 import com.sg8.api.command.node.ExecutionNode
-import com.sg8.util.displayCommandFail
-import com.sg8.util.displayCommandSuccess
-import net.minecraft.commands.CommandSourceStack
-import net.minecraft.commands.Commands
+import com.sg8.util.*
+import net.minecraft.commands.*
 
 /**
  * [TOURNAMENT]-[BUILDER]-[HISTORY]-[BUILDER_NAME]-[ACTIVATE]

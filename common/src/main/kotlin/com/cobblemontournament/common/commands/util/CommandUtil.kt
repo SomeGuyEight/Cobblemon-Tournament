@@ -1,15 +1,21 @@
 package com.cobblemontournament.common.commands.util
 
-import com.cobblemontournament.common.api.storage.*
+import com.cobblemontournament.common.api.storage.TournamentStoreManager
 import com.cobblemontournament.common.api.storage.store.TournamentBuilderStore
 import com.cobblemontournament.common.api.storage.store.TournamentStore
+import com.cobblemontournament.common.commands.nodes.BUILDER_NAME
+import com.cobblemontournament.common.commands.nodes.TOURNAMENT_NAME
 import com.sg8.api.command.CommandContext
-import com.cobblemontournament.common.commands.nodes.*
 import com.cobblemontournament.common.tournament.Tournament
 import com.cobblemontournament.common.tournamentbuilder.TournamentBuilder
 import com.sg8.api.command.getNodeInputRange
-import com.sg8.storage.*
-import com.sg8.util.*
+import com.sg8.storage.Store
+import com.sg8.storage.StorePosition
+import com.sg8.storage.TypeStored
+import com.sg8.util.ComponentUtil
+import com.sg8.util.appendWith
+import com.sg8.util.displayCommandFail
+import net.minecraft.ChatFormatting
 import net.minecraft.network.chat.MutableComponent
 import net.minecraft.server.level.ServerPlayer
 import java.util.UUID
@@ -72,9 +78,9 @@ object CommandUtil {
         text: String,
         tournament: Tournament,
         opponent: ServerPlayer,
-        color: String = WHITE_FORMAT,
+        color: ChatFormatting = ChatFormatting.GREEN,
         bracketed: Boolean = false,
-        bracketColor: String = WHITE_FORMAT,
+        bracketColor: ChatFormatting = ChatFormatting.WHITE,
     ): MutableComponent {
 // for the next version of CobblemonChallenge when Handicap & level range are supported
 //        var commandText = "/challenge ${opponent.name.string} "
@@ -85,7 +91,7 @@ object CommandUtil {
         commandText += (" level ${tournament.maxLevel}")
         commandText += if (tournament.showPreview) "" else " nopreview"
 
-        val interactable = getInteractableComponent(
+        val interactable = ComponentUtil.getInteractableComponent(
             command = commandText,
             text = text,
             color = color,
@@ -93,7 +99,7 @@ object CommandUtil {
         )
 
         if (bracketed) {
-            val component = getComponent(text = "[", color = bracketColor)
+            val component = ComponentUtil.getComponent(text = "[", color = bracketColor)
             component.append(interactable)
             component.appendWith(text = "]", color = bracketColor)
             return component

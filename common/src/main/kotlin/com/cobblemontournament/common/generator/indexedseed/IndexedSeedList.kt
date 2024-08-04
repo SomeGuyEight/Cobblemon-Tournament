@@ -3,6 +3,7 @@ package com.cobblemontournament.common.generator.indexedseed
 import com.sg8.collections.SortType
 import org.slf4j.helpers.Util
 
+
 class IndexedSeedList(
     indexedSeeds: List<IndexedSeed>,
     sortType: SortType = SortType.INDEX_ASCENDING,

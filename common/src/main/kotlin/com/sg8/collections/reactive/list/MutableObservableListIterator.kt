@@ -36,7 +36,7 @@ open class MutableObservableListIterator<T>(
         iterator.add(element)
         when {
             observableList.isEmpty() -> observableList.add(element).run { index = 0 }
-            index < observableList.size -> observableList.add(++index, element)
+            index < observableList.lastIndex -> observableList.add(++index, element)
             else -> observableList.add(element).run { index++ }
         }
         removedOrAddedThisIteration = true

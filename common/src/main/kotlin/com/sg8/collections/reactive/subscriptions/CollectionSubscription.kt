@@ -1,7 +1,6 @@
-package com.sg8.collections.reactive.collection
+package com.sg8.collections.reactive.subscriptions
 
 import com.cobblemon.mod.common.api.reactive.ObservableSubscription
-import com.sg8.collections.reactive.list.ListSubscription
 
 
 /**
@@ -20,7 +19,7 @@ import com.sg8.collections.reactive.list.ListSubscription
  * @property removal Emits the collection paired with a set of the elements mutated.
  * This emits when any collection mutation results from the removal of an element.
  *
- * @see ListSubscription.orderMutation
+ * @see ListSubscription.swap
  */
 interface CollectionSubscription<T, C : Collection<T>> {
 
@@ -28,9 +27,5 @@ interface CollectionSubscription<T, C : Collection<T>> {
     val addition: ObservableSubscription<Pair<C, T>>?
     val removal: ObservableSubscription<Pair<C, T>>?
 
-    fun unsubscribe() {
-        anyChange.unsubscribe()
-        addition?.unsubscribe()
-        removal?.unsubscribe()
-    }
+    fun unsubscribe()
 }

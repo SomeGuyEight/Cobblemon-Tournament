@@ -1,15 +1,11 @@
 package com.cobblemontournament.common.commands.suggestions
 
 import com.cobblemontournament.common.api.storage.TournamentStoreManager
+import com.mojang.brigadier.suggestion.*
 import com.sg8.api.command.CommandContext
-import com.mojang.brigadier.suggestion.SuggestionProvider
-import com.mojang.brigadier.suggestion.Suggestions
-import com.mojang.brigadier.suggestion.SuggestionsBuilder
-import com.sg8.storage.TypeStored
-import com.sg8.storage.StorePosition
-import com.sg8.storage.Store
-import java.util.concurrent.CompletableFuture
+import com.sg8.storage.*
 import net.minecraft.commands.CommandSourceStack
+import java.util.concurrent.CompletableFuture
 
 open class InstanceNameSuggestionProvider <P : StorePosition, T : TypeStored, S : Store<P, T>> (
     private val storeClass: Class<out S>,

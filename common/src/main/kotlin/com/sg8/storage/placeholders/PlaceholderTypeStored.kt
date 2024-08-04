@@ -1,11 +1,15 @@
 package com.sg8.storage.placeholders
 
-import com.cobblemon.mod.common.api.reactive.*
-import com.sg8.storage.*
+import com.cobblemon.mod.common.api.reactive.Observable
+import com.cobblemon.mod.common.api.reactive.SettableObservable
+import com.cobblemon.mod.common.api.reactive.SimpleObservable
 import com.google.gson.JsonObject
+import com.sg8.storage.StoreCoordinates
+import com.sg8.storage.TypeStored
 import com.sg8.storage.UuidPosition
 import net.minecraft.nbt.CompoundTag
 import java.util.UUID
+
 
 object PlaceholderTypeStored : TypeStored {
 

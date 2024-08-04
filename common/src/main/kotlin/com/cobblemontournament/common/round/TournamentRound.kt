@@ -3,13 +3,14 @@ package com.cobblemontournament.common.round
 import com.cobblemon.mod.common.api.reactive.Observable
 import com.cobblemon.mod.common.api.reactive.SettableObservable
 import com.cobblemon.mod.common.api.reactive.SimpleObservable
-import com.cobblemontournament.common.api.storage.ROUND_PROPERTIES_KEY
+import com.cobblemontournament.common.api.storage.DataKeys
 import com.cobblemontournament.common.round.properties.RoundProperties
-import com.sg8.storage.TypeStored
 import com.google.gson.JsonObject
 import com.sg8.storage.StoreCoordinates
+import com.sg8.storage.TypeStored
 import net.minecraft.nbt.CompoundTag
 import java.util.UUID
+
 
 open class TournamentRound(protected val properties: RoundProperties) : TypeStored {
 
@@ -29,7 +30,7 @@ open class TournamentRound(protected val properties: RoundProperties) : TypeStor
         properties.observable.subscribe { emitChange() }
     }
 
-    /** &#9888; (UUID) constructor is needed for serialization method */
+    /** &#9888; (UUID) constructor is necessary for serialization method */
     constructor(roundUuid: UUID = UUID.randomUUID()) :
             this(RoundProperties(uuid = roundUuid))
 
@@ -42,14 +43,14 @@ open class TournamentRound(protected val properties: RoundProperties) : TypeStor
     fun getMatchID(roundMatchIndex: Int) = properties.indexedMatchMap[roundMatchIndex]
 
     override fun saveToNbt(nbt: CompoundTag): CompoundTag {
-        nbt.put(ROUND_PROPERTIES_KEY, properties.saveToNbt(nbt = CompoundTag()))
+        nbt.put(DataKeys.ROUND_PROPERTIES, properties.saveToNbt(nbt = CompoundTag()))
         return nbt
     }
 
     override fun saveToJSON(json: JsonObject): JsonObject { TODO() }
 
     override fun loadFromNBT(nbt: CompoundTag): TournamentRound {
-        properties.setFromNbt(nbt = nbt.getCompound(ROUND_PROPERTIES_KEY))
+        properties.setFromNbt(nbt = nbt.getCompound(DataKeys.ROUND_PROPERTIES))
         return this
     }
 
@@ -64,9 +65,8 @@ open class TournamentRound(protected val properties: RoundProperties) : TypeStor
     companion object {
         fun loadFromNbt(nbt: CompoundTag): TournamentRound {
             return TournamentRound(
-                RoundProperties.loadFromNbt(nbt = nbt.getCompound(ROUND_PROPERTIES_KEY))
+                RoundProperties.loadFromNbt(nbt = nbt.getCompound(DataKeys.ROUND_PROPERTIES))
             )
         }
     }
-
 }

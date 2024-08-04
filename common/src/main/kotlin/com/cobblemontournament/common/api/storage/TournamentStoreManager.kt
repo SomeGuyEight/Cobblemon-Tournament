@@ -4,10 +4,14 @@ import com.cobblemon.mod.common.api.Priority
 import com.cobblemontournament.common.CobblemonTournament
 import com.google.gson.Gson
 import com.google.gson.GsonBuilder
-import com.sg8.storage.*
+import com.sg8.storage.NameSet
+import com.sg8.storage.Store
+import com.sg8.storage.StoreManager
+import com.sg8.storage.StorePosition
+import com.sg8.storage.TypeStored
 import com.sg8.storage.adapter.flatfile.NbtStoreAdapter
 import com.sg8.storage.factory.FileBackedStoreFactory
-import com.sg8.storage.util.*
+import com.sg8.storage.util.StoreUtil
 import net.minecraft.server.MinecraftServer
 import net.minecraft.world.level.storage.LevelResource
 import java.io.File
@@ -22,10 +26,10 @@ object TournamentStoreManager : StoreManager() {
         GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create()
 
     val ACTIVE_STORE_ID: UUID =
-        StoreUtil.getUuidKey(savePath(), keyDir(), "store-keys", ACTIVE_STORE_KEY, GSON)
+        StoreUtil.getUuidKey(savePath(), keyDir(), "store-keys", DataKeys.ACTIVE_STORE, GSON)
 
     val INACTIVE_STORE_ID: UUID =
-        StoreUtil.getUuidKey(savePath(), keyDir(),"store-keys", INACTIVE_STORE_KEY, GSON)
+        StoreUtil.getUuidKey(savePath(), keyDir(),"store-keys", DataKeys.INACTIVE_STORE, GSON)
 
     val server: MinecraftServer? get() = CobblemonTournament.server
 

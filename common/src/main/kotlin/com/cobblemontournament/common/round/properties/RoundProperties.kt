@@ -1,13 +1,19 @@
 package com.cobblemontournament.common.round.properties
 
-import com.cobblemon.mod.common.api.reactive.*
+import com.cobblemon.mod.common.api.reactive.Observable
+import com.cobblemon.mod.common.api.reactive.ObservableSubscription
+import com.cobblemon.mod.common.api.reactive.SettableObservable
+import com.cobblemon.mod.common.api.reactive.SimpleObservable
 import com.cobblemontournament.common.round.RoundType
-import com.sg8.collections.reactive.map.*
+import com.sg8.collections.reactive.map.MutableObservableMap
+import com.sg8.collections.reactive.map.mutableObservableMapOf
 import com.sg8.properties.DefaultProperties
 import net.minecraft.nbt.CompoundTag
 import java.util.UUID
 
+
 typealias IndexedMatchMap = MutableObservableMap<Int, UUID>
+
 
 class RoundProperties(
     uuid: UUID = UUID.randomUUID(),
@@ -26,7 +32,7 @@ class RoundProperties(
     private val _tournamentID = SettableObservable(tournamentID).subscribe()
     private val _roundIndex = SettableObservable(roundIndex).subscribe()
     private val _roundType = SettableObservable(roundType).subscribe()
-    private var _indexedMatchMap = indexedMatchMap?.mutableCopy() ?: observableMapOf()
+    private var _indexedMatchMap = indexedMatchMap?.mutableCopy() ?: mutableObservableMapOf()
 
     val name: String get() = "Round $roundIndex [${roundType.name} type]"
     var uuid: UUID

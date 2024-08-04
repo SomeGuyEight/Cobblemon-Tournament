@@ -1,20 +1,23 @@
 package com.sg8.collections.reactive.set
 
 import com.cobblemon.mod.common.api.Priority
-import com.cobblemon.mod.common.api.reactive.*
-import com.sg8.collections.*
-import com.sg8.collections.reactive.collection.*
+import com.cobblemon.mod.common.api.reactive.Observable
+import com.cobblemon.mod.common.api.reactive.SimpleObservable
+import com.sg8.collections.reactive.collection.MutableObservableCollection
+import com.sg8.collections.reactive.collection.getElementObservables
+import com.sg8.collections.reactive.subscriptions.SetSubscription
+import com.sg8.collections.removeIf
 
 
 class MutableObservableSet<T>(
     set: Collection<T> = setOf(),
-    elementHandler: (T) -> Set<Observable<*>> = { it.getObservables() },
+    elementHandler: (T) -> Set<Observable<*>> = { it.getElementObservables() },
 ) : MutableObservableCollection<T, Set<T>>,
     ObservableSet<T>(set, elementHandler),
     MutableSet<T> {
 
-    private val additionObservable: SimpleObservable<Pair<Set<T>, T>> = SimpleObservable()
-    private val removalObservable: SimpleObservable<Pair<Set<T>, T>> = SimpleObservable()
+    private val additionObservable = SimpleObservable<Pair<Set<T>, T>>()
+    private val removalObservable = SimpleObservable<Pair<Set<T>, T>>()
 
     override fun subscribe(
         priority: Priority,
@@ -29,81 +32,74 @@ class MutableObservableSet<T>(
         )
     }
 
-    override fun register(element: T): Boolean {
-        elementHandler(element).forEach{ observable ->
-            subscriptionMap[observable] = observable.subscribe { emitAnyChange(element) }
-        }
-        emitAddition(element)
+    /**
+     * @return `true` after handling [register] & all subscriptions
+     * to [additionObservable] & [ObservableSet.emitAnyChange].
+     */
+    private fun emitAddition(element: T): Boolean {
+        register(element)
+        additionObservable.emit(set to element)
         return emitAnyChange(element)
     }
 
-    private fun unregister(element: T): Boolean {
-        elementHandler(element).forEach{ subscriptionMap.remove(it)?.unsubscribe() }
-        emitRemoval(element)
+    /**
+     * @return `true` after handling [unregister] & all subscriptions
+     * to [removalObservable] & [ObservableSet.emitAnyChange].
+     */
+    private fun emitRemoval(element: T): Boolean {
+        unregister(element)
+        removalObservable.emit(set to element)
         return emitAnyChange(element)
     }
-
-    private fun emitAddition(element: T) = additionObservable.emit(set to element)
-
-    private fun emitRemoval(element: T) = removalObservable.emit(set to element)
 
     override operator fun iterator() = MutableObservableSetIterator(this)
 
-    fun addIf(element: T, predicate: () -> Boolean) = if (predicate()) add(element) else false
+    override fun addIf(element: T, predicate: (Set<T>) -> Boolean): Boolean {
+        return if (predicate(set)) add(element) else false
+    }
 
-    override fun add(element: T) = if (set.add(element)) register(element) else false
+    // All mutations resulting from addition are funneled through here
+    // Calls [emitAddition] if [element] is added to [set]
+    override fun add(element: T): Boolean {
+        return if (set.add(element)) emitAddition(element) else false
+    }
 
-    fun removeIf(predicate: (T) -> Boolean): Boolean {
-        var removed = false
-        set.forEach { element ->
-            if (predicate(element) && remove(element) && !removed) {
-                removed = true
-            }
-        }
-        return removed
+    override fun removeIf(predicate: (T) -> Boolean): Boolean {
+        return iterator().removeIf(predicate)
     }
 
     fun removeIf(element: T, predicate: (Set<T>) -> Boolean): Boolean {
-        return if (set.contains(element) && predicate(set)) remove(element) else false
+        return if (predicate(set)) remove(element) else false
     }
 
-    override fun remove(element: T) = if (set.remove(element)) unregister(element) else false
+    // All mutations resulting from removal are funneled through here
+    // Calls [emitRemoval] if [element] is removed from [set]
+    override fun remove(element: T): Boolean {
+        return if (set.remove(element)) emitRemoval(element) else false
+    }
 
     override fun addAll(elements: Collection<T>): Boolean {
-        val newElements = elements.unsharedElements(set)
-        return if (set.addAll(newElements)) {
-            newElements.forEach { register(it) }
-            true
-        } else {
-            false
-        }
+        var mutated = false
+        elements.forEach { if (add(it) && !mutated) mutated = true }
+        return mutated
     }
 
     override fun removeAll(elements: Collection<T>): Boolean {
-        val sharedElements = elements.sharedElements(set)
-        return if (set.removeAll(sharedElements)) {
-            sharedElements.forEach { unregister(it) }
-            true
-        } else {
-            false
+        var mutated = false
+        elements.forEach { element ->
+            if (removeIf { it == element } && !mutated) {
+                mutated = true
+            }
         }
+        return mutated
     }
 
     override fun retainAll(elements: Collection<T>): Boolean {
-        val removedElements = set.unsharedElements(elements)
-        return if (set.retainAll(elements.toSet())) {
-            removedElements.forEach { unregister(it) }
-            true
-        } else {
-            false
-        }
+        return removeIf { !elements.contains(it) }
     }
 
     override fun clear() {
-        if (set.isNotEmpty()) {
-            val elements = set.toSet()
-            set.clear()
-            elements.forEach { unregister(it) }
-        }
+        // simpler way to iterate through the mutable iterator & emit with each removal
+        removeIf { true }
     }
 }

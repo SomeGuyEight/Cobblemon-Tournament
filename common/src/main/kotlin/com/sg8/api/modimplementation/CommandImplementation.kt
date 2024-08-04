@@ -5,6 +5,7 @@ import net.minecraft.commands.CommandBuildContext
 import net.minecraft.commands.CommandSourceStack
 import net.minecraft.commands.Commands
 
+
 interface CommandImplementation {
 
     fun registerCommands(

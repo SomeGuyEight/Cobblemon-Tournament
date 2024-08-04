@@ -4,22 +4,27 @@ import com.cobblemon.mod.common.api.reactive.Observable
 import com.cobblemon.mod.common.api.reactive.SettableObservable
 import com.cobblemon.mod.common.api.reactive.SimpleObservable
 import com.cobblemontournament.common.CobblemonTournament
-import com.cobblemontournament.common.api.storage.MATCH_PROPERTIES_KEY
+import com.cobblemontournament.common.api.storage.DataKeys
 import com.cobblemontournament.common.api.storage.TournamentStoreManager
+import com.cobblemontournament.common.api.storage.store.MatchStore
+import com.cobblemontournament.common.api.storage.store.PlayerStore
+import com.cobblemontournament.common.api.storage.store.TournamentStore
+import com.cobblemontournament.common.match.connections.MatchConnections
 import com.cobblemontournament.common.match.properties.MatchProperties
-import com.cobblemontournament.common.api.storage.store.*
-import com.cobblemontournament.common.match.properties.*
+import com.cobblemontournament.common.match.properties.MutablePlayerTeamMap
+import com.cobblemontournament.common.match.properties.PlayerTeamMap
 import com.cobblemontournament.common.player.TournamentPlayer
 import com.cobblemontournament.common.tournament.Tournament
 import com.google.gson.JsonObject
-import com.sg8.util.GREEN_FORMAT
-import com.sg8.util.displayInChat
 import com.sg8.storage.StoreCoordinates
 import com.sg8.storage.TypeStored
+import com.sg8.util.displayInChat
+import net.minecraft.ChatFormatting
 import net.minecraft.nbt.CompoundTag
 import net.minecraft.server.level.ServerPlayer
 import java.util.UUID
 import kotlin.collections.Map.Entry
+
 
 open class TournamentMatch(protected val properties: MatchProperties) : TypeStored {
 
@@ -49,7 +54,7 @@ open class TournamentMatch(protected val properties: MatchProperties) : TypeStor
         properties.observable.subscribe { emitChange() }
     }
 
-    /** &#9888; (UUID) constructor is needed for serialization method */
+    /** &#9888; (UUID) constructor is necessary for serialization method */
     constructor(uuid: UUID = UUID.randomUUID()) : this(MatchProperties(uuid = uuid))
 
     override fun initialize() = this
@@ -168,7 +173,7 @@ open class TournamentMatch(protected val properties: MatchProperties) : TypeStor
             val textStart = "Congratulations Trainer ${player.name}! You won first place"
             val textEnd = tournament?.let { " in \"${it.name}\"" } ?: "!"
             player.finalPlacement = 1
-            serverPlayer?.displayInChat(text = textStart + textEnd, color = GREEN_FORMAT)
+            serverPlayer?.displayInChat(text = textStart + textEnd, color = ChatFormatting.GREEN)
             tournament?.checkIfComplete() ?: TODO()
         }
         player.currentMatchID = victorNextMatch?.uuid
@@ -192,7 +197,7 @@ open class TournamentMatch(protected val properties: MatchProperties) : TypeStor
                         "You finished in ${player.finalPlacement} place"
                 val textEnd = tournament?.let { " in \"${it.name}\"" } ?: "!"
 
-                serverPlayer.displayInChat(text = textStart + textEnd, color = GREEN_FORMAT)
+                serverPlayer.displayInChat(text = textStart + textEnd, color = ChatFormatting.GREEN)
             }
         }
         player.currentMatchID = defeatedNextMatch?.uuid
@@ -200,14 +205,14 @@ open class TournamentMatch(protected val properties: MatchProperties) : TypeStor
 
 
     override fun saveToNbt(nbt: CompoundTag): CompoundTag {
-        nbt.put(MATCH_PROPERTIES_KEY, properties.saveToNbt(CompoundTag()))
+        nbt.put(DataKeys.MATCH_PROPERTIES, properties.saveToNbt(CompoundTag()))
         return nbt
     }
 
     override fun saveToJSON(json: JsonObject): JsonObject { TODO() }
 
     override fun loadFromNBT(nbt: CompoundTag): TournamentMatch {
-        properties.setFromNbt(nbt.getCompound(MATCH_PROPERTIES_KEY))
+        properties.setFromNbt(nbt.getCompound(DataKeys.MATCH_PROPERTIES))
         return this
     }
 
@@ -225,7 +230,7 @@ open class TournamentMatch(protected val properties: MatchProperties) : TypeStor
     companion object {
         fun loadFromNbt(nbt: CompoundTag): TournamentMatch {
             return TournamentMatch(
-                MatchProperties.loadFromNbt(nbt.getCompound(MATCH_PROPERTIES_KEY))
+                MatchProperties.loadFromNbt(nbt.getCompound(DataKeys.MATCH_PROPERTIES))
             )
         }
     }

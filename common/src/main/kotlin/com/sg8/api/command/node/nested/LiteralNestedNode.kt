@@ -1,10 +1,11 @@
 package com.sg8.api.command.node.nested
 
+import com.mojang.brigadier.builder.ArgumentBuilder
 import com.sg8.api.command.LiteralArgumentBuilder
 import com.sg8.api.command.node.ExecutionNode
-import com.mojang.brigadier.builder.ArgumentBuilder
 import net.minecraft.commands.CommandSourceStack
 import net.minecraft.commands.Commands
+
 
 open class LiteralNestedNode(
     nodeKey: String,
@@ -17,12 +18,12 @@ open class LiteralNestedNode(
         builder: ArgumentBuilder<CommandSourceStack, *>,
         execution: ExecutionNode?,
     ): LiteralArgumentBuilder {
-        return parentNode
-            .nest(Commands
+        return parentNode.nest(
+            Commands
                 .literal(nodeKey)
                 .executes((execution ?: this.executionNode).handler)
                 .then(builder)
-            )
+        )
     }
 
 }

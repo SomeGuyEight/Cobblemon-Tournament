@@ -6,6 +6,7 @@ import com.google.gson.JsonObject
 import net.minecraft.nbt.CompoundTag
 import java.util.UUID
 
+
 interface TypeStored {
 
     val uuid: UUID

@@ -1,12 +1,23 @@
 package com.cobblemontournament.common.tournament.properties
 
-import com.cobblemon.mod.common.api.reactive.*
-import com.cobblemontournament.common.api.*
+import com.cobblemon.mod.common.api.reactive.Observable
+import com.cobblemon.mod.common.api.reactive.ObservableSubscription
+import com.cobblemon.mod.common.api.reactive.SettableObservable
+import com.cobblemon.mod.common.api.reactive.SimpleObservable
+import com.cobblemontournament.common.api.MatchMap
+import com.cobblemontournament.common.api.MutableMatchMap
+import com.cobblemontournament.common.api.MutablePlayerMap
+import com.cobblemontournament.common.api.MutableRoundMap
+import com.cobblemontournament.common.api.PlayerMap
+import com.cobblemontournament.common.api.RoundMap
 import com.cobblemontournament.common.api.cobblemonchallenge.ChallengeFormat
 import com.cobblemontournament.common.config.TournamentConfig
-import com.cobblemontournament.common.tournament.*
-import com.cobblemontournament.common.util.*
-import com.sg8.collections.reactive.map.observableMapOf
+import com.cobblemontournament.common.tournament.TournamentStatus
+import com.cobblemontournament.common.tournament.TournamentType
+import com.cobblemontournament.common.util.MATCH_MAP_HANDLER
+import com.cobblemontournament.common.util.PLAYER_MAP_HANDLER
+import com.cobblemontournament.common.util.ROUND_MAP_HANDLER
+import com.sg8.collections.reactive.map.mutableObservableMapOf
 import com.sg8.properties.DefaultProperties
 import net.minecraft.nbt.CompoundTag
 import net.minecraft.server.level.ServerPlayer
@@ -95,10 +106,10 @@ class TournamentProperties(
 
 
     init {
-        _roundMap = roundMap?.mutableCopy() ?: observableMapOf(roundMapHandler)
+        _roundMap = roundMap?.mutableCopy() ?: mutableObservableMapOf(ROUND_MAP_HANDLER)
         _roundMap.subscribe()
-        _matchMap = matchMap?.mutableCopy() ?: observableMapOf(matchMapHandler)
-        _playerMap = playerMap?.mutableCopy() ?: observableMapOf(playerMapHandler)
+        _matchMap = matchMap?.mutableCopy() ?: mutableObservableMapOf(MATCH_MAP_HANDLER)
+        _playerMap = playerMap?.mutableCopy() ?: mutableObservableMapOf(PLAYER_MAP_HANDLER)
     }
 
 
