@@ -1,7 +1,9 @@
 package com.sg8.collections.reactive.map
 
 import com.cobblemon.mod.common.api.Priority
-import com.cobblemon.mod.common.api.reactive.*
+import com.cobblemon.mod.common.api.reactive.Observable
+import com.cobblemon.mod.common.api.reactive.SimpleObservable
+import com.sg8.collections.reactive.subscriptions.MapSubscription
 import kotlin.collections.Map.Entry
 
 
@@ -10,7 +12,7 @@ private class ObservableEntry<K, V>(override val key: K, override val value: V) 
 
 class MutableObservableMap<K, V>(
     map: Map<K, V> = mapOf(),
-    entryHandler: (Entry<K, V>) -> Set<Observable<*>> = { it.getObservables() },
+    entryHandler: (Entry<K, V>) -> Set<Observable<*>> = { it.getEntryObservables() },
 ) : ObservableMap<K, V>(map = map, entryHandler = entryHandler),
     MutableMap<K, V> {
 
@@ -18,7 +20,7 @@ class MutableObservableMap<K, V>(
     private val removalObservable = SimpleObservable<Pair<Map<K, V>, Entry<K, V>>>()
 
     fun subscribe(
-        priority: Priority,
+        priority: Priority  = Priority.NORMAL,
         anyChangeHandler: (Pair<Map<K, V>, Entry<K, V>>) -> Unit,
         additionHandler: ((Pair<Map<K, V>, Entry<K, V>>) -> Unit)? = null,
         removalHandler: ((Pair<Map<K, V>, Entry<K, V>>) -> Unit)? = null,
@@ -44,9 +46,11 @@ class MutableObservableMap<K, V>(
         return emitAnyChange(entry)
     }
 
-    private fun emitAddition(entry: Entry<K, V>) = additionObservable.emit(map to entry)
+    //private fun emitAddition(entry: Entry<K, V>) = additionObservable.emit(map to entry)
+    private fun emitAddition(entry: Entry<K, V>) = additionObservable.emit(map.toMap() to entry)
 
-    private fun emitRemoval(entry: Entry<K, V>) = removalObservable.emit(map to entry)
+    //private fun emitRemoval(entry: Entry<K, V>) = removalObservable.emit(map to entry)
+    private fun emitRemoval(entry: Entry<K, V>) = removalObservable.emit(map.toMap() to entry)
 
     override operator fun iterator(): MutableIterator<Entry<K, V>> {
         return MutableObservableMapIterator(this)

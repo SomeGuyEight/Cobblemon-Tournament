@@ -3,6 +3,7 @@ package com.cobblemontournament.common.generator.indexedseed
 import com.sg8.collections.SortType
 import com.sg8.util.ceilToPowerOfTwo
 
+
 object IndexedSeedGenerator {
 
     fun getIndexedSeedArray(seedCount: Int, sortType: SortType? = null): IndexedSeedList {

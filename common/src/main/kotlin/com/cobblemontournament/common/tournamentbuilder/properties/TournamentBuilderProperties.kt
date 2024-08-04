@@ -1,16 +1,23 @@
 package com.cobblemontournament.common.tournamentbuilder.properties
 
-import com.cobblemon.mod.common.api.reactive.*
+import com.cobblemon.mod.common.api.reactive.Observable
+import com.cobblemon.mod.common.api.reactive.ObservableSubscription
+import com.cobblemon.mod.common.api.reactive.SettableObservable
+import com.cobblemon.mod.common.api.reactive.SimpleObservable
 import com.cobblemontournament.common.player.properties.PlayerProperties
 import com.cobblemontournament.common.tournament.properties.TournamentProperties
-import com.sg8.collections.reactive.set.*
+import com.sg8.collections.reactive.set.MutableObservableSet
+import com.sg8.collections.reactive.set.ObservableSet
+import com.sg8.collections.reactive.set.mutableObservableSetOf
 import com.sg8.properties.DefaultProperties
 import net.minecraft.nbt.CompoundTag
 import net.minecraft.server.level.ServerPlayer
 import java.util.UUID
 
+
 typealias PlayersSet = ObservableSet<PlayerProperties>
 typealias MutablePlayersSet = MutableObservableSet<PlayerProperties>
+
 
 class TournamentBuilderProperties(
     name: String = DEFAULT_TOURNAMENT_BUILDER_NAME,
@@ -27,7 +34,7 @@ class TournamentBuilderProperties(
     private val _name = SettableObservable(name).subscribe()
     private val _uuid = SettableObservable(uuid).subscribe()
     private var _tournamentProperties = tournamentProperties?.deepCopy() ?: TournamentProperties()
-    private var _playerSet = playerSet?.mutableCopy() ?: observableSetOf()
+    private var _playerSet = playerSet?.mutableCopy() ?: mutableObservableSetOf()
 
     var name: String
         get() = _name.get()
@@ -70,7 +77,7 @@ class TournamentBuilderProperties(
     override fun emitChange() = observable.emit(this)
 
     fun getPlayersDeepCopy(): MutablePlayersSet {
-        val playersCopy: MutablePlayersSet = observableSetOf()
+        val playersCopy: MutablePlayersSet = mutableObservableSetOf()
         for (player in this.playerSet) {
             playersCopy.add(player.deepCopy())
         }

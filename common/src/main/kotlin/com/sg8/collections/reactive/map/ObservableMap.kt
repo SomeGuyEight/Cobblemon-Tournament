@@ -1,14 +1,16 @@
 package com.sg8.collections.reactive.map
 
-import com.cobblemon.mod.common.api.*
-import com.cobblemon.mod.common.api.reactive.*
+import com.cobblemon.mod.common.api.PrioritizedList
+import com.cobblemon.mod.common.api.Priority
+import com.cobblemon.mod.common.api.reactive.Observable
+import com.cobblemon.mod.common.api.reactive.ObservableSubscription
 import kotlin.Comparator
 import kotlin.collections.Map.Entry
 
 
 open class ObservableMap<K, V>(
     map: Map<K, V>,
-    protected val entryHandler: (Entry<K, V>) -> Set<Observable<*>> = { it.getObservables() },
+    protected val entryHandler: (Entry<K, V>) -> Set<Observable<*>> = { it.getEntryObservables() },
 ) : Map<K, V>,
     Observable<Pair<Map<K, V>, Entry<K, V>>> {
 
@@ -63,7 +65,8 @@ open class ObservableMap<K, V>(
     }
 
     protected fun emitAnyChange(pair: Entry<K, V>): Boolean {
-        subscriptions.forEach { it.handle(map to pair) }
+        //subscriptions.forEach { it.handle(map to pair) }
+        subscriptions.forEach { it.handle(map.toMap() to pair) }
         return true
     }
 
@@ -78,6 +81,11 @@ open class ObservableMap<K, V>(
     fun contains(key: K, value: V) = map[key] == value
 
     fun contains(predicate: (Entry<K, V>) -> Boolean) = map.any(predicate)
+
+    fun containsAll(other: Map<K, V>): Boolean {
+        this.forEach { if (it.value != other[it.key]) return false }
+        return true
+    }
 
     open operator fun iterator(): Iterator<Entry<K, V>> = map.iterator()
 

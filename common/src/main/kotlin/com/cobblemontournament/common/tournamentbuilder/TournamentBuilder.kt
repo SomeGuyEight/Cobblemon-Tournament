@@ -4,9 +4,9 @@ import com.cobblemon.mod.common.api.battles.model.actor.ActorType
 import com.cobblemon.mod.common.api.reactive.Observable
 import com.cobblemon.mod.common.api.reactive.SettableObservable
 import com.cobblemon.mod.common.api.reactive.SimpleObservable
-import com.cobblemontournament.common.api.storage.TOURNAMENT_BUILDER_PROPERTIES_KEY
-import com.cobblemontournament.common.api.tournament.TournamentData
 import com.cobblemontournament.common.api.cobblemonchallenge.ChallengeFormat
+import com.cobblemontournament.common.api.storage.DataKeys
+import com.cobblemontournament.common.api.tournament.TournamentData
 import com.cobblemontournament.common.generator.TournamentGenerator
 import com.cobblemontournament.common.player.properties.PlayerProperties
 import com.cobblemontournament.common.player.properties.PlayerPropertiesHelper
@@ -15,16 +15,19 @@ import com.cobblemontournament.common.tournament.properties.TournamentProperties
 import com.cobblemontournament.common.tournamentbuilder.properties.MutablePlayersSet
 import com.cobblemontournament.common.tournamentbuilder.properties.TournamentBuilderProperties
 import com.google.gson.JsonObject
-import com.sg8.util.YELLOW_FORMAT
-import com.sg8.storage.TypeStored
-import com.sg8.storage.StoreCoordinates
 import com.sg8.storage.NameSet
+import com.sg8.storage.StoreCoordinates
+import com.sg8.storage.TypeStored
 import com.sg8.util.displayInChat
+import net.minecraft.ChatFormatting
 import net.minecraft.nbt.CompoundTag
 import net.minecraft.server.level.ServerPlayer
 import java.util.UUID
 
-open class TournamentBuilder(protected val properties: TournamentBuilderProperties) : TypeStored {
+
+open class TournamentBuilder(
+    protected val properties: TournamentBuilderProperties
+) : TypeStored {
 
     override var storeCoordinates: SettableObservable<StoreCoordinates<*, *>?> =
         SettableObservable(value = null)
@@ -65,15 +68,12 @@ open class TournamentBuilder(protected val properties: TournamentBuilderProperti
         get() = tournamentProperties.showPreview
         set (value) { tournamentProperties.showPreview = value }
 
-
     init {
         properties.observable.subscribe { emitChange() }
     }
 
-
-    /** &#9888; (UUID) constructor is needed for serialization method */
-    constructor(uuid: UUID = UUID.randomUUID()) :
-            this(TournamentBuilderProperties(uuid = uuid))
+    /** &#9888; (UUID) constructor is necessary for serialization method */
+    constructor(uuid: UUID = UUID.randomUUID()) : this(TournamentBuilderProperties(uuid = uuid))
 
     override fun initialize() = this
 
@@ -150,14 +150,14 @@ open class TournamentBuilder(protected val properties: TournamentBuilderProperti
     }
 
     override fun saveToNbt(nbt: CompoundTag): CompoundTag {
-        nbt.put(TOURNAMENT_BUILDER_PROPERTIES_KEY, properties.saveToNbt(nbt = CompoundTag()))
+        nbt.put(DataKeys.TOURNAMENT_BUILDER_PROPERTIES, properties.saveToNbt(nbt = CompoundTag()))
         return nbt
     }
 
     override fun saveToJSON(json: JsonObject): JsonObject { TODO() }
 
     override fun loadFromNBT(nbt: CompoundTag): TournamentBuilder {
-        properties.setFromNbt(nbt.getCompound(TOURNAMENT_BUILDER_PROPERTIES_KEY))
+        properties.setFromNbt(nbt.getCompound(DataKeys.TOURNAMENT_BUILDER_PROPERTIES))
         return this
     }
 
@@ -189,7 +189,8 @@ open class TournamentBuilder(protected val properties: TournamentBuilderProperti
     ) {
         if (properties.playerSet.size != 0) {
             player.displayInChat(
-                text = "Players for Tournament Builder \"$name\":", color = YELLOW_FORMAT,
+                text = "Players for Tournament Builder \"$name\":",
+                color = ChatFormatting.YELLOW,
                 bold = true,
             )
             for ( playerProps in properties.getPlayersSortedBy { it.seed } ) {
@@ -212,10 +213,9 @@ open class TournamentBuilder(protected val properties: TournamentBuilderProperti
         fun loadFromNbt(nbt: CompoundTag): TournamentBuilder {
             return TournamentBuilder(
                 TournamentBuilderProperties.loadFromNbt(
-                    nbt = nbt.getCompound(TOURNAMENT_BUILDER_PROPERTIES_KEY),
+                    nbt = nbt.getCompound(DataKeys.TOURNAMENT_BUILDER_PROPERTIES),
                 )
             )
         }
     }
-
 }

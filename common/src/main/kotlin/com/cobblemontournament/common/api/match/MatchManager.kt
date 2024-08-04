@@ -2,22 +2,29 @@ package com.cobblemontournament.common.api.match
 
 import com.cobblemon.mod.common.api.events.battles.BattleVictoryEvent
 import com.cobblemontournament.common.CobblemonTournament
-import com.cobblemontournament.common.api.storage.*
+import com.cobblemontournament.common.api.storage.TournamentStoreManager
 import com.cobblemontournament.common.api.storage.store.MatchStore
 import com.cobblemontournament.common.api.storage.store.PlayerStore
 import com.cobblemontournament.common.api.storage.store.TournamentStore
 import com.cobblemontournament.common.commands.util.CommandUtil
-import com.cobblemontournament.common.match.*
+import com.cobblemontournament.common.match.MatchStatus
+import com.cobblemontournament.common.match.TournamentMatch
 import com.cobblemontournament.common.player.TournamentPlayer
 import com.cobblemontournament.common.tournament.Tournament
 import com.mojang.brigadier.Command
 import com.sg8.collections.reactive.map.observableMapOf
-import com.sg8.util.*
+import com.sg8.util.appendWith
+import com.sg8.util.appendWithBracketed
+import com.sg8.util.ComponentUtil
+import com.sg8.util.displayInChat
+import com.sg8.util.short
+import net.minecraft.ChatFormatting
 import net.minecraft.network.chat.Component
 import net.minecraft.network.chat.MutableComponent
 import net.minecraft.server.level.ServerPlayer
 import org.slf4j.helpers.Util
 import java.util.UUID
+
 
 object MatchManager {
 
@@ -141,13 +148,22 @@ object MatchManager {
 
         val insert: MutableComponent? = when {
             player == null -> {
-                getBracketedComponent(text = "Match was null", textColor = YELLOW_FORMAT)
+                ComponentUtil.getBracketedComponent(
+                    text = "Match was null",
+                    textColor = ChatFormatting.YELLOW,
+                )
             }
             match == null -> {
-                getBracketedComponent(text = "Match was null", textColor = YELLOW_FORMAT)
+                ComponentUtil.getBracketedComponent(
+                    text = "Match was null",
+                    textColor = ChatFormatting.YELLOW,
+                )
             }
             serverPlayers.size < playerMap.size -> {
-                getBracketedComponent(text = "Participant offline", textColor = YELLOW_FORMAT)
+                ComponentUtil.getBracketedComponent(
+                    text = "Participant offline",
+                    textColor = ChatFormatting.YELLOW,
+                )
             }
             opponent != null -> {
                 watchedMatches.add(match)
@@ -167,11 +183,11 @@ object MatchManager {
     }
 
     private fun handleFinalizedPlayer(player: TournamentPlayer, challenger: ServerPlayer) {
-        val text = getComponent(text = "${player.name} ", color = AQUA_FORMAT)
+        val text = ComponentUtil.getComponent(text = "${player.name} ", color = ChatFormatting.AQUA)
         text.appendWith(text = "finished in ")
         text.appendWithBracketed(
             text = player.finalPlacement.toString(),
-            textColor = GREEN_FORMAT,
+            textColor = ChatFormatting.GREEN,
             bold = true,
         )
         text.appendWith(text = " place!")
@@ -187,17 +203,17 @@ object MatchManager {
         match: TournamentMatch?,
         insert: Component? = null,
     ): Int {
-        val title = getComponent(text = "\"")
-        title.appendWith(text = tournamentName, color = GREEN_FORMAT)
+        val title = ComponentUtil.getComponent(text = "\"")
+        title.appendWith(text = tournamentName, color = ChatFormatting.GREEN)
         title.appendWith(text = "\" ${match?.name} ")
-        title.appendWith(text = playerOneName, color = AQUA_FORMAT)
-        title.appendWith(text = " vs ", color = PURPLE_FORMAT)
-        title.appendWith(text = playerTwoName, color = AQUA_FORMAT)
+        title.appendWith(text = playerOneName, color = ChatFormatting.AQUA)
+        title.appendWith(text = " vs ", color = ChatFormatting.LIGHT_PURPLE)
+        title.appendWith(text = playerTwoName, color = ChatFormatting.AQUA)
 
-        val status = getComponent(text = "  Match Status ", bold = true)
+        val status = ComponentUtil.getComponent(text = "  Match Status ", bold = true)
         val statusColor = match?.let {
             getStatusColor(it.getUpdatedMatchStatus())
-        } ?: WHITE_FORMAT
+        } ?: ChatFormatting.WHITE
 
         status.appendWithBracketed(
             text = "${match?.getUpdatedMatchStatus()}",
@@ -223,24 +239,24 @@ object MatchManager {
             text = "Click to Challenge!",
             tournament = tournament,
             opponent = opponent,
-            color = GREEN_FORMAT,
+            color = ChatFormatting.GREEN,
             bracketed = true,
         )
     }
 
-    private fun getStatusColor(matchStatus: MatchStatus): String {
+    private fun getStatusColor(matchStatus: MatchStatus): ChatFormatting {
         return when (matchStatus) {
-            MatchStatus.ERROR -> RED_FORMAT
+            MatchStatus.ERROR -> ChatFormatting.RED
 
             MatchStatus.UNKNOWN,
             MatchStatus.EMPTY,
             MatchStatus.PENDING,
-            MatchStatus.NOT_READY -> YELLOW_FORMAT
+            MatchStatus.NOT_READY -> ChatFormatting.YELLOW
 
             MatchStatus.READY,
             MatchStatus.IN_PROGRESS,
             MatchStatus.COMPLETE,
-            MatchStatus.FINALIZED -> GREEN_FORMAT
+            MatchStatus.FINALIZED -> ChatFormatting.GREEN
         }
     }
 

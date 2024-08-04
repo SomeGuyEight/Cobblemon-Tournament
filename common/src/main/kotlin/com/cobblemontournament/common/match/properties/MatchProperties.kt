@@ -2,6 +2,7 @@ package com.cobblemontournament.common.match.properties
 
 import com.cobblemon.mod.common.api.reactive.*
 import com.cobblemontournament.common.match.*
+import com.cobblemontournament.common.match.connections.MatchConnections
 import com.cobblemontournament.common.round.properties.DEFAULT_ROUND_INDEX
 import com.sg8.collections.reactive.map.*
 import com.sg8.properties.DefaultProperties
@@ -38,7 +39,7 @@ class MatchProperties(
     private val _matchStatus = SettableObservable(matchStatus).subscribe()
     private val _victorID = SettableObservable(victorID).subscribe()
     private var _matchConnections = matchConnections?.deepCopy() ?: MatchConnections()
-    private var _playerMap = playerMap?.mutableCopy() ?: observableMapOf()
+    private var _playerMap = playerMap?.mutableCopy() ?: mutableObservableMapOf()
 
     val name: String get() = "Match $roundMatchIndex ($tournamentMatchIndex)"
     var uuid: UUID

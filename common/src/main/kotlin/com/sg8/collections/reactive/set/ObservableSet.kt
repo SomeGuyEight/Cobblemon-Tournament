@@ -1,13 +1,16 @@
 package com.sg8.collections.reactive.set
 
-import com.cobblemon.mod.common.api.*
-import com.cobblemon.mod.common.api.reactive.*
-import com.sg8.collections.reactive.collection.*
+import com.cobblemon.mod.common.api.PrioritizedList
+import com.cobblemon.mod.common.api.Priority
+import com.cobblemon.mod.common.api.reactive.Observable
+import com.cobblemon.mod.common.api.reactive.ObservableSubscription
+import com.sg8.collections.reactive.collection.ObservableCollection
+import com.sg8.collections.reactive.collection.getElementObservables
 
 
 open class ObservableSet<T>(
     set: Collection<T>,
-    protected val elementHandler: (T) -> Set<Observable<*>> = { it.getObservables() },
+    protected val elementHandler: (T) -> Set<Observable<*>> = { it.getElementObservables() },
 ) : ObservableCollection<T, Set<T>>,
     Set<T>,
     Observable<Pair<Set<T>, T>> {
@@ -15,17 +18,14 @@ open class ObservableSet<T>(
     protected open val set: MutableSet<T> = set.toMutableSet()
 
     private val subscriptions = PrioritizedList<ObservableSubscription<Pair<Set<T>, T>>>()
-    protected val subscriptionMap: MutableMap<Observable<*>, ObservableSubscription<*>> = mutableMapOf()
+    private val subscriptionMap: MutableMap<Observable<*>, ObservableSubscription<*>> = mutableMapOf()
 
-    override val elements: Set<T> get() = set
+    // Keep as 'this.set' & not 'set,' b/c compiler doesn't like it & cries a little.
+    override val elements: Set<T> get() = this.set
     override val size: Int get() = set.size
 
     init {
-        set.forEach { element ->
-            elementHandler(element).forEach { observable ->
-                subscriptionMap[observable] = observable.subscribe { emitAnyChange(element) }
-            }
-        }
+        set.forEach { register(it) }
     }
 
     override fun subscribe(
@@ -37,17 +37,26 @@ open class ObservableSet<T>(
         return subscription
     }
 
+    /*
+    TODO: fix issue where passing subscription to addition or removal does not unsubscribe
+        Does this issue really matter?
+        Calling unsubscribe from the subscription directly works as intended
+     */
     override fun unsubscribe(subscription: ObservableSubscription<Pair<Set<T>, T>>) {
         subscriptions.remove(subscription)
     }
 
-    protected open fun register(element: T): Boolean {
+    protected fun register(element: T) {
         elementHandler(element).forEach{ observable ->
             subscriptionMap[observable] = observable.subscribe { emitAnyChange(element) }
         }
-        return emitAnyChange(element)
     }
 
+    protected fun unregister(element: T) {
+        elementHandler(element).forEach{ subscriptionMap.remove(it)?.unsubscribe() }
+    }
+
+    /** @return true after handling [subscriptions]. */
     protected fun emitAnyChange(element: T): Boolean {
         subscriptions.forEach { it.handle(set to element) }
         return true

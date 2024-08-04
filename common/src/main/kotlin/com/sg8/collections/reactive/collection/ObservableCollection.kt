@@ -1,7 +1,8 @@
 package com.sg8.collections.reactive.collection
 
 import com.cobblemon.mod.common.api.Priority
-import com.cobblemon.mod.common.api.reactive.*
+import com.cobblemon.mod.common.api.reactive.Observable
+import com.cobblemon.mod.common.api.reactive.ObservableSubscription
 
 
 interface ObservableCollection<T, C : Collection<T>> :

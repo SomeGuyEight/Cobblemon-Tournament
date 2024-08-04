@@ -9,7 +9,7 @@ import com.sg8.collections.reactive.tryGetObservable
  *
  * @return An observable set of this value as an [Observable] or an empty set.
  */
-fun <T> T.getObservables(): Set<Observable<*>> {
+fun <T> T.getElementObservables(): Set<Observable<*>> {
     this.tryGetObservable()?.let { return setOf(it) }
     return emptySet()
 }

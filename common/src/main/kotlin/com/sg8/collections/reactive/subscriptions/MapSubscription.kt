@@ -1,4 +1,4 @@
-package com.sg8.collections.reactive.map
+package com.sg8.collections.reactive.subscriptions
 
 import com.cobblemon.mod.common.api.reactive.ObservableSubscription
 import kotlin.collections.Map.Entry

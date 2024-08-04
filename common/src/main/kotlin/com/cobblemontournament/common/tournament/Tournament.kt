@@ -1,8 +1,10 @@
 package com.cobblemontournament.common.tournament
 
-import com.cobblemon.mod.common.api.reactive.*
-import com.cobblemontournament.common.api.storage.*
+import com.cobblemon.mod.common.api.reactive.SettableObservable
+import com.cobblemon.mod.common.api.reactive.SimpleObservable
 import com.cobblemontournament.common.api.cobblemonchallenge.ChallengeFormat
+import com.cobblemontournament.common.api.storage.DataKeys
+import com.cobblemontournament.common.api.storage.TournamentStoreManager
 import com.cobblemontournament.common.api.storage.store.TournamentStore
 import com.cobblemontournament.common.match.MatchStatus
 import com.cobblemontournament.common.match.TournamentMatch
@@ -110,14 +112,14 @@ open class Tournament(protected val properties: TournamentProperties) : TypeStor
     }
 
     override fun saveToNbt(nbt: CompoundTag): CompoundTag {
-        nbt.put(TOURNAMENT_PROPERTIES_KEY, properties.saveToNbt(nbt = CompoundTag()))
+        nbt.put(DataKeys.TOURNAMENT_PROPERTIES, properties.saveToNbt(nbt = CompoundTag()))
         return nbt
     }
 
     override fun saveToJSON(json: JsonObject): JsonObject { TODO() }
 
     override fun loadFromNBT(nbt: CompoundTag): Tournament {
-        properties.setFromNbt(nbt = nbt.getCompound(TOURNAMENT_PROPERTIES_KEY))
+        properties.setFromNbt(nbt = nbt.getCompound(DataKeys.TOURNAMENT_PROPERTIES))
         return this
     }
 
@@ -137,7 +139,7 @@ open class Tournament(protected val properties: TournamentProperties) : TypeStor
 
         fun loadFromNbt(nbt: CompoundTag): Tournament {
             return Tournament(
-                TournamentProperties.loadFromNbt(nbt.getCompound(TOURNAMENT_PROPERTIES_KEY))
+                TournamentProperties.loadFromNbt(nbt.getCompound(DataKeys.TOURNAMENT_PROPERTIES))
             )
         }
 

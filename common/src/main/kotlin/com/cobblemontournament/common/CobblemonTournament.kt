@@ -12,7 +12,9 @@ import net.minecraft.server.level.ServerPlayer
 import org.slf4j.helpers.Util
 import java.util.UUID
 
+
 const val MOD_ID = "cobblemontournament"
+
 
 object CobblemonTournament : ModImplementation(TournamentCommands) {
 
@@ -46,5 +48,4 @@ object CobblemonTournament : ModImplementation(TournamentCommands) {
         }
         return players
     }
-
 }

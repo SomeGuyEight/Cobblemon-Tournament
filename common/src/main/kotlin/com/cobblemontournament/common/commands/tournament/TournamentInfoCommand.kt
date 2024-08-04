@@ -1,14 +1,11 @@
 package com.cobblemontournament.common.commands.tournament
 
-import com.sg8.api.command.CommandContext
 import com.cobblemontournament.common.commands.nodes.*
 import com.cobblemontournament.common.commands.util.getTournamentOrDisplayFail
-import com.mojang.brigadier.Command
-import com.mojang.brigadier.CommandDispatcher
-import com.sg8.api.command.getServerPlayerOrDisplayFail
+import com.mojang.brigadier.*
+import com.sg8.api.command.*
 import com.sg8.api.command.node.ExecutionNode
-import net.minecraft.commands.CommandSourceStack
-import net.minecraft.commands.Commands
+import net.minecraft.commands.*
 
 /**
  * [TOURNAMENT]-[TOURNAMENT]-([ACTIVE] or [HISTORY])-[TOURNAMENT_NAME]-[INFO]

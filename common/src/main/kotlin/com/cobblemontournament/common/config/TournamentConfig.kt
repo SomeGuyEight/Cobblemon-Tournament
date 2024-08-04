@@ -9,6 +9,7 @@ import java.io.File
 import java.io.FileReader
 import java.io.FileWriter
 
+
 object TournamentConfig {
 
     const val CONFIG_FILE_NAME = "cobblemon-tournament"

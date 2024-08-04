@@ -1,31 +1,41 @@
 package com.sg8.collections.reactive.set
 
-import com.sg8.storage.datakeys.*
+import com.cobblemon.mod.common.api.reactive.Observable
+import com.sg8.collections.reactive.collection.getElementObservables
+import com.sg8.storage.DataKeys
 import com.sg8.util.getIntOrNull
 import net.minecraft.nbt.CompoundTag
 
 
-inline fun <reified T, reified S : ObservableSet<T>> S.saveToNbt(
+fun <T> Set<T>.saveToNbt(
     elementHandler: (T) -> CompoundTag,
 ): CompoundTag {
     val nbt = CompoundTag()
     var size = 0
-    this.iterator().forEach { nbt.put(ELEMENT_KEY + size++, elementHandler(it)) }
-    nbt.putInt(SIZE_KEY, size)
+    this.iterator().forEach { nbt.put(DataKeys.ELEMENT + size++, elementHandler(it)) }
+    nbt.putInt(DataKeys.SIZE, size)
     return nbt
 }
 
 
-inline fun <reified T, reified S : ObservableSet<T>> CompoundTag.loadObservableSetOf(
-    noinline elementHandler: (CompoundTag) -> T,
-): S {
+fun <T> CompoundTag.loadObservableSetOf(
+    loadElementHandler: (CompoundTag) -> T,
+    elementObservableHandler: (T) -> Set<Observable<*>> = { it.getElementObservables() },
+) = ObservableSet(this.loadSet(loadElementHandler), elementObservableHandler)
+
+
+fun <T> CompoundTag.loadMutableObservableSetOf(
+    loadElementHandler: (CompoundTag) -> T,
+    elementObservableHandler: (T) -> Set<Observable<*>> = { it.getElementObservables() },
+) = MutableObservableSet(this.loadSet(loadElementHandler), elementObservableHandler)
+
+
+private fun <T> CompoundTag.loadSet(elementHandler: (CompoundTag) -> T): Set<T> {
     val newSet = mutableSetOf<T>()
-    this.getIntOrNull(SIZE_KEY)?.let { size ->
+    this.getIntOrNull(DataKeys.SIZE)?.let { size ->
         for (i in 0 until size) {
-            newSet.add(elementHandler(this.getCompound(ELEMENT_KEY + i)))
+            newSet.add(elementHandler(this.getCompound(DataKeys.ELEMENT + i)))
         }
     }
-    return S::class.java
-        .getConstructor(newSet::class.java, elementHandler::class.java)
-        .newInstance(newSet, elementHandler)
+    return newSet
 }

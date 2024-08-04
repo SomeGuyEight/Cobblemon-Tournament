@@ -1,11 +1,14 @@
 package com.cobblemontournament.common.player
 
 import com.cobblemon.mod.common.api.battles.model.actor.ActorType
-import com.cobblemon.mod.common.api.reactive.*
-import com.cobblemontournament.common.api.storage.PLAYER_PROPERTIES_KEY
+import com.cobblemon.mod.common.api.reactive.Observable
+import com.cobblemon.mod.common.api.reactive.SettableObservable
+import com.cobblemon.mod.common.api.reactive.SimpleObservable
+import com.cobblemontournament.common.api.storage.DataKeys
 import com.cobblemontournament.common.player.properties.PlayerProperties
 import com.google.gson.JsonObject
-import com.sg8.storage.*
+import com.sg8.storage.StoreCoordinates
+import com.sg8.storage.TypeStored
 import net.minecraft.nbt.CompoundTag
 import net.minecraft.server.level.ServerPlayer
 import java.util.UUID
@@ -49,7 +52,7 @@ open class TournamentPlayer(protected val properties: PlayerProperties) : TypeSt
         properties.observable.subscribe { emitChange() }
     }
 
-    /** &#9888; (UUID) constructor is needed for serialization method */
+    /** &#9888; (UUID) constructor is necessary for serialization method */
     constructor(playerUuid: UUID = UUID.randomUUID()) :
            this(PlayerProperties(uuid = playerUuid))
 
@@ -60,14 +63,14 @@ open class TournamentPlayer(protected val properties: PlayerProperties) : TypeSt
     override fun getObservable(): Observable<TournamentPlayer> = anyChangeObservable
 
     override fun saveToNbt(nbt: CompoundTag): CompoundTag {
-        nbt.put(PLAYER_PROPERTIES_KEY, properties.saveToNbt(nbt = CompoundTag()))
+        nbt.put(DataKeys.PLAYER_PROPERTIES, properties.saveToNbt(nbt = CompoundTag()))
         return nbt
     }
 
     override fun saveToJSON(json: JsonObject): JsonObject { TODO() }
 
     override fun loadFromNBT(nbt: CompoundTag): TournamentPlayer {
-        properties.setFromNbt(nbt = nbt.getCompound(PLAYER_PROPERTIES_KEY))
+        properties.setFromNbt(nbt = nbt.getCompound(DataKeys.PLAYER_PROPERTIES))
         return this
     }
 
@@ -101,7 +104,7 @@ open class TournamentPlayer(protected val properties: PlayerProperties) : TypeSt
     companion object {
         fun loadFromNbt(nbt: CompoundTag): TournamentPlayer {
             return TournamentPlayer(
-                PlayerProperties.loadFromNbt(nbt = nbt.getCompound(PLAYER_PROPERTIES_KEY))
+                PlayerProperties.loadFromNbt(nbt = nbt.getCompound(DataKeys.PLAYER_PROPERTIES))
             )
         }
     }

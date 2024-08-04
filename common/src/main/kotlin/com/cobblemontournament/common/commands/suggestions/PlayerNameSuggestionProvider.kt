@@ -1,16 +1,12 @@
 package com.cobblemontournament.common.commands.suggestions
 
 import com.cobblemontournament.common.api.storage.*
-import com.cobblemontournament.common.api.storage.store.TournamentBuilderStore
-import com.cobblemontournament.common.api.storage.store.TournamentStore
-import com.sg8.api.command.CommandContext
+import com.cobblemontournament.common.api.storage.store.*
 import com.cobblemontournament.common.commands.nodes.*
 import com.cobblemontournament.common.tournament.Tournament
 import com.cobblemontournament.common.tournamentbuilder.TournamentBuilder
-import com.mojang.brigadier.suggestion.SuggestionProvider
-import com.mojang.brigadier.suggestion.Suggestions
-import com.mojang.brigadier.suggestion.SuggestionsBuilder
-import com.sg8.api.command.getNodeInputRange
+import com.mojang.brigadier.suggestion.*
+import com.sg8.api.command.*
 import java.util.concurrent.CompletableFuture
 import net.minecraft.commands.CommandSourceStack
 

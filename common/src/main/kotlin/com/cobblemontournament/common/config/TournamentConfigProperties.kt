@@ -3,6 +3,7 @@ package com.cobblemontournament.common.config
 import com.cobblemontournament.common.api.cobblemonchallenge.ChallengeFormat
 import com.cobblemontournament.common.tournament.TournamentType
 
+
 data class TournamentConfigProperties(
     var defaultTournamentType: TournamentType = DEFAULT_TOURNAMENT_TYPE,
     var defaultChallengeFormat: ChallengeFormat = DEFAULT_CHALLENGE_FORMAT,

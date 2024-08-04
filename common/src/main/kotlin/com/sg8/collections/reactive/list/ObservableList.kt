@@ -1,13 +1,16 @@
 package com.sg8.collections.reactive.list
 
-import com.cobblemon.mod.common.api.*
-import com.cobblemon.mod.common.api.reactive.*
-import com.sg8.collections.reactive.collection.*
+import com.cobblemon.mod.common.api.PrioritizedList
+import com.cobblemon.mod.common.api.Priority
+import com.cobblemon.mod.common.api.reactive.Observable
+import com.cobblemon.mod.common.api.reactive.ObservableSubscription
+import com.sg8.collections.reactive.collection.ObservableCollection
+import com.sg8.collections.reactive.collection.getElementObservables
 
 
 open class ObservableList<T>(
     list: Collection<T>,
-    protected val elementHandler: (T) -> Set<Observable<*>> = { it.getObservables() },
+    protected val elementHandler: (T) -> Set<Observable<*>> = { it.getElementObservables() },
 ) : ObservableCollection<T, List<T>>,
     List<T>,
     Observable<Pair<List<T>, T>> {
@@ -15,18 +18,14 @@ open class ObservableList<T>(
     val list: MutableList<T> = list.toMutableList()
 
     private val subscriptions = PrioritizedList<ObservableSubscription<Pair<List<T>, T>>>()
-    protected val subscriptionMap: MutableMap<Observable<*>, ObservableSubscription<*>> = mutableMapOf()
+    private val subscriptionMap: MutableMap<Observable<*>, ObservableSubscription<*>> = mutableMapOf()
 
-    override val elements: List<T> get() = list.toList()
+    override val elements: List<T> get() = list
     override val size: Int get() = list.size
     val lastIndex: Int get() = list.lastIndex
 
     init {
-        list.forEach { element ->
-            elementHandler(element).forEach { observable ->
-                subscriptionMap[observable] = observable.subscribe { emitAnyChange(element) }
-            }
-        }
+        list.forEach { register(it) }
     }
 
     override fun subscribe(
@@ -42,13 +41,17 @@ open class ObservableList<T>(
         subscriptions.remove(subscription)
     }
 
-    protected open fun register(element: T): Boolean {
+    protected fun register(element: T) {
         elementHandler(element).forEach{ observable ->
             subscriptionMap[observable] = observable.subscribe { emitAnyChange(element) }
         }
-        return emitAnyChange(element)
     }
 
+    protected fun unregister(element: T) {
+        elementHandler(element).forEach{ subscriptionMap.remove(it)?.unsubscribe() }
+    }
+
+    /** @return true after handling [subscriptions]. */
     protected fun emitAnyChange(element: T): Boolean {
         subscriptions.forEach { it.handle(list to element) }
         return true

@@ -22,10 +22,10 @@ package com.sg8.storage.adapter.flatfile
 import com.sg8.storage.Store
 import com.sg8.storage.StorePosition
 import com.sg8.storage.TypeStored
-import java.io.File
-import java.util.UUID
 import net.minecraft.nbt.CompoundTag
 import net.minecraft.nbt.NbtIo
+import java.io.File
+import java.util.UUID
 
 /**
  * A [OneToOneFileStoreAdapter] that can arbitrarily save a single [Store] into an [CompoundTag] with the

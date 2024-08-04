@@ -6,6 +6,7 @@ import com.mojang.brigadier.builder.ArgumentBuilder
 import com.sg8.util.displayNoArgument
 import net.minecraft.commands.CommandSourceStack
 
+
 abstract class NestedNode (val nodeKey: String) {
 
     private val nodePath: String by lazy {

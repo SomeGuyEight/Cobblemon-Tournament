@@ -1,18 +1,23 @@
 package com.cobblemontournament.common.tournamentbuilder.properties
 
-import com.cobblemontournament.common.api.storage.*
+import com.cobblemontournament.common.api.storage.DataKeys
 import com.cobblemontournament.common.player.properties.PlayerProperties
 import com.cobblemontournament.common.player.properties.PlayerPropertiesHelper
 import com.cobblemontournament.common.tournament.properties.TournamentProperties
-import com.sg8.collections.reactive.set.loadObservableSetOf
-import com.sg8.collections.reactive.set.observableSetOf
+import com.sg8.collections.reactive.set.loadMutableObservableSetOf
+import com.sg8.collections.reactive.set.mutableObservableSetOf
 import com.sg8.collections.reactive.set.saveToNbt
 import com.sg8.properties.PropertiesHelper
-import com.sg8.util.*
+import com.sg8.util.appendWithBracketed
+import com.sg8.util.appendWithQuoted
+import com.sg8.util.ComponentUtil
+import com.sg8.util.short
+import net.minecraft.ChatFormatting
 import net.minecraft.nbt.CompoundTag
 import net.minecraft.nbt.Tag
 import net.minecraft.server.level.ServerPlayer
 import org.slf4j.helpers.Util
+
 
 object TournamentBuilderPropertiesHelper : PropertiesHelper<TournamentBuilderProperties> {
 
@@ -20,19 +25,19 @@ object TournamentBuilderPropertiesHelper : PropertiesHelper<TournamentBuilderPro
         properties: TournamentBuilderProperties,
         nbt: CompoundTag,
     ): CompoundTag {
-        nbt.putString(TOURNAMENT_BUILDER_NAME_KEY, properties.name)
-        nbt.putUUID(TOURNAMENT_BUILDER_ID_KEY, properties.uuid)
-        nbt.put(TOURNAMENT_PROPERTIES_KEY, properties.tournamentProperties.saveToNbt(nbt))
+        nbt.putString(DataKeys.TOURNAMENT_BUILDER_NAME, properties.name)
+        nbt.putUUID(DataKeys.TOURNAMENT_BUILDER_ID, properties.uuid)
+        nbt.put(DataKeys.TOURNAMENT_PROPERTIES, properties.tournamentProperties.saveToNbt(nbt))
         nbt.putPlayersSet(properties)
         return nbt
     }
 
     override fun loadFromNbt(nbt: CompoundTag): TournamentBuilderProperties {
         return TournamentBuilderProperties(
-            name = nbt.getString(TOURNAMENT_BUILDER_NAME_KEY),
-            uuid = nbt.getUUID(TOURNAMENT_BUILDER_ID_KEY),
+            name = nbt.getString(DataKeys.TOURNAMENT_BUILDER_NAME),
+            uuid = nbt.getUUID(DataKeys.TOURNAMENT_BUILDER_ID),
             tournamentProperties = TournamentProperties.loadFromNbt(
-                nbt.getCompound(TOURNAMENT_PROPERTIES_KEY)
+                nbt.getCompound(DataKeys.TOURNAMENT_PROPERTIES)
             ),
             playerSet = nbt.getPlayersSet(),
         )
@@ -42,10 +47,10 @@ object TournamentBuilderPropertiesHelper : PropertiesHelper<TournamentBuilderPro
         mutable: TournamentBuilderProperties,
         nbt: CompoundTag,
     ): TournamentBuilderProperties {
-        mutable.name = nbt.getString(TOURNAMENT_BUILDER_NAME_KEY)
-        mutable.uuid = nbt.getUUID(TOURNAMENT_BUILDER_ID_KEY)
+        mutable.name = nbt.getString(DataKeys.TOURNAMENT_BUILDER_NAME)
+        mutable.uuid = nbt.getUUID(DataKeys.TOURNAMENT_BUILDER_ID)
         mutable.tournamentProperties = TournamentProperties.loadFromNbt(
-            nbt.getCompound(TOURNAMENT_PROPERTIES_KEY)
+            nbt.getCompound(DataKeys.TOURNAMENT_PROPERTIES)
         )
         val playersSet = nbt.getPlayersSet()
         mutable.playerSet.retainAll(playersSet)
@@ -56,17 +61,17 @@ object TournamentBuilderPropertiesHelper : PropertiesHelper<TournamentBuilderPro
     private fun CompoundTag.putPlayersSet(properties: TournamentBuilderProperties): Tag? {
         val elementHandler = { player: PlayerProperties -> player.saveToNbt(CompoundTag()) }
         val playersSetNbt =  properties.playerSet.saveToNbt(elementHandler)
-        return this.put(PLAYER_SET_KEY, playersSetNbt)
+        return this.put(DataKeys.PLAYER_SET, playersSetNbt)
     }
 
     private fun CompoundTag.getPlayersSet(): MutablePlayersSet {
         val elementHandler = { nbt: CompoundTag -> PlayerProperties.loadFromNbt(nbt) }
-        val playersSetNbt = this.getCompound(PLAYER_SET_KEY)
-        return playersSetNbt.loadObservableSetOf(elementHandler)
+        val playersSetNbt = this.getCompound(DataKeys.PLAYER_SET)
+        return playersSetNbt.loadMutableObservableSetOf(elementHandler)
     }
 
     override fun deepCopy(properties: TournamentBuilderProperties): TournamentBuilderProperties {
-        val playersCopy = observableSetOf<PlayerProperties, MutablePlayersSet>()
+        val playersCopy = mutableObservableSetOf<PlayerProperties>()
         properties.playerSet.forEach { playersCopy.add(it.deepCopy()) }
         properties.playerSet.clear()
         properties.playerSet.addAll(playersCopy)
@@ -104,26 +109,26 @@ object TournamentBuilderPropertiesHelper : PropertiesHelper<TournamentBuilderPro
         properties: TournamentBuilderProperties,
         player: ServerPlayer,
     ) {
-        val titleComponent = getComponent(text = "Tournament Builder ")
+        val titleComponent = ComponentUtil.getComponent(text = "Tournament Builder ")
         titleComponent.appendWithQuoted(
             text = properties.name,
-            textColor = PURPLE_FORMAT,
+            textColor = ChatFormatting.LIGHT_PURPLE,
             padding = 0 to 1,
             bold = true,
         )
         titleComponent.appendWithBracketed(
             text = properties.uuid.short(),
-            textColor = PURPLE_FORMAT,
+            textColor = ChatFormatting.LIGHT_PURPLE,
         )
 
         player.displayClientMessage(titleComponent, false)
 
         properties.displayTournamentPropertiesInChat(player = player)
 
-        val playerComponent = getComponent(text = "  Player Count ")
+        val playerComponent = ComponentUtil.getComponent(text = "  Player Count ")
         playerComponent.appendWithBracketed(
             text = properties.playerSet.size.toString(),
-            textColor = YELLOW_FORMAT,
+            textColor = ChatFormatting.YELLOW,
         )
 
         player.displayClientMessage(playerComponent, false)
@@ -145,5 +150,4 @@ object TournamentBuilderPropertiesHelper : PropertiesHelper<TournamentBuilderPro
         properties.getSeededPlayers().forEach { display(it) }
         properties.getUnseededPlayers().forEach { display(it) }
     }
-
 }

@@ -5,9 +5,7 @@ import com.cobblemontournament.common.commands.match.MyMatchesCommand
 import com.cobblemontournament.common.commands.tournament.*
 import com.mojang.brigadier.CommandDispatcher
 import com.sg8.api.modimplementation.CommandImplementation
-import com.sg8.test.command.ReactiveSetTestCommand
-import net.minecraft.commands.CommandBuildContext
-import net.minecraft.commands.CommandSourceStack
+import net.minecraft.commands.*
 import net.minecraft.commands.Commands.CommandSelection
 
 object TournamentCommands : CommandImplementation {
@@ -34,7 +32,6 @@ object TournamentCommands : CommandImplementation {
         ActiveTournamentCurrentMatchCommand.register(dispatcher)
         TournamentInfoCommand.register(dispatcher)
 
-        ReactiveSetTestCommand.register(dispatcher)
         //TestCommands.register(dispatcher)
         //TestChatFormating.register(dispatcher)
         //RegisterFakePlayerCommand.register(dispatcher)

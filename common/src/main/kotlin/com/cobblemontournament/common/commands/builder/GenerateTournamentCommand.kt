@@ -1,17 +1,13 @@
 package com.cobblemontournament.common.commands.builder
 
-import com.sg8.api.command.CommandContext
 import com.cobblemontournament.common.commands.nodes.*
 import com.cobblemontournament.common.commands.util.getTournamentBuilderOrDisplayFail
-import com.sg8.api.command.node.ExecutionNode
-import com.mojang.brigadier.Command
-import com.mojang.brigadier.CommandDispatcher
+import com.mojang.brigadier.*
 import com.mojang.brigadier.arguments.StringArgumentType
-import com.sg8.api.command.getNodeInputRangeOrDisplayFail
-import com.sg8.util.displayCommandFail
-import com.sg8.util.displayCommandSuccess
-import net.minecraft.commands.CommandSourceStack
-import net.minecraft.commands.Commands
+import com.sg8.api.command.*
+import com.sg8.api.command.node.ExecutionNode
+import com.sg8.util.*
+import net.minecraft.commands.*
 
 /**
  * [TOURNAMENT]-[BUILDER]-[ACTIVE]-[BUILDER_NAME]-[GENERATE_TOURNAMENT]-([NEW]+[TOURNAMENT_NAME])

@@ -1,5 +1,6 @@
 package com.sg8.api.modimplementation
 
+
 abstract class PlatformModImplementation(protected val common: ModImplementation) {
 
     protected fun initializeCommon() = common.initialize(platformImplementation = this)

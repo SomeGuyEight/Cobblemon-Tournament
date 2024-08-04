@@ -1,13 +1,14 @@
 package com.sg8.api.command.node.nested
 
-import com.sg8.api.command.LiteralArgumentBuilder
-import com.sg8.api.command.node.ExecutionNode
 import com.mojang.brigadier.arguments.ArgumentType
 import com.mojang.brigadier.arguments.StringArgumentType
+import com.sg8.api.command.LiteralArgumentBuilder
+import com.sg8.api.command.node.ExecutionNode
 import com.mojang.brigadier.builder.ArgumentBuilder
 import com.mojang.brigadier.suggestion.SuggestionProvider
 import net.minecraft.commands.CommandSourceStack
 import net.minecraft.commands.Commands
+
 
 open class RequiredNestedNode<T : ArgumentType<*>>(
     nodeKey: String,
@@ -23,20 +24,20 @@ open class RequiredNestedNode<T : ArgumentType<*>>(
         execution: ExecutionNode?,
     ): LiteralArgumentBuilder {
         return if (suggestionProvider != null) {
-            parentNode
-                .nest(Commands
+            parentNode.nest(
+                Commands
                     .argument(nodeKey, argumentType)
                     .suggests(suggestionProvider)
                     .executes((execution ?: this.executionNode).handler)
                     .then(builder)
-                )
+            )
         } else {
-            parentNode
-                .nest(Commands
+            parentNode.nest(
+                Commands
                     .argument(nodeKey, StringArgumentType.string())
                     .executes((execution ?: this.executionNode).handler)
                     .then(builder)
-                )
+            )
         }
     }
 

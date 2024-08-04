@@ -1,13 +1,14 @@
 package com.cobblemontournament.forge.config
 
-import com.cobblemontournament.common.*
+import com.cobblemontournament.common.CobblemonTournament
 import com.cobblemontournament.common.api.cobblemonchallenge.ChallengeFormat
-import com.cobblemontournament.common.api.storage.*
+import com.cobblemontournament.common.api.storage.DataKeys
 import com.cobblemontournament.common.config.TournamentConfig
 import com.cobblemontournament.common.tournament.TournamentType
 import com.sg8.util.getConstantOrNull
 import net.minecraftforge.common.ForgeConfigSpec.Builder
 import net.minecraftforge.common.ForgeConfigSpec.ConfigValue
+
 
 object TournamentConfigForge {
 
@@ -32,67 +33,67 @@ object TournamentConfigForge {
 
         DEFAULT_TOURNAMENT_TYPE = builder
             .comment("Amazing Tournament-Type description...")
-            .define(TOURNAMENT_TYPE_KEY, TournamentConfig.defaultTournamentType().name)
+            .define(DataKeys.TOURNAMENT_TYPE, TournamentConfig.defaultTournamentType().name)
 
         val type = DEFAULT_TOURNAMENT_TYPE?.default?.getConstantOrNull<TournamentType>()
 
         DEFAULT_CHALLENGE_FORMAT = builder
             .comment("Amazing Challenge-Format description...")
-            .define(CHALLENGE_FORMAT_KEY, TournamentConfig.defaultChallengeFormat().name)
+            .define(DataKeys.CHALLENGE_FORMAT, TournamentConfig.defaultChallengeFormat().name)
 
         val format = DEFAULT_CHALLENGE_FORMAT?.default?.getConstantOrNull<ChallengeFormat>()
 
         DEFAULT_MAX_PARTICIPANTS = builder
             .comment("Amazing Max-Participants description...")
-            .define( MAX_PARTICIPANTS_KEY, TournamentConfig.defaultMaxParticipants() )
+            .define(DataKeys.MAX_PARTICIPANTS, TournamentConfig.defaultMaxParticipants() )
 
         DEFAULT_TEAM_SIZE = builder
             .comment("Amazing Team-Size description...")
-            .define(TEAM_SIZE_KEY, TournamentConfig.defaultTeamSize())
+            .define(DataKeys.TEAM_SIZE, TournamentConfig.defaultTeamSize())
 
         DEFAULT_GROUP_SIZE = builder
             .comment("Amazing Group-Size description...")
-            .define(GROUP_SIZE_KEY, TournamentConfig.defaultGroupSize())
+            .define(DataKeys.GROUP_SIZE, TournamentConfig.defaultGroupSize())
 
         DEFAULT_MIN_LEVEL = builder
             .comment("Amazing Min-Level description...")
-            .define(MIN_LEVEL_KEY, TournamentConfig.defaultMinLevel())
+            .define(DataKeys.MIN_LEVEL, TournamentConfig.defaultMinLevel())
 
         DEFAULT_MAX_LEVEL = builder
             .comment("Amazing Max-Level description...")
-            .define(MAX_LEVEL_KEY, TournamentConfig.defaultMaxLevel())
+            .define(DataKeys.MAX_LEVEL, TournamentConfig.defaultMaxLevel())
 
         DEFAULT_SHOW_PREVIEW = builder
             .comment("Amazing Show-Preview description...")
-            .define(SHOW_PREVIEW_KEY, TournamentConfig.defaultShowPreview())
+            .define(DataKeys.SHOW_PREVIEW, TournamentConfig.defaultShowPreview())
 
         SAVE_INTERVAL_SECONDS = builder
             .comment("Amazing Save-Interval-Seconds description...")
-            .define(SAVE_INTERVAL_SECONDS_KEY, TournamentConfig.saveIntervalSeconds())
+            .define(DataKeys.SAVE_INTERVAL_SECONDS, TournamentConfig.saveIntervalSeconds())
 
         DEFAULT_BUILDER_PERMISSION = builder
             .comment("Amazing Builder-Permission description...")
-            .define(BUILDER_PERMISSION_KEY, TournamentConfig.defaultBuilderPermission())
+            .define(DataKeys.BUILDER_PERMISSION, TournamentConfig.defaultBuilderPermission())
 
         DEFAULT_BUILDER_INFO_PERMISSION = builder
             .comment("Amazing Builder-Info-Permission description...")
-            .define(BUILDER_INFO_PERMISSION_KEY, TournamentConfig.defaultBuilderInfoPermission())
+            .define(DataKeys.BUILDER_INFO_PERMISSION, TournamentConfig.defaultBuilderInfoPermission())
 
         DEFAULT_BUILDER_EDIT_PERMISSION = builder
             .comment("Amazing Builder-Edit-Permission description...")
-            .define(BUILDER_EDIT_PERMISSION_KEY, TournamentConfig.defaultBuilderEditPermission())
+            .define(DataKeys.BUILDER_EDIT_PERMISSION, TournamentConfig.defaultBuilderEditPermission())
 
         DEFAULT_GENERATE_TOURNAMENT_PERMISSION = builder
             .comment("Amazing Generate-Tournament-Permission description...")
             .define(
-                GENERATE_TOURNAMENT_PERMISSION_KEY,
+                DataKeys.GENERATE_TOURNAMENT_PERMISSION,
                 TournamentConfig.defaultGenerateTournamentPermission()
             )
 
         DEFAULT_FORCE_MATCH_COMPLETION_PERMISSION = builder
             .comment("Amazing Force-Match-Completion-Permission description...")
             .define(
-                FORCE_MATCH_COMPLETION_PERMISSION_KEY,
+                DataKeys.FORCE_MATCH_COMPLETION_PERMISSION,
                 TournamentConfig.defaultForceMatchCompletionPermission()
             )
 

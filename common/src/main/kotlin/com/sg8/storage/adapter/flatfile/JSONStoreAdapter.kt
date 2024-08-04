@@ -21,12 +21,12 @@ package com.sg8.storage.adapter.flatfile
  */
 
 import com.cobblemon.mod.common.util.fromJson
-import com.sg8.storage.Store
-import com.sg8.storage.StorePosition
-import com.sg8.storage.TypeStored
 import com.google.gson.Gson
 import com.google.gson.GsonBuilder
 import com.google.gson.JsonObject
+import com.sg8.storage.Store
+import com.sg8.storage.StorePosition
+import com.sg8.storage.TypeStored
 import java.io.BufferedReader
 import java.io.File
 import java.io.FileReader
@@ -38,7 +38,7 @@ import java.util.UUID
  * slower and makes for a larger file per storage by several times compared to a [NbtStoreAdapter].
  */
 // Eight's implementation
-open class JSONStoreAdapter(
+abstract class JSONStoreAdapter(
     rootFolder: String,
     useNestedFolders: Boolean,
     folderPerClass: Boolean,
