@@ -20,13 +20,13 @@ fun <K, V> Map<K, V>.saveToNbt(
 
 fun  <K, V> CompoundTag.loadObservableMapOf(
     loadEntryHandler: (CompoundTag) -> Pair<K, V>,
-    entryObservableHandler: (Entry<K, V>) -> Set<Observable<*>> = { it.getEntryObservables() },
+    entryObservableHandler: (K, V) -> Set<Observable<*>> = { k, v -> k.getEntryObservables(v) },
 ) = ObservableMap(this.loadMap(loadEntryHandler), entryObservableHandler)
 
 
 fun  <K, V> CompoundTag.loadMutableObservableMapOf(
     loadEntryHandler: (CompoundTag) -> Pair<K, V>,
-    entryObservableHandler: (Entry<K, V>) -> Set<Observable<*>> = { it.getEntryObservables() },
+    entryObservableHandler: (K, V) -> Set<Observable<*>> = { k, v -> k.getEntryObservables(v) },
 ) = MutableObservableMap(this.loadMap(loadEntryHandler), entryObservableHandler)
 
 

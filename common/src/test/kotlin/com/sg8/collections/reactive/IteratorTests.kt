@@ -1,182 +1,93 @@
 package com.sg8.collections.reactive
 
-import com.sg8.collections.reactive.collection.MutableObservableCollection
-import com.sg8.collections.reactive.collection.ObservableCollection
-import com.sg8.collections.reactive.list.MutableObservableSubList
-import com.sg8.collections.reactive.map.MutableObservableMap
-import com.sg8.collections.reactive.map.ObservableMap
+import com.sg8.collections.removeIf
 import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.Test
+import kotlin.collections.Map.Entry
 
 object IteratorTests {
 
     @Test
     fun setIterator() {
-        val testSets = TestSets()
-        val inputSet = testSets.inputSet
-        val mutableInputSet = testSets.inputSet.toMutableSet()
-        val set = testSets.set
-        val mutableSet = testSets.mutableSet
-        val emptySet = testSets.emptySet
-        val emptyMutableSet = testSets.emptyMutableSet
-
-        iteratorTest(inputSet, mutableInputSet, set, mutableSet, emptySet, emptyMutableSet)
-        bulkMutationTest(inputSet, mutableInputSet, set, mutableSet, emptySet, emptyMutableSet)
+        val testSets = TestSets.default()
+        iteratorTest(testSets)
+        bulkMutationTest(testSets)
     }
 
 
     @Test
     fun listIterator() {
-        val testLists = TestLists()
-        val inputList = testLists.inputList
-        val mutableInputList = testLists.inputList.toMutableList()
-        val list = testLists.list
-        val mutableList = testLists.mutableList
-        val emptyList = testLists.emptyList
-        val emptyMutableList = testLists.emptyMutableList
-
-        iteratorTest(inputList, mutableInputList, list, mutableList, emptyList, emptyMutableList)
-        bulkMutationTest(inputList, mutableInputList, list, mutableList, emptyList, emptyMutableList)
+        val testLists = TestLists.default()
+        iteratorTest(testLists)
+        bulkMutationTest(testLists)
     }
 
     @Test
     fun subListIterator() {
-        val testLists = TestLists()
-        val inputSubList = testLists.inputList.subList(1, 3)
-        val mutableInputList = testLists.inputList.toMutableList()
-        val mutableInputSubList = mutableInputList.subList(1, 3)
-        val subList = testLists.list.subList(1, 3)
-        val mutableSubList = testLists.mutableList.subList(1, 3)
-
-        subListIteratorTest(testLists, inputSubList, mutableInputSubList, subList, mutableSubList)
-        subListBulkMutationTest(testLists, mutableInputList, inputSubList, mutableInputSubList, mutableSubList)
+        val lists = TestSubLists.default()
+        subListIteratorTest(lists)
+        subListBulkMutationTest(lists)
     }
 
-    private fun subListIteratorTest(
-        testLists: TestLists,
-        inputSubList: List<String>,
-        mutableInputSubList: MutableList<String>,
-        subList: List<String>,
-        mutableSubList: MutableObservableSubList<String>,
-    ) {
+    private fun <T> subListIteratorTest(lists: TestSubLists<T>) {
         var inputSubListCount = 0
         var mutableInputSubListCount = 0
         var subListCount = 0
         var mutableSubListCount = 0
 
-        inputSubList.iterator().forEach { _ -> inputSubListCount++ }
-        mutableInputSubList.iterator().forEach { _ -> mutableInputSubListCount++ }
-        subList.iterator().forEach { _ -> subListCount++ }
-        mutableSubList.iterator().forEach { _ -> mutableSubListCount++ }
+        lists.inputSub.iterator().forEach { _ -> inputSubListCount++ }
+        lists.mutableInputSub.iterator().forEach { _ -> mutableInputSubListCount++ }
+        lists.observableSub.iterator().forEach { _ -> subListCount++ }
+        lists.mutableObservableSub.iterator().forEach { _ -> mutableSubListCount++ }
 
-        Assertions.assertTrue(inputSubListCount == inputSubList.size)
-        Assertions.assertTrue(mutableInputSubListCount == mutableInputSubList.size)
-        Assertions.assertTrue(subListCount == subList.size)
-        Assertions.assertTrue(mutableSubListCount == mutableSubList.size)
+        Assertions.assertTrue(inputSubListCount == lists.inputSub.size)
+        Assertions.assertTrue(mutableInputSubListCount == lists.mutableInputSub.size)
+        Assertions.assertTrue(subListCount == lists.observableSub.size)
+        Assertions.assertTrue(mutableSubListCount == lists.mutableObservableSub.size)
     }
 
-    private fun subListBulkMutationTest(
-        testLists: TestLists,
-        mutableInputList: MutableList<String>,
-        inputSubList: List<String>,
-        mutableInputSubList: MutableList<String>,
-        mutableSubList: MutableObservableSubList<String>,
-    ) {
+    private fun <T> subListBulkMutationTest(lists: TestSubLists<T>) {
         // confirm mutations via iterator internally are tracked & reflected consistent with
         // kotlin mutable set implementations
-        mutableInputSubList.removeAll(inputSubList)
-        mutableSubList.removeAll(inputSubList)
+        lists.mutableInputSub.removeAll(lists.inputSub)
+        lists.mutableObservableSub.removeAll(lists.inputSub)
 
-        Assertions.assertTrue(mutableSubList.containsAll(mutableInputSubList))
-        Assertions.assertTrue(mutableInputSubList.containsAll(mutableSubList))
+        Assertions.assertTrue(lists.mutableObservableSub.containsAll(lists.mutableInputSub))
+        Assertions.assertTrue(lists.mutableInputSub.containsAll(lists.mutableObservableSub))
 
-        Assertions.assertTrue(inputSubList.containsAll(mutableInputSubList))
-        Assertions.assertTrue(!mutableInputSubList.containsAll(inputSubList))
-        Assertions.assertTrue(inputSubList.containsAll(mutableSubList))
-        Assertions.assertTrue(!mutableSubList.containsAll(inputSubList))
+        Assertions.assertTrue(lists.inputSub.containsAll(lists.mutableInputSub))
+        Assertions.assertTrue(!lists.mutableInputSub.containsAll(lists.inputSub))
+        Assertions.assertTrue(lists.inputSub.containsAll(lists.mutableObservableSub))
+        Assertions.assertTrue(!lists.mutableObservableSub.containsAll(lists.inputSub))
 
-        mutableInputSubList.addAll(inputSubList)
-        mutableSubList.addAll(inputSubList)
+        lists.mutableInputSub.addAll(lists.inputSub)
+        lists.mutableObservableSub.addAll(lists.inputSub)
 
-        Assertions.assertTrue(inputSubList.containsAll(mutableInputSubList))
-        Assertions.assertTrue(mutableInputSubList.containsAll(inputSubList))
-        Assertions.assertTrue(inputSubList.containsAll(mutableSubList))
-        Assertions.assertTrue(mutableSubList.containsAll(inputSubList))
+        Assertions.assertTrue(lists.inputSub.containsAll(lists.mutableInputSub))
+        Assertions.assertTrue(lists.mutableInputSub.containsAll(lists.inputSub))
+        Assertions.assertTrue(lists.inputSub.containsAll(lists.mutableObservableSub))
+        Assertions.assertTrue(lists.mutableObservableSub.containsAll(lists.inputSub))
 
-        mutableInputSubList.retainAll(inputSubList)
-        mutableSubList.retainAll(inputSubList)
+        lists.mutableInputSub.retainAll(lists.inputSub)
+        lists.mutableObservableSub.retainAll(lists.inputSub)
 
-        Assertions.assertTrue(inputSubList.containsAll(mutableInputSubList))
-        Assertions.assertTrue(mutableInputSubList.containsAll(inputSubList))
-        Assertions.assertTrue(inputSubList.containsAll(mutableSubList))
-        Assertions.assertTrue(mutableSubList.containsAll(inputSubList))
-        Assertions.assertTrue(testLists.mutableList.containsAll(mutableInputList))
-        Assertions.assertTrue(testLists.mutableList.size == mutableInputList.size)
+        Assertions.assertTrue(lists.inputSub.containsAll(lists.mutableInputSub))
+        Assertions.assertTrue(lists.mutableInputSub.containsAll(lists.inputSub))
+        Assertions.assertTrue(lists.inputSub.containsAll(lists.mutableObservableSub))
+        Assertions.assertTrue(lists.mutableObservableSub.containsAll(lists.inputSub))
+        Assertions.assertTrue(lists.mutableObservable.containsAll(lists.mutableInput))
+        Assertions.assertTrue(lists.mutableObservable.size == lists.mutableInput.size)
 
         // back to starting lists
-        mutableInputSubList.clear()
-        mutableSubList.clear()
-        Assertions.assertTrue(inputSubList.containsAll(mutableInputSubList))
-        Assertions.assertTrue(!mutableInputSubList.containsAll(inputSubList))
-        Assertions.assertTrue(inputSubList.containsAll(mutableSubList))
-        Assertions.assertTrue(!mutableSubList.containsAll(inputSubList))
+        lists.mutableInputSub.clear()
+        lists.mutableObservableSub.clear()
+        Assertions.assertTrue(lists.inputSub.containsAll(lists.mutableInputSub))
+        Assertions.assertTrue(!lists.mutableInputSub.containsAll(lists.inputSub))
+        Assertions.assertTrue(lists.inputSub.containsAll(lists.mutableObservableSub))
+        Assertions.assertTrue(!lists.mutableObservableSub.containsAll(lists.inputSub))
     }
 
-    @Test
-    fun mapIterator() {
-        val testMaps = TestMaps()
-        val inputMap = testMaps.inputMap
-        val mutableInputMap = testMaps.inputMap.toMutableMap()
-        val map = testMaps.map
-        val mutableMap = testMaps.mutableMap
-        val emptyMap = testMaps.emptyMap
-        val emptyMutableMap = testMaps.emptyMutableMap
-
-        mapIteratorTest(inputMap, mutableInputMap, map, mutableMap, emptyMap, emptyMutableMap)
-
-        // confirm mutations are tracked & reflected
-
-    }
-
-    private fun mapIteratorTest(
-        inputMap: Map<Int, String>,
-        mutableInputMap: MutableMap<Int, String>,
-        map: ObservableMap<Int, String>,
-        mutableMap: MutableObservableMap<Int, String>,
-        emptyMap: ObservableMap<Int, String>,
-        emptyMutableMap: MutableObservableMap<Int, String>,
-    ) {
-        var inputCount = 0
-        var mutableInputCount = 0
-        var mapCount = 0
-        var mutableMapCount = 0
-        var emptyMapCount = 0
-        var emptyMutableMapCount = 0
-
-        inputMap.iterator().forEach { _ -> inputCount++ }
-        mutableInputMap.iterator().forEach { _ -> mutableInputCount++ }
-        map.iterator().forEach { _ -> mapCount++ }
-        mutableMap.iterator().forEach { _ -> mutableMapCount++ }
-        emptyMap.iterator().forEach { _ -> emptyMapCount++ }
-        emptyMutableMap.iterator().forEach { _ -> emptyMutableMapCount++ }
-
-        Assertions.assertTrue(inputCount == inputMap.size)
-        Assertions.assertTrue(mutableInputCount == mutableInputMap.size)
-        Assertions.assertTrue(mapCount == map.size)
-        Assertions.assertTrue(mutableMapCount == mutableMap.size)
-        Assertions.assertTrue(emptyMapCount == emptyMap.size)
-        Assertions.assertTrue(emptyMutableMapCount == emptyMutableMap.size)
-    }
-
-
-    private fun iteratorTest(
-        inputCollection: Collection<String>,
-        mutableInputCollection: MutableCollection<String>,
-        collection: ObservableCollection<String, *>,
-        mutableCollection: MutableObservableCollection<String, *>,
-        emptyCollection: ObservableCollection<String, *>,
-        emptyMutableCollection: MutableObservableCollection<String, *>,
-    ) {
+    private fun iteratorTest(collections: TestCollections<*, *, *>) {
         var inputCount = 0
         var mutableInputCount = 0
         var collectionCount = 0
@@ -184,62 +95,148 @@ object IteratorTests {
         var emptyCollectionCount = 0
         var emptyMutableCollectionCount = 0
 
-        inputCollection.iterator().forEach { _ -> inputCount++ }
-        mutableInputCollection.iterator().forEach { _ -> mutableInputCount++ }
-        collection.iterator().forEach { _ -> collectionCount++ }
-        mutableCollection.iterator().forEach { _ -> mutableCollectionCount++ }
-        emptyCollection.iterator().forEach { _ -> emptyCollectionCount++ }
-        emptyMutableCollection.iterator().forEach { _ -> emptyMutableCollectionCount++ }
+        collections.input.iterator().forEach { _ -> inputCount++ }
+        collections.mutableInput.iterator().forEach { _ -> mutableInputCount++ }
+        collections.observable.iterator().forEach { _ -> collectionCount++ }
+        collections.mutableObservable.iterator().forEach { _ -> mutableCollectionCount++ }
+        collections.emptyObservable.iterator().forEach { _ -> emptyCollectionCount++ }
+        collections.emptyMutableObservable.iterator().forEach { _ -> emptyMutableCollectionCount++ }
 
-        Assertions.assertTrue(inputCount == inputCollection.size)
-        Assertions.assertTrue(mutableInputCount == mutableInputCollection.size)
-        Assertions.assertTrue(collectionCount == collection.size)
-        Assertions.assertTrue(mutableCollectionCount == mutableCollection.size)
-        Assertions.assertTrue(emptyCollectionCount == emptyCollection.size)
-        Assertions.assertTrue(emptyMutableCollectionCount == emptyMutableCollection.size)
+        Assertions.assertTrue(inputCount == collections.input.size)
+        Assertions.assertTrue(mutableInputCount == collections.mutableInput.size)
+        Assertions.assertTrue(collectionCount == collections.observable.size)
+        Assertions.assertTrue(mutableCollectionCount == collections.mutableObservable.size)
+        Assertions.assertTrue(emptyCollectionCount == collections.emptyObservable.size)
+        Assertions.assertTrue(emptyMutableCollectionCount == collections.emptyMutableObservable.size)
     }
 
-    private fun bulkMutationTest(
-        inputCollection: Collection<String>,
-        mutableInputCollection: MutableCollection<String>,
-        collection: ObservableCollection<String, *>,
-        mutableCollection: MutableObservableCollection<String, *>,
-        emptyCollection: ObservableCollection<String, *>,
-        emptyMutableCollection: MutableObservableCollection<String, *>,
+    private fun <T, C : Collection<T>, M : MutableCollection<T>> bulkMutationTest(
+        collections: TestCollections<T, C, M>
     ) {
         // confirm mutations via iterator internally are tracked & reflected consistent with
         // kotlin mutable set implementations
-        mutableInputCollection.removeAll(inputCollection)
-        mutableCollection.removeAll(inputCollection)
-        emptyMutableCollection.removeAll(inputCollection)
-        iteratorTest(inputCollection, mutableInputCollection, collection, mutableCollection, emptyCollection, emptyMutableCollection)
+        collections.mutableInput.removeAll(collections.input)
+        collections.mutableObservable.removeAll(collections.input)
+        collections.emptyMutableObservable.removeAll(collections.input)
+        iteratorTest(collections)
 
-        Assertions.assertTrue(inputCollection.containsAll(mutableInputCollection))
-        Assertions.assertTrue(!mutableInputCollection.containsAll(inputCollection))
-        Assertions.assertTrue(inputCollection.containsAll(mutableCollection))
-        Assertions.assertTrue(!mutableCollection.containsAll(inputCollection))
-        Assertions.assertTrue(emptyMutableCollection.isEmpty())
+        Assertions.assertTrue(collections.input.containsAll(collections.mutableInput))
+        Assertions.assertTrue(!collections.mutableInput.containsAll(collections.input))
+        Assertions.assertTrue(collections.input.containsAll(collections.mutableObservable))
+        Assertions.assertTrue(!collections.mutableObservable.containsAll(collections.input))
+        Assertions.assertTrue(collections.emptyMutableObservable.isEmpty())
 
-        mutableInputCollection.addAll(inputCollection)
-        mutableCollection.addAll(inputCollection)
-        emptyMutableCollection.addAll(inputCollection)
-        iteratorTest(inputCollection, mutableInputCollection, collection, mutableCollection, emptyCollection, emptyMutableCollection)
+        collections.mutableInput.addAll(collections.input)
+        collections.mutableObservable.addAll(collections.input)
+        collections.emptyMutableObservable.addAll(collections.input)
+        iteratorTest(collections)
 
-        Assertions.assertTrue(inputCollection.containsAll(mutableInputCollection))
-        Assertions.assertTrue(mutableInputCollection.containsAll(inputCollection))
-        Assertions.assertTrue(inputCollection.containsAll(mutableCollection))
-        Assertions.assertTrue(mutableCollection.containsAll(inputCollection))
-        Assertions.assertTrue(emptyMutableCollection.isNotEmpty())
+        Assertions.assertTrue(collections.input.containsAll(collections.mutableInput))
+        Assertions.assertTrue(collections.mutableInput.containsAll(collections.input))
+        Assertions.assertTrue(collections.input.containsAll(collections.mutableObservable))
+        Assertions.assertTrue(collections.mutableObservable.containsAll(collections.input))
+        Assertions.assertTrue(collections.emptyMutableObservable.isNotEmpty())
 
-        mutableInputCollection.retainAll(inputCollection)
-        mutableCollection.retainAll(inputCollection)
-        emptyMutableCollection.retainAll(inputCollection)
-        iteratorTest(inputCollection, mutableInputCollection, collection, mutableCollection, emptyCollection, emptyMutableCollection)
+        collections.mutableInput.retainAll(collections.input)
+        collections.mutableObservable.retainAll(collections.input)
+        collections.emptyMutableObservable.retainAll(collections.input)
+        iteratorTest(collections)
 
-        Assertions.assertTrue(inputCollection.containsAll(mutableInputCollection))
-        Assertions.assertTrue(mutableInputCollection.containsAll(inputCollection))
-        Assertions.assertTrue(inputCollection.containsAll(mutableCollection))
-        Assertions.assertTrue(mutableCollection.containsAll(inputCollection))
-        Assertions.assertTrue(emptyMutableCollection.isNotEmpty())
+        Assertions.assertTrue(collections.input.containsAll(collections.mutableInput))
+        Assertions.assertTrue(collections.mutableInput.containsAll(collections.input))
+        Assertions.assertTrue(collections.input.containsAll(collections.mutableObservable))
+        Assertions.assertTrue(collections.mutableObservable.containsAll(collections.input))
+        Assertions.assertTrue(collections.emptyMutableObservable.isNotEmpty())
+    }
+
+    @Test
+    fun mapIterator() {
+        val testMaps = TestMaps.default()
+        mapIteratorTest(testMaps)
+        bulkMapMutationTest(testMaps)
+    }
+
+    private fun <K, V> mapIteratorTest(maps: TestMaps<K, V>) {
+        var inputCount = 0
+        var mutableInputCount = 0
+        var mapCount = 0
+        var mutableMapCount = 0
+        var emptyMapCount = 0
+        var emptyMutableMapCount = 0
+
+        maps.input.iterator().forEach { _ -> inputCount++ }
+        maps.mutableInput.iterator().forEach { _ -> mutableInputCount++ }
+        maps.observable.iterator().forEach { _ -> mapCount++ }
+        maps.mutableObservable.iterator().forEach { _ -> mutableMapCount++ }
+        maps.emptyObservable.iterator().forEach { _ -> emptyMapCount++ }
+        maps.emptyMutableObservable.iterator().forEach { _ -> emptyMutableMapCount++ }
+
+        Assertions.assertTrue(inputCount == maps.input.size)
+        Assertions.assertTrue(mutableInputCount == maps.mutableInput.size)
+        Assertions.assertTrue(mapCount == maps.observable.size)
+        Assertions.assertTrue(mutableMapCount == maps.mutableObservable.size)
+        Assertions.assertTrue(emptyMapCount == maps.emptyObservable.size)
+        Assertions.assertTrue(emptyMutableMapCount == maps.emptyMutableObservable.size)
+    }
+
+    private fun <K, V> bulkMapMutationTest(maps: TestMaps<K, V>) {
+        removeIf(maps.mutableInput) { entry -> maps.input.any { match(entry, it) } }
+        removeIf(maps.mutableObservable) { entry -> maps.input.any { match(entry, it) } }
+        removeIf(maps.emptyMutableObservable) { entry -> maps.input.any { match(entry, it) } }
+        mapIteratorTest(maps)
+
+        Assertions.assertTrue(containsAll(maps.input, maps.mutableInput))
+        Assertions.assertTrue(!containsAll(maps.mutableInput, maps.input))
+        Assertions.assertTrue(containsAll(maps.input, maps.mutableObservable))
+        Assertions.assertTrue(!containsAll(maps.mutableObservable, maps.input))
+        Assertions.assertTrue(maps.emptyMutableObservable.isEmpty())
+
+        maps.mutableInput.putAll(maps.input)
+        maps.mutableObservable.putAll(maps.input)
+        maps.emptyMutableObservable.putAll(maps.input)
+        mapIteratorTest(maps)
+
+        Assertions.assertTrue(containsAll(maps.input, maps.mutableInput))
+        Assertions.assertTrue(containsAll(maps.mutableInput, maps.input))
+        Assertions.assertTrue(containsAll(maps.input, maps.mutableObservable))
+        Assertions.assertTrue(containsAll(maps.mutableObservable, maps.input))
+        Assertions.assertTrue(maps.emptyMutableObservable.isNotEmpty())
+
+        removeIf(maps.mutableInput) { entry -> !maps.input.any { match(entry, it) } }
+        removeIf(maps.mutableObservable) { entry -> !maps.input.any { match(entry, it) } }
+        removeIf(maps.emptyMutableObservable) { entry -> !maps.input.any { match(entry, it) } }
+        mapIteratorTest(maps)
+
+        Assertions.assertTrue(containsAll(maps.input, maps.mutableInput))
+        Assertions.assertTrue(containsAll(maps.mutableInput, maps.input))
+        Assertions.assertTrue(containsAll(maps.input, maps.mutableObservable))
+        Assertions.assertTrue(containsAll(maps.mutableObservable, maps.input))
+        Assertions.assertTrue(maps.emptyMutableObservable.isNotEmpty())
+    }
+
+    private fun <K, V> match(entry: Entry<K, V>, other: Entry<K, V>): Boolean {
+        return entry.key == other.key && entry.value == other.value
+    }
+
+    private fun <K, V> removeIf(
+        map: MutableMap<K, V>,
+        predicate: (Entry<K, V>) -> Boolean,
+    ) {
+        map.iterator().removeIf { predicate(it) }
+    }
+
+    private fun <K, V> containsAll(map: Map<K, V>, other: Map<K, V>): Boolean {
+        return when {
+            other.isEmpty() -> true
+            map.isEmpty() -> false
+            else -> {
+                map.forEach { entry ->
+                    if (!other.any { it.key == entry.key && it.value == entry.value }) {
+                        return false
+                    }
+                }
+                return true
+            }
+        }
     }
 }

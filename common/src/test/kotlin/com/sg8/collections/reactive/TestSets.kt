@@ -4,10 +4,18 @@ import com.sg8.collections.reactive.set.MutableObservableSet
 import com.sg8.collections.reactive.set.ObservableSet
 
 
-class TestSets(val inputSet: Set<String> = mutableSetOf("zero", "one", "two", "three")) {
+class TestSets<T>(override val input: Set<T>) :
+    TestCollections<T, Set<T>, MutableSet<T>> {
 
-    val set: ObservableSet<String> = ObservableSet(inputSet)
-    val mutableSet: MutableObservableSet<String> = MutableObservableSet(inputSet)
-    val emptySet = ObservableSet<String>(setOf())
-    val emptyMutableSet = MutableObservableSet<String>()
+    override val mutableInput: MutableSet<T> = input.toMutableSet()
+    override val observable: ObservableSet<T> = ObservableSet(input)
+    override val mutableObservable: MutableObservableSet<T> = MutableObservableSet(input)
+    override val emptyObservable = ObservableSet<T>(setOf())
+    override val emptyMutableObservable = MutableObservableSet<T>()
+
+    companion object {
+        fun default() = testSetsOf("zero", "one", "two", "three")
+    }
 }
+
+fun <T> testSetsOf(vararg elements: T) = TestSets(setOf(*elements))

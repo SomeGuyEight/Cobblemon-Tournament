@@ -4,13 +4,18 @@ import com.sg8.collections.reactive.map.MutableObservableMap
 import com.sg8.collections.reactive.map.ObservableMap
 
 
-class TestMaps(vararg inputPairs: Pair<Int, String>) {
+class TestMaps<K, V>(val input: Map<K, V>) {
 
-    val inputMap = if (inputPairs.isNotEmpty()) mapOf(*inputPairs) else default()
-    val map: ObservableMap<Int, String> = ObservableMap(inputMap)
-    val mutableMap: MutableObservableMap<Int, String> = MutableObservableMap(inputMap)
-    val emptyMap = ObservableMap<Int, String>(mapOf())
-    val emptyMutableMap = MutableObservableMap<Int, String>()
+    val mutableInput: MutableMap<K, V> = input.toMutableMap()
+    val observable: ObservableMap<K, V> = ObservableMap(input)
+    val mutableObservable: MutableObservableMap<K, V> = MutableObservableMap(input)
+    val emptyObservable = ObservableMap<K, V>(mapOf())
+    val emptyMutableObservable = MutableObservableMap<K, V>()
 
-    private fun default() = mutableMapOf(0 to "zero", 1 to "one", 2 to "two", 3 to "three")
+    companion object {
+        fun default() = testMapsOf(0 to "zero", 1 to "one", 2 to "two", 3 to "three")
+        fun defaultMap() = mapOf(0 to "zero", 1 to "one", 2 to "two", 3 to "three")
+    }
 }
+
+fun <K, V> testMapsOf(vararg pairs: Pair<K, V>) = TestMaps(mapOf(*pairs))

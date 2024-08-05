@@ -15,7 +15,7 @@ open class ObservableSet<T>(
     Set<T>,
     Observable<Pair<Set<T>, T>> {
 
-    protected open val set: MutableSet<T> = set.toMutableSet()
+    protected val set: MutableSet<T> = set.toMutableSet()
 
     private val subscriptions = PrioritizedList<ObservableSubscription<Pair<Set<T>, T>>>()
     private val subscriptionMap: MutableMap<Observable<*>, ObservableSubscription<*>> = mutableMapOf()

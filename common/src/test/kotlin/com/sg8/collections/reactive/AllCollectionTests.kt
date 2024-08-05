@@ -35,4 +35,12 @@ object AllCollectionTests {
         EmittingTests.listAndSubListEmitChange()
         EmittingTests.mapEmitChange()
     }
+
+    @Test
+    fun runEmittingReferenceTypesTests() {
+        EmittingReferenceTypeTests.setElementsEmittingChange()
+        EmittingReferenceTypeTests.listElementsEmittingChange()
+        EmittingReferenceTypeTests.subListElementsEmittingChange()
+        EmittingReferenceTypeTests.entriesEmittingChange()
+    }
 }

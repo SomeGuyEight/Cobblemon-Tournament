@@ -4,38 +4,44 @@ import com.cobblemon.mod.common.api.PrioritizedList
 import com.cobblemon.mod.common.api.Priority
 import com.cobblemon.mod.common.api.reactive.Observable
 import com.cobblemon.mod.common.api.reactive.ObservableSubscription
+import com.sg8.collections.pair
 import kotlin.Comparator
 import kotlin.collections.Map.Entry
 
 
 open class ObservableMap<K, V>(
     map: Map<K, V>,
-    protected val entryHandler: (Entry<K, V>) -> Set<Observable<*>> = { it.getEntryObservables() },
+    protected val entryHandler: (K, V) -> Set<Observable<*>> =
+        { k: K, v: V -> k.getEntryObservables(v) },
 ) : Map<K, V>,
-    Observable<Pair<Map<K, V>, Entry<K, V>>> {
+    Observable<Pair<Map<K, V>, Pair<K, V>>> {
 
-    protected open val map: MutableMap<K, V> = map.toMutableMap()
+    protected val map: MutableMap<K, V> = map.toMutableMap()
 
-    private val subscriptions = PrioritizedList<ObservableSubscription<Pair<Map<K, V>, Entry<K, V>>>>()
+    private val subscriptions = PrioritizedList<ObservableSubscription<Pair<Map<K, V>, Pair<K, V>>>>()
     protected val subscriptionMap: MutableMap<Observable<*>, ObservableSubscription<*>> = mutableMapOf()
 
     override val size get() = map.size
+
+
     override val keys get() = map.keys
     override val values get() = map.values
     override val entries get() = map.entries
 
     init {
-        map.entries.forEach { entry ->
-            entryHandler(entry).forEach{ observable ->
-                subscriptionMap[observable] = observable.subscribe { emitAnyChange(entry) }
+        this.map.forEach { (key, value) ->
+            entryHandler(key, value).forEach{ observable ->
+                subscriptionMap[observable] = observable.subscribe {
+                    emitAnyChange(key, value)
+                }
             }
         }
     }
 
     override fun subscribe(
         priority: Priority,
-        handler: (Pair<Map<K, V>, Entry<K, V>>) -> Unit
-    ): ObservableSubscription<Pair<Map<K, V>, Entry<K, V>>> {
+        handler: (Pair<Map<K, V>, Pair<K, V>>) -> Unit
+    ): ObservableSubscription<Pair<Map<K, V>, Pair<K, V>>> {
         val subscription = ObservableSubscription(this, handler)
         subscriptions.add(priority, subscription)
         return subscription
@@ -43,30 +49,32 @@ open class ObservableMap<K, V>(
 
     fun subscribeThenHandle(
         priority: Priority,
-        handler: (Pair<Map<K, V>, Entry<K, V>>) -> Unit
-    ): ObservableSubscription<Pair<Map<K, V>, Entry<K, V>>> {
+        handler: (Pair<Map<K, V>, Pair<K, V>>) -> Unit
+    ): ObservableSubscription<Pair<Map<K, V>, Pair<K, V>>> {
         val subscription = ObservableSubscription(this, handler)
         subscriptions.add(priority, subscription)
-        map.forEach { handler(this to it)}
+        map.forEach { handler(this to (it.pair()))}
         return subscription
     }
 
-    override fun unsubscribe(subscription: ObservableSubscription<Pair<Map<K, V>, Entry<K, V>>>) {
+    override fun unsubscribe(subscription: ObservableSubscription<Pair<Map<K, V>, Pair<K, V>>>) {
         subscriptions.remove(subscription)
     }
 
-    protected open fun register(entry: Entry<K, V>): Boolean {
-        if (contains(entry.key)) {
-            entryHandler(entry).forEach{ observable ->
-                subscriptionMap[observable] = observable.subscribe { emitAnyChange(entry) }
+    protected open fun register(key: K, value: V) {
+        if (contains(key, value)) {
+            entryHandler(key, value).forEach{ observable ->
+                subscriptionMap[observable] = observable.subscribe { emitAnyChange(key, value) }
             }
         }
-        return emitAnyChange(entry)
     }
 
-    protected fun emitAnyChange(pair: Entry<K, V>): Boolean {
-        //subscriptions.forEach { it.handle(map to pair) }
-        subscriptions.forEach { it.handle(map.toMap() to pair) }
+    protected fun unregister(key: K, value: V) {
+        entryHandler(key, value).forEach{ subscriptionMap.remove(it)?.unsubscribe() }
+    }
+
+    protected fun emitAnyChange(key: K, value: V): Boolean {
+        subscriptions.forEach { it.handle(map to (key to value)) }
         return true
     }
 
@@ -78,13 +86,28 @@ open class ObservableMap<K, V>(
 
     override fun containsValue(value: V) = map.containsValue(value)
 
+    fun contains(pair: Pair<K, V>): Boolean = contains(pair.first, pair.second)
+
+    fun contains(entry: Entry<K, V>): Boolean = contains(entry.key, entry.value)
+
     fun contains(key: K, value: V) = map[key] == value
 
     fun contains(predicate: (Entry<K, V>) -> Boolean) = map.any(predicate)
 
+    fun containsAll(elements: Collection<Entry<K, V>>): Boolean {
+        return map.any { entry ->
+            elements.any { element ->
+                element.key == entry.key && element.value == entry.value
+            }
+        }
+    }
+
     fun containsAll(other: Map<K, V>): Boolean {
-        this.forEach { if (it.value != other[it.key]) return false }
-        return true
+        return map.any { entry ->
+            other.any { otherEntry ->
+                otherEntry.key == entry.key && otherEntry.value == entry.value
+            }
+        }
     }
 
     open operator fun iterator(): Iterator<Entry<K, V>> = map.iterator()
@@ -93,22 +116,22 @@ open class ObservableMap<K, V>(
 
     fun toSortedMap(comparator: Comparator<in K>) = map.toMap().toSortedMap(comparator)
 
-    fun firstKeyOrNull(predicate: (Entry<K, V>) -> Boolean): K? {
+    fun firstKeyOrNull(predicate: (Entry<K, V>) -> Boolean = { true }): K? {
         map.forEach { if (predicate(it)) return it.key }
         return null
     }
 
-    fun firstValueOrNull(predicate: (Entry<K, V>) -> Boolean): V? {
+    fun firstValueOrNull(predicate: (Entry<K, V>) -> Boolean = { true }): V? {
         map.forEach { if (predicate(it)) return it.value }
         return null
     }
 
-    fun firstEntryOrNull(predicate: (Entry<K, V>) -> Boolean): Entry<K, V>? {
+    fun firstEntryOrNull(predicate: (Entry<K, V>) -> Boolean = { true }): Entry<K, V>? {
         map.forEach { if (predicate(it)) return it }
         return null
     }
 
-    open fun copy() = ObservableMap(this.map, entryHandler)
+    fun copy() = ObservableMap(this.map, entryHandler)
 
     fun mutableCopy() = MutableObservableMap(this.map, entryHandler)
 }

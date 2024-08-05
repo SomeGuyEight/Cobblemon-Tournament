@@ -7,87 +7,87 @@ import kotlin.collections.Map.Entry
 
 
 fun <K, V> Map<K, V>.toObservableMap(
-    entryHandler: (Entry<K, V>) -> Set<Observable<*>> = { it.getEntryObservables() },
+    entryHandler: (K, V) -> Set<Observable<*>> = { k, v -> k.getEntryObservables(v) },
 ) = ObservableMap(this, entryHandler)
 
 
 fun <K, V> Map<K, V>.toMutableObservableMap(
-    entryHandler: (Entry<K, V>) -> Set<Observable<*>> = { it.getEntryObservables() },
+    entryHandler: (K, V) -> Set<Observable<*>> = { k, v -> k.getEntryObservables(v) },
 ) = MutableObservableMap(this, entryHandler)
 
 
 fun <K, V> Collection<Pair<K, V>>.toObservableMap(
-    entryHandler: (Entry<K, V>) -> Set<Observable<*>> = { it.getEntryObservables() },
+    entryHandler: (K, V) -> Set<Observable<*>> = { k, v -> k.getEntryObservables(v) },
 ) = ObservableMap(this.toMap(), entryHandler)
 
 
 fun <K, V> Collection<Pair<K, V>>.toMutableObservableMap(
-    entryHandler: (Entry<K, V>) -> Set<Observable<*>> = { it.getEntryObservables() },
+    entryHandler: (K, V) -> Set<Observable<*>> = { k, v -> k.getEntryObservables(v) },
 ) = MutableObservableMap(this.toMap(), entryHandler)
 
 
 fun <K, V> observableMapOf(
-    entryHandler: (Entry<K, V>) -> Set<Observable<*>> = { it.getEntryObservables() },
+    entryHandler: (K, V) -> Set<Observable<*>> = { k, v -> k.getEntryObservables(v) },
 ) = ObservableMap(mapOf(), entryHandler)
 
 
 fun <K, V> mutableObservableMapOf(
-    entryHandler: (Entry<K, V>) -> Set<Observable<*>> = { it.getEntryObservables() },
+    entryHandler: (K, V) -> Set<Observable<*>> = { k, v -> k.getEntryObservables(v) },
 ) = MutableObservableMap(mapOf(), entryHandler)
 
 
 fun <K, V> observableMapOf(
     map: Map<K, V> = emptyMap(),
-    entryHandler: (Entry<K, V>) -> Set<Observable<*>> = { it.getEntryObservables() },
+    entryHandler: (K, V) -> Set<Observable<*>> = { k, v -> k.getEntryObservables(v) },
 ) = ObservableMap(map, entryHandler)
 
 
 fun <K, V> observableMapOf(
     vararg pairs: Pair<K, V>,
-    entryHandler: (Entry<K, V>) -> Set<Observable<*>> = { it.getEntryObservables() },
+    entryHandler: (K, V) -> Set<Observable<*>> = { k, v -> k.getEntryObservables(v) },
 ) = ObservableMap(pairs.toMap(), entryHandler)
 
 
 fun <K, V> mutableObservableMapOf(
     vararg pairs: Pair<K, V>,
-    entryHandler: (Entry<K, V>) -> Set<Observable<*>> = { it.getEntryObservables() },
+    entryHandler: (K, V) -> Set<Observable<*>> = { k, v -> k.getEntryObservables(v) },
 ) = MutableObservableMap(pairs.toMap(), entryHandler)
 
 
 fun <K, V> mutableObservableMapOf(
     map: Map<K, V> = emptyMap(),
-    entryHandler: (Entry<K, V>) -> Set<Observable<*>> = { it.getEntryObservables() },
+    entryHandler: (K, V) -> Set<Observable<*>> = { k, v -> k.getEntryObservables(v) },
 ) = MutableObservableMap(map, entryHandler)
 
 
 fun <K, V> observableMapOf(
     vararg entries: Entry<K, V>,
-    entryHandler: (Entry<K, V>) -> Set<Observable<*>> = { it.getEntryObservables() },
+    entryHandler: (K, V) -> Set<Observable<*>> = { k, v -> k.getEntryObservables(v) },
 ) = ObservableMap(entries.toSet().toMap(), entryHandler)
 
 
 fun <K, V> mutableObservableMapOf(
     vararg entries: Entry<K, V>,
-    entryHandler: (Entry<K, V>) -> Set<Observable<*>> = { it.getEntryObservables() },
+    entryHandler: (K, V) -> Set<Observable<*>> = { k, v -> k.getEntryObservables(v) },
 ) = MutableObservableMap(entries.toSet().toMap(), entryHandler)
 
 
 fun <K, V> observableMapOf(
     pairs: Collection<Pair<K, V>> = emptySet(),
-    entryHandler: (Entry<K, V>) -> Set<Observable<*>> = { it.getEntryObservables() },
+    entryHandler: (K, V) -> Set<Observable<*>> = { k, v -> k.getEntryObservables(v) },
 ) = ObservableMap(pairs.toMap(), entryHandler)
 
 
 fun <K, V> mutableObservableMapOf(
     pairs: Collection<Pair<K, V>> = emptySet(),
-    entryHandler: (Entry<K, V>) -> Set<Observable<*>> = { it.getEntryObservables() },
+    entryHandler: (K, V) -> Set<Observable<*>> = { k, v -> k.getEntryObservables(v) },
 ) = MutableObservableMap(pairs.toMap(), entryHandler)
 
 
-fun <K, V, E: Entry<K, V>> E.getEntryObservables(): Set<Observable<*>> {
+fun <K, V> K.getEntryObservables(value: V): Set<Observable<*>> {
     val observables = mutableSetOf<Observable<*>>()
-    this.key.tryGetObservable()?.let { observables.add(it) }
-    this.value.tryGetObservable()?.let { observables.add(it) }
+    this.tryGetObservable()?.let { observables.add(it) }
+    value.tryGetObservable()?.let { observables.add(it) }
     return observables
 }
 

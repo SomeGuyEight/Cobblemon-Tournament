@@ -5,7 +5,7 @@ import kotlin.collections.Map.Entry
 
 open class MutableObservableMapIterator<K, V>(
     private val observableMap: MutableObservableMap<K, V>,
-) : ObservableMapIterator<K, V>(observableMap.entries.iterator()),
+) : ObservableMapIterator<K, V>(observableMap.toMutableMap().iterator()),
     MutableIterator<Entry<K, V>> {
 
     override fun remove() {

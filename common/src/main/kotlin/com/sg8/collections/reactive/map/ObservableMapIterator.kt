@@ -4,8 +4,7 @@ import kotlin.collections.Map.Entry
 
 
 open class ObservableMapIterator<K, V>(
-    protected var iterator: MutableIterator<Entry<K, V>>,
-    protected var index: Int = 0,
+    protected var iterator: MutableIterator<Entry<K, V>>
 ) : Iterator<Entry<K, V>> {
 
     protected var currentEntry: Entry<K, V>? = null
@@ -13,10 +12,6 @@ open class ObservableMapIterator<K, V>(
 
     protected var removedThisIteration: Boolean = false
         set (value) { if (field != value) field = value }
-
-    init {
-        index--
-    }
 
     override fun hasNext():Boolean = iterator.hasNext()
 

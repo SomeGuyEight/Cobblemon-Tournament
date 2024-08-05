@@ -3,7 +3,7 @@ package com.sg8.collections.reactive
 import com.cobblemon.mod.common.api.Priority
 import com.sg8.collections.reactive.collection.MutableObservableCollection
 import com.sg8.collections.reactive.list.MutableObservableList
-import com.sg8.collections.reactive.map.toMutableObservableMap
+import com.sg8.collections.reactive.map.mutableObservableMapOf
 import com.sg8.collections.reactive.set.MutableObservableSet
 import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.Test
@@ -16,6 +16,241 @@ object EmittingTests {
 
     @Test
     fun listAsCollectionEmitChange() = collectionEmitChange(MutableObservableList())
+
+    private fun collectionEmitChange(elements: MutableObservableCollection<String, *>) {
+        var anyChangeOne = 0
+        var additionOne = 0
+        var removalOne = 0
+
+        var anyChangeTwo = 0
+        var additionTwo = 0
+        var removalTwo = 0
+
+        var expectedAnyChangeOne = 0
+        var expectedAdditionOne = 0
+        var expectedRemovalOne = 0
+
+        var expectedAnyChangeTwo = 0
+        var expectedAdditionTwo = 0
+        var expectedRemovalTwo = 0
+
+        val confirmExpected = {
+            Assertions.assertTrue(anyChangeOne == expectedAnyChangeOne)
+            Assertions.assertTrue(additionOne == expectedAdditionOne)
+            Assertions.assertTrue(removalOne == expectedRemovalOne)
+            Assertions.assertTrue(anyChangeTwo == expectedAnyChangeTwo)
+            Assertions.assertTrue(additionTwo == expectedAdditionTwo)
+            Assertions.assertTrue(removalTwo == expectedRemovalTwo)
+        }
+
+        val getNewSubOne = {
+            elements.subscribe(
+                anyChangeHandler = { anyChangeOne++ },
+                additionHandler = { additionOne++ },
+                removalHandler = { removalOne++ },
+            )
+        }
+
+        val getNewSubTwo = {
+            elements.subscribe(
+                anyChangeHandler = { anyChangeTwo++ },
+                additionHandler = { additionTwo++ },
+                removalHandler = { removalTwo++ },
+            )
+        }
+
+        val subscriptionOne = getNewSubOne()
+        val subscriptionTwo = getNewSubTwo()
+
+        var subbedAnyChangeOne = true
+        var subbedAdditionOne = true
+        var subbedRemovalOne = true
+
+        var subbedAnyChangeTwo = true
+        var subbedAdditionTwo = true
+        var subbedRemovalTwo = true
+
+        val incrementExpectedAddition = { value: Int ->
+            if (subbedAnyChangeOne) expectedAnyChangeOne += value
+            if (subbedAdditionOne) expectedAdditionOne += value
+            if (subbedAnyChangeTwo) expectedAnyChangeTwo += value
+            if (subbedAdditionTwo) expectedAdditionTwo += value
+        }
+        val incrementExpectedRemoval = { value: Int ->
+            if (subbedAnyChangeOne) expectedAnyChangeOne += value
+            if (subbedRemovalOne) expectedRemovalOne += value
+            if (subbedAnyChangeTwo) expectedAnyChangeTwo += value
+            if (subbedRemovalTwo) expectedRemovalTwo += value
+        }
+
+        var currentCount = 0
+        val next = { "${currentCount++}" }
+        val bulkInput = listOf(next(), next(), next(), next())
+
+        val addNew = { iterations: Int ->
+            for (i in 0 until iterations) {
+                if (elements.add(next())) incrementExpectedAddition(1)
+            }
+            confirmExpected()
+        }
+
+        val addDuplicates = { iterations: Int ->
+            elements.firstOrNull() ?. let{ dupe ->
+                for (i in 0 until iterations) {
+                    if (elements.add(dupe)) incrementExpectedAddition(1)
+                }
+            }
+            confirmExpected()
+        }
+
+        val addNewIfTrue = { iterations: Int ->
+            for (i in 0 until iterations) {
+                if (elements.addIf(next()) { true }) incrementExpectedAddition(1)
+            }
+            confirmExpected()
+        }
+
+        val addNewIfFalse = { iterations: Int ->
+            for (i in 0 until iterations) {
+                if (elements.addIf(next()) { false }) incrementExpectedAddition(1)
+            }
+            confirmExpected()
+        }
+
+        val addDupeIfTrue = { iterations: Int ->
+            elements.firstOrNull() ?. let{ dupe ->
+                for (i in 0 until iterations) {
+                    if (elements.addIf(dupe) { true }) incrementExpectedAddition(1)
+                }
+            }
+            confirmExpected()
+        }
+
+        val addDupeIfFalse = { iterations: Int ->
+            elements.firstOrNull() ?. let{ dupe ->
+                for (i in 0 until iterations) {
+                    if (elements.addIf(dupe) { false }) incrementExpectedAddition(1)
+                }
+            }
+            confirmExpected()
+        }
+
+        val remove = { iterations: Int ->
+            for (i in 0 until iterations) {
+                elements.firstOrNull()?.let { if (elements.remove(it)) incrementExpectedRemoval(1) }
+            }
+            confirmExpected()
+        }
+
+        val removeNotContained = { iterations: Int ->
+            for (i in 0 until iterations) {
+                if (elements.remove("I am not here...")) incrementExpectedRemoval(1)
+            }
+            confirmExpected()
+        }
+
+        val removeDupeIfTrue = { iterations: Int ->
+            elements.firstOrNull() ?. let{ dupe ->
+                for (i in 0 until iterations) {
+                    val size = elements.size
+                    elements.removeIf { it == dupe }
+                    val change = size - elements.size
+                    if (change > 0) incrementExpectedRemoval(change)
+                }
+            }
+            confirmExpected()
+        }
+
+        val removeDupeIfFalse = { iterations: Int ->
+            elements.firstOrNull() ?. let{ dupe ->
+                for (i in 0 until iterations) {
+                    if (elements.removeIf { false }) incrementExpectedRemoval(1)
+                }
+            }
+            confirmExpected()
+        }
+
+        val addAll = { iterations: Int ->
+            for (i in 0 until iterations) {
+                val size = elements.size
+                if (elements.addAll(bulkInput)) incrementExpectedAddition(elements.size - size)
+            }
+            confirmExpected()
+        }
+
+        val removeAll = { iterations: Int ->
+            for (i in 0 until iterations) {
+                val size = elements.size
+                if (elements.removeAll(bulkInput)) incrementExpectedRemoval(size - elements.size)
+            }
+            confirmExpected()
+        }
+
+        val retainAll = { iterations: Int ->
+            for (i in 0 until iterations) {
+                val size = elements.size
+                if (elements.retainAll(bulkInput)) incrementExpectedRemoval(size - elements.size)
+            }
+            confirmExpected()
+        }
+
+        val clear = { iterations: Int ->
+            for (i in 0 until iterations) {
+                val size = elements.size
+                elements.clear()
+                val change = size - elements.size
+                if (change > 0) incrementExpectedRemoval(change)
+            }
+            confirmExpected()
+        }
+
+        val runAll = { iterations: Int ->
+            addNew(iterations)
+            addDuplicates(iterations)
+            addNewIfTrue(iterations)
+            addNewIfFalse(iterations)
+            addDupeIfTrue(iterations)
+            addDupeIfFalse(iterations)
+            remove(iterations)
+            removeNotContained(iterations)
+            removeDupeIfTrue(iterations)
+            removeDupeIfFalse(iterations)
+            addAll(iterations)
+            removeAll(iterations)
+            retainAll(iterations)
+            clear(iterations)
+        }
+
+        runAll(8)
+
+        subscriptionOne.unsubscribe()
+        subbedAnyChangeOne = false
+        subbedAdditionOne = false
+        subbedRemovalOne = false
+        runAll(8)
+
+        subscriptionTwo.anyChange.unsubscribe()
+        subbedAnyChangeTwo = false
+        runAll(8)
+
+        subscriptionTwo.addition?.unsubscribe()
+        subscriptionTwo.removal?.unsubscribe()
+        subbedAdditionTwo = false
+        subbedRemovalTwo = false
+        runAll(8)
+
+        val newSubOne = getNewSubOne()
+        newSubOne.addition?.unsubscribe()
+        newSubOne.removal?.unsubscribe()
+        subbedAnyChangeOne = true
+        runAll(8)
+
+        val newSubTwo = getNewSubTwo()
+        newSubTwo.addition?.unsubscribe()
+        newSubTwo.removal?.unsubscribe()
+        subbedAnyChangeTwo = true
+        runAll(8)
+    }
 
     @Test
     fun listAndSubListEmitChange() {
@@ -82,21 +317,20 @@ object EmittingTests {
             }
         }
 
-        run {
-            list.add("four")
-            expectedAnyChangeList += 1
-            expectedAdditionList += 1
+        var currentCount = 0
+        val next = { "${currentCount++}" }
+
+        val addNewEnd = { iterations: Int ->
+            for (i in 0 until iterations) {
+                list.add(next())
+                expectedAnyChangeList += 1
+                expectedAdditionList += 1
+            }
             confirmExpected()
             confirmSynced()
         }
 
-        run {
-            list.add(4,"five")
-            expectedAnyChangeList += 1
-            expectedAdditionList += 1
-            confirmExpected()
-            confirmSynced()
-        }
+        addNewEnd(2)
 
         run {
             list.addIf("six") { false }
@@ -127,8 +361,8 @@ object EmittingTests {
         }
 
         run {
-            list.remove("four")
-            list.remove("five")
+            list.remove(list[4])
+            list.remove(list[4])
             expectedAnyChangeList += 2
             expectedRemovalList += 2
             confirmExpected()
@@ -294,369 +528,175 @@ object EmittingTests {
 
     @Test
     fun mapEmitChange() {
-        val input = mutableMapOf<Int, String>()
-        input[0] = "zero"
-        input[1] = "one"
-        input[2] = "two"
-        input[3] = "three"
-        val mutableMap = input.toMutableObservableMap()
-    }
-
-    private fun collectionEmitChange(elements: MutableObservableCollection<String, *>) {
-        val input = mutableSetOf("zero", "one", "two", "three")
-
+        val mutableMap = mutableObservableMapOf(TestMaps.defaultMap())
         var anyChangeOne = 0
         var additionOne = 0
         var removalOne = 0
-        val setSubscriptionOne = elements.subscribe(
-            Priority.NORMAL,
-            { anyChangeOne++ },
-            { additionOne++ },
-            { removalOne++ },
-        )
+
         var anyChangeTwo = 0
         var additionTwo = 0
         var removalTwo = 0
-        val setSubscriptionTwo = elements.subscribe(
-            Priority.NORMAL,
-            { anyChangeTwo++ },
-            { additionTwo++ },
-            { removalTwo++ },
-        )
 
-        elements.add("zero")
-        elements.add("one")
-        elements.add("two")
-        elements.add("three")
-        if (elements is MutableObservableSet) {
-            Assertions.assertTrue(anyChangeOne == 4)
-            Assertions.assertTrue(additionOne == 4)
-            Assertions.assertTrue(removalOne == 0)
-        } else if (elements is MutableObservableList) {
-            Assertions.assertTrue(anyChangeOne == 4)
-            Assertions.assertTrue(additionOne == 4)
-            Assertions.assertTrue(removalOne == 0)
+        var expectedAnyChangeOne = 0
+        var expectedAdditionOne = 0
+        var expectedRemovalOne = 0
+
+        var expectedAnyChangeTwo = 0
+        var expectedAdditionTwo = 0
+        var expectedRemovalTwo = 0
+
+        val confirmExpected = {
+            Assertions.assertTrue(anyChangeOne == expectedAnyChangeOne)
+            Assertions.assertTrue(additionOne == expectedAdditionOne)
+            Assertions.assertTrue(removalOne == expectedRemovalOne)
+            Assertions.assertTrue(anyChangeTwo == expectedAnyChangeTwo)
+            Assertions.assertTrue(additionTwo == expectedAdditionTwo)
+            Assertions.assertTrue(removalTwo == expectedRemovalTwo)
         }
 
-        elements.add("zero")
-        elements.add("one")
-        elements.add("two")
-        elements.add("three")
-        if (elements is MutableObservableSet) {
-            Assertions.assertTrue(anyChangeOne == 4)
-            Assertions.assertTrue(additionOne == 4)
-            Assertions.assertTrue(removalOne == 0)
-        } else if (elements is MutableObservableList) {
-            Assertions.assertTrue(anyChangeOne == 8)
-            Assertions.assertTrue(additionOne == 8)
-            Assertions.assertTrue(removalOne == 0)
+        val getNewSubOne = {
+            mutableMap.subscribe(
+                anyChangeHandler = { anyChangeOne++ },
+                additionHandler = { additionOne++ },
+                removalHandler = { removalOne++ },
+            )
         }
 
-        elements.remove("zero")
-        elements.remove("one")
-        elements.remove("two")
-        elements.remove("three")
-        if (elements is MutableObservableSet) {
-            Assertions.assertTrue(anyChangeOne == 8)
-            Assertions.assertTrue(additionOne == 4)
-            Assertions.assertTrue(removalOne == 4)
-        } else if (elements is MutableObservableList) {
-            Assertions.assertTrue(anyChangeOne == 12)
-            Assertions.assertTrue(additionOne == 8)
-            Assertions.assertTrue(removalOne == 4)
+        val getNewSubTwo = {
+            mutableMap.subscribe(
+                anyChangeHandler = { anyChangeTwo++ },
+                additionHandler = { additionTwo++ },
+                removalHandler = { removalTwo++ },
+            )
         }
 
-        elements.remove("zero")
-        elements.remove("one")
-        elements.remove("two")
-        elements.remove("three")
-        if (elements is MutableObservableSet) {
-            Assertions.assertTrue(anyChangeOne == 8)
-            Assertions.assertTrue(additionOne == 4)
-            Assertions.assertTrue(removalOne == 4)
-        } else if (elements is MutableObservableList) {
-            Assertions.assertTrue(anyChangeOne == 16)
-            Assertions.assertTrue(additionOne == 8)
-            Assertions.assertTrue(removalOne == 8)
+        val subscriptionOne = getNewSubOne()
+        val subscriptionTwo = getNewSubTwo()
+
+        var subbedAnyChangeOne = true
+        var subbedAdditionOne = true
+        var subbedRemovalOne = true
+
+        var subbedAnyChangeTwo = true
+        var subbedAdditionTwo = true
+        var subbedRemovalTwo = true
+
+        val incrementExpectedAddition = { value: Int ->
+            if (subbedAnyChangeOne) expectedAnyChangeOne += value
+            if (subbedAdditionOne) expectedAdditionOne += value
+            if (subbedAnyChangeTwo) expectedAnyChangeTwo += value
+            if (subbedAdditionTwo) expectedAdditionTwo += value
+        }
+        val incrementExpectedRemoval = { value: Int ->
+            if (subbedAnyChangeOne) expectedAnyChangeOne += value
+            if (subbedRemovalOne) expectedRemovalOne += value
+            if (subbedAnyChangeTwo) expectedAnyChangeTwo += value
+            if (subbedRemovalTwo) expectedRemovalTwo += value
         }
 
-        elements.addIf("zero") { !it.contains("zero") }
-        elements.addIf("one") { !it.contains("one") }
-        elements.addIf("two") { !it.contains("two") }
-        elements.addIf("three") { !it.contains("three") }
-        if (elements is MutableObservableSet) {
-            Assertions.assertTrue(anyChangeOne == 12)
-            Assertions.assertTrue(additionOne == 8)
-            Assertions.assertTrue(removalOne == 4)
-        } else if (elements is MutableObservableList) {
-            Assertions.assertTrue(anyChangeOne == 20)
-            Assertions.assertTrue(additionOne == 12)
-            Assertions.assertTrue(removalOne == 8)
+        var currentCount = 0
+        val next = { currentCount to "${currentCount++}" }
+        val bulkInput = mapOf(next(), next(), next(), next())
+
+        val putNew = { iterations: Int ->
+            for (i in 0 until iterations) {
+                if (mutableMap.put(next()) != null) {
+                    incrementExpectedRemoval(1)
+                }
+                incrementExpectedAddition(1)
+            }
+            confirmExpected()
         }
 
-        elements.addIf("zero") { !it.contains("zero") }
-        elements.addIf("one") { !it.contains("one") }
-        elements.addIf("two") { !it.contains("two") }
-        elements.addIf("three") { !it.contains("three") }
-        if (elements is MutableObservableSet) {
-            Assertions.assertTrue(anyChangeOne == 12)
-            Assertions.assertTrue(additionOne == 8)
-            Assertions.assertTrue(removalOne == 4)
-        } else if (elements is MutableObservableList) {
-            Assertions.assertTrue(anyChangeOne == 20)
-            Assertions.assertTrue(additionOne == 12)
-            Assertions.assertTrue(removalOne == 8)
+        val putCurrentKeys = { iterations: Int ->
+            mutableMap.firstKeyOrNull()?. let { dupe ->
+                for (i in 0 until iterations) {
+                    if (mutableMap.put(dupe, next().second) != null) {
+                        incrementExpectedRemoval(1)
+                    }
+                    incrementExpectedAddition(1)
+                }
+            }
+            confirmExpected()
         }
 
-        elements.removeIf { it == "zero" }
-        elements.removeIf { it == "one" }
-        elements.removeIf { it == "two" }
-        elements.removeIf { it == "three" }
-        if (elements is MutableObservableSet) {
-            Assertions.assertTrue(anyChangeOne == 16)
-            Assertions.assertTrue(additionOne == 8)
-            Assertions.assertTrue(removalOne == 8)
-        } else if (elements is MutableObservableList) {
-            Assertions.assertTrue(anyChangeOne == 24)
-            Assertions.assertTrue(additionOne == 12)
-            Assertions.assertTrue(removalOne == 12)
+        val removeNew = { iterations: Int ->
+            for (i in 0 until iterations) {
+                if (mutableMap.remove(next().first) != null) {
+                    incrementExpectedRemoval(1)
+                }
+            }
+            confirmExpected()
         }
 
-        elements.removeIf { it == "zero" }
-        elements.removeIf { it == "one" }
-        elements.removeIf { it == "two" }
-        elements.removeIf { it == "three" }
-        if (elements is MutableObservableSet) {
-            Assertions.assertTrue(anyChangeOne == 16)
-            Assertions.assertTrue(additionOne == 8)
-            Assertions.assertTrue(removalOne == 8)
-        } else if (elements is MutableObservableList) {
-            Assertions.assertTrue(anyChangeOne == 24)
-            Assertions.assertTrue(additionOne == 12)
-            Assertions.assertTrue(removalOne == 12)
+        val removeCurrent = { iterations: Int ->
+            for (i in 0 until iterations) {
+                if (mutableMap.remove(next().first) != null) {
+                    incrementExpectedRemoval(1)
+                }
+            }
+            confirmExpected()
         }
 
-        elements.addAll(input)
-        if (elements is MutableObservableSet) {
-            Assertions.assertTrue(anyChangeOne == 20)
-            Assertions.assertTrue(additionOne == 12)
-            Assertions.assertTrue(removalOne == 8)
-        } else if (elements is MutableObservableList) {
-            Assertions.assertTrue(anyChangeOne == 28)
-            Assertions.assertTrue(additionOne == 16)
-            Assertions.assertTrue(removalOne == 12)
+        val putAll = { iterations: Int ->
+            for (i in 0 until iterations) {
+                var replacedCount = 0
+                bulkInput.forEach { if (mutableMap.keys.contains(it.key)) replacedCount++ }
+                mutableMap.putAll(bulkInput)
+                incrementExpectedAddition(bulkInput.size)
+                incrementExpectedRemoval(replacedCount)
+            }
+            confirmExpected()
         }
 
-        elements.addAll(input)
-        if (elements is MutableObservableSet) {
-            Assertions.assertTrue(anyChangeOne == 20)
-            Assertions.assertTrue(additionOne == 12)
-            Assertions.assertTrue(removalOne == 8)
-        } else if (elements is MutableObservableList) {
-            Assertions.assertTrue(anyChangeOne == 32)
-            Assertions.assertTrue(additionOne == 20)
-            Assertions.assertTrue(removalOne == 12)
+        val clear = { iterations: Int ->
+            for (i in 0 until iterations) {
+                val size = mutableMap.size
+                mutableMap.clear()
+                val change = size - mutableMap.size
+                if (change > 0) incrementExpectedRemoval(change)
+            }
+            confirmExpected()
         }
 
-        elements.removeAll(input)
-        if (elements is MutableObservableSet) {
-            Assertions.assertTrue(anyChangeOne == 24)
-            Assertions.assertTrue(additionOne == 12)
-            Assertions.assertTrue(removalOne == 12)
-        } else if (elements is MutableObservableList) {
-            Assertions.assertTrue(anyChangeOne == 40)
-            Assertions.assertTrue(additionOne == 20)
-            Assertions.assertTrue(removalOne == 20)
+        val runAll = { iterations: Int ->
+            putNew(iterations)
+            putCurrentKeys(iterations)
+            removeNew(iterations)
+            removeCurrent(iterations)
+            putAll(iterations)
+            clear(iterations)
         }
 
-        elements.removeAll(input)
-        if (elements is MutableObservableSet) {
-            Assertions.assertTrue(anyChangeOne == 24)
-            Assertions.assertTrue(additionOne == 12)
-            Assertions.assertTrue(removalOne == 12)
-        } else if (elements is MutableObservableList) {
-            Assertions.assertTrue(anyChangeOne == 40)
-            Assertions.assertTrue(additionOne == 20)
-            Assertions.assertTrue(removalOne == 20)
-        }
+        runAll(8)
 
-        elements.retainAll(input)
-        if (elements is MutableObservableSet) {
-            Assertions.assertTrue(anyChangeOne == 24)
-            Assertions.assertTrue(additionOne == 12)
-            Assertions.assertTrue(removalOne == 12)
-        } else if (elements is MutableObservableList) {
-            Assertions.assertTrue(anyChangeOne == 40)
-            Assertions.assertTrue(additionOne == 20)
-            Assertions.assertTrue(removalOne == 20)
-        }
+        subscriptionOne.unsubscribe()
+        subbedAnyChangeOne = false
+        subbedAdditionOne = false
+        subbedRemovalOne = false
+        runAll(8)
 
-        elements.addAll(input)
-        if (elements is MutableObservableSet) {
-            Assertions.assertTrue(anyChangeOne == 28)
-            Assertions.assertTrue(additionOne == 16)
-            Assertions.assertTrue(removalOne == 12)
-        } else if (elements is MutableObservableList) {
-            Assertions.assertTrue(anyChangeOne == 44)
-            Assertions.assertTrue(additionOne == 24)
-            Assertions.assertTrue(removalOne == 20)
-        }
+        subscriptionTwo.anyChange.unsubscribe()
+        subbedAnyChangeTwo = false
+        runAll(8)
 
-        elements.addAll(input)
-        if (elements is MutableObservableSet) {
-            Assertions.assertTrue(anyChangeOne == 28)
-            Assertions.assertTrue(additionOne == 16)
-            Assertions.assertTrue(removalOne == 12)
-        } else if (elements is MutableObservableList) {
-            Assertions.assertTrue(anyChangeOne == 48)
-            Assertions.assertTrue(additionOne == 28)
-            Assertions.assertTrue(removalOne == 20)
-        }
+        subscriptionTwo.addition?.unsubscribe()
+        subscriptionTwo.removal?.unsubscribe()
+        subbedAdditionTwo = false
+        subbedRemovalTwo = false
+        runAll(8)
 
-        elements.retainAll(input)
-        if (elements is MutableObservableSet) {
-            Assertions.assertTrue(anyChangeOne == 28)
-            Assertions.assertTrue(additionOne == 16)
-            Assertions.assertTrue(removalOne == 12)
-        } else if (elements is MutableObservableList) {
-            Assertions.assertTrue(anyChangeOne == 48)
-            Assertions.assertTrue(additionOne == 28)
-            Assertions.assertTrue(removalOne == 20)
-        }
+        val newSubOne = getNewSubOne()
+        newSubOne.addition?.unsubscribe()
+        newSubOne.removal?.unsubscribe()
+        subbedAnyChangeOne = true
+        runAll(8)
 
-        elements.retainAll(setOf())
-        if (elements is MutableObservableSet) {
-            Assertions.assertTrue(anyChangeOne == 32)
-            Assertions.assertTrue(additionOne == 16)
-            Assertions.assertTrue(removalOne == 16)
-        } else if (elements is MutableObservableList) {
-            Assertions.assertTrue(anyChangeOne == 56)
-            Assertions.assertTrue(additionOne == 28)
-            Assertions.assertTrue(removalOne == 28)
-        }
-
-        val copy = elements.mutableCopy()
-        copy.clear()
-        copy.addAll(input)
-        if (elements is MutableObservableSet) {
-            Assertions.assertTrue(anyChangeOne == 32)
-            Assertions.assertTrue(additionOne == 16)
-            Assertions.assertTrue(removalOne == 16)
-        } else if (elements is MutableObservableList) {
-            Assertions.assertTrue(anyChangeOne == 56)
-            Assertions.assertTrue(additionOne == 28)
-            Assertions.assertTrue(removalOne == 28)
-        }
-
-        elements.addAll(input)
-        elements.clear()
-        if (elements is MutableObservableSet) {
-            Assertions.assertTrue(anyChangeOne == 40)
-            Assertions.assertTrue(additionOne == 20)
-            Assertions.assertTrue(removalOne == 20)
-        } else if (elements is MutableObservableList) {
-            Assertions.assertTrue(anyChangeOne == 64)
-            Assertions.assertTrue(additionOne == 32)
-            Assertions.assertTrue(removalOne == 32)
-        }
-
-        setSubscriptionOne.unsubscribe()
-        elements.addAll(input)
-        elements.clear()
-        if (elements is MutableObservableSet) {
-            Assertions.assertTrue(anyChangeOne == 40)
-            Assertions.assertTrue(additionOne == 20)
-            Assertions.assertTrue(removalOne == 20)
-            Assertions.assertTrue(anyChangeTwo == 48)
-            Assertions.assertTrue(additionTwo == 24)
-            Assertions.assertTrue(removalTwo == 24)
-        } else if (elements is MutableObservableList) {
-            Assertions.assertTrue(anyChangeOne == 64)
-            Assertions.assertTrue(additionOne == 32)
-            Assertions.assertTrue(removalOne == 32)
-            Assertions.assertTrue(anyChangeTwo == 72)
-            Assertions.assertTrue(additionTwo == 36)
-            Assertions.assertTrue(removalTwo == 36)
-        }
-
-        setSubscriptionTwo.anyChange.unsubscribe()
-        elements.addAll(input)
-        elements.clear()
-        if (elements is MutableObservableSet) {
-            Assertions.assertTrue(anyChangeOne == 40)
-            Assertions.assertTrue(additionOne == 20)
-            Assertions.assertTrue(removalOne == 20)
-            Assertions.assertTrue(anyChangeTwo == 48)
-            Assertions.assertTrue(additionTwo == 28)
-            Assertions.assertTrue(removalTwo == 28)
-        } else if (elements is MutableObservableList) {
-            Assertions.assertTrue(anyChangeOne == 64)
-            Assertions.assertTrue(additionOne == 32)
-            Assertions.assertTrue(removalOne == 32)
-            Assertions.assertTrue(anyChangeTwo == 72)
-            Assertions.assertTrue(additionTwo == 40)
-            Assertions.assertTrue(removalTwo == 40)
-        }
-
-        setSubscriptionTwo.addition?.unsubscribe()
-        setSubscriptionTwo.removal?.unsubscribe()
-        elements.addAll(input)
-        elements.clear()
-        if (elements is MutableObservableSet) {
-            Assertions.assertTrue(anyChangeOne == 40)
-            Assertions.assertTrue(additionOne == 20)
-            Assertions.assertTrue(removalOne == 20)
-            Assertions.assertTrue(anyChangeTwo == 48)
-            Assertions.assertTrue(additionTwo == 28)
-            Assertions.assertTrue(removalTwo == 28)
-        } else if (elements is MutableObservableList) {
-            Assertions.assertTrue(anyChangeOne == 64)
-            Assertions.assertTrue(additionOne == 32)
-            Assertions.assertTrue(removalOne == 32)
-            Assertions.assertTrue(anyChangeTwo == 72)
-            Assertions.assertTrue(additionTwo == 40)
-            Assertions.assertTrue(removalTwo == 40)
-        }
-
-        val anyChangeSubscriptionOne = elements.subscribe { anyChangeOne++ }
-        val anyChangeSubscriptionTwo = elements.subscribe { anyChangeTwo++ }
-        elements.addAll(input)
-        elements.clear()
-        if (elements is MutableObservableSet) {
-            Assertions.assertTrue(anyChangeOne == 48)
-            Assertions.assertTrue(additionOne == 20)
-            Assertions.assertTrue(removalOne == 20)
-            Assertions.assertTrue(anyChangeTwo == 56)
-            Assertions.assertTrue(additionTwo == 28)
-            Assertions.assertTrue(removalTwo == 28)
-        } else if (elements is MutableObservableList) {
-            Assertions.assertTrue(anyChangeOne == 72)
-            Assertions.assertTrue(additionOne == 32)
-            Assertions.assertTrue(removalOne == 32)
-            Assertions.assertTrue(anyChangeTwo == 80)
-            Assertions.assertTrue(additionTwo == 40)
-            Assertions.assertTrue(removalTwo == 40)
-        }
-
-        anyChangeSubscriptionOne.unsubscribe()
-        anyChangeSubscriptionTwo.unsubscribe()
-        elements.addAll(input)
-        elements.clear()
-        if (elements is MutableObservableSet) {
-            Assertions.assertTrue(anyChangeOne == 48)
-            Assertions.assertTrue(additionOne == 20)
-            Assertions.assertTrue(removalOne == 20)
-            Assertions.assertTrue(anyChangeTwo == 56)
-            Assertions.assertTrue(additionTwo == 28)
-            Assertions.assertTrue(removalTwo == 28)
-        } else if (elements is MutableObservableList) {
-            Assertions.assertTrue(anyChangeOne == 72)
-            Assertions.assertTrue(additionOne == 32)
-            Assertions.assertTrue(removalOne == 32)
-            Assertions.assertTrue(anyChangeTwo == 80)
-            Assertions.assertTrue(additionTwo == 40)
-            Assertions.assertTrue(removalTwo == 40)
-        }
-
+        val newSubTwo = getNewSubTwo()
+        newSubTwo.addition?.unsubscribe()
+        newSubTwo.removal?.unsubscribe()
+        subbedAnyChangeTwo = true
+        runAll(8)
     }
+
 }

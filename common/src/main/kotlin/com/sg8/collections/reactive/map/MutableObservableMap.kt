@@ -7,23 +7,20 @@ import com.sg8.collections.reactive.subscriptions.MapSubscription
 import kotlin.collections.Map.Entry
 
 
-private class ObservableEntry<K, V>(override val key: K, override val value: V) : Entry<K, V>
-
-
 class MutableObservableMap<K, V>(
     map: Map<K, V> = mapOf(),
-    entryHandler: (Entry<K, V>) -> Set<Observable<*>> = { it.getEntryObservables() },
+    entryHandler: (K, V) -> Set<Observable<*>> = { k, v -> k.getEntryObservables(v) },
 ) : ObservableMap<K, V>(map = map, entryHandler = entryHandler),
     MutableMap<K, V> {
 
-    private val additionObservable = SimpleObservable<Pair<Map<K, V>, Entry<K, V>>>()
-    private val removalObservable = SimpleObservable<Pair<Map<K, V>, Entry<K, V>>>()
+    private val additionObservable = SimpleObservable<Pair<Map<K, V>, Pair<K, V>>>()
+    private val removalObservable = SimpleObservable<Pair<Map<K, V>, Pair<K, V>>>()
 
     fun subscribe(
         priority: Priority  = Priority.NORMAL,
-        anyChangeHandler: (Pair<Map<K, V>, Entry<K, V>>) -> Unit,
-        additionHandler: ((Pair<Map<K, V>, Entry<K, V>>) -> Unit)? = null,
-        removalHandler: ((Pair<Map<K, V>, Entry<K, V>>) -> Unit)? = null,
+        anyChangeHandler: (Pair<Map<K, V>, Pair<K, V>>) -> Unit,
+        additionHandler: ((Pair<Map<K, V>, Pair<K, V>>) -> Unit)? = null,
+        removalHandler: ((Pair<Map<K, V>, Pair<K, V>>) -> Unit)? = null,
     ): MapSubscription<K, V> {
         return MapSubscription(
             anyChange = this.subscribe(priority, anyChangeHandler),
@@ -32,61 +29,56 @@ class MutableObservableMap<K, V>(
         )
     }
 
-    override fun register(entry: Entry<K, V>): Boolean {
-        entryHandler(entry).forEach{ observable ->
-            subscriptionMap[observable] = observable.subscribe { emitAnyChange(entry) }
-        }
-        emitAddition(entry)
-        return emitAnyChange(entry)
+    private fun emitAddition(key: K, value: V): Boolean {
+        register(key, value)
+        additionObservable.emit(map to (key to value))
+        return emitAnyChange(key, value)
     }
 
-    private fun unregister(entry: Entry<K, V>): Boolean {
-        entryHandler(entry).forEach{ subscriptionMap.remove(it)?.unsubscribe() }
-        emitRemoval(entry)
-        return emitAnyChange(entry)
+    private fun emitRemoval(key: K, value: V): Boolean {
+        unregister(key, value)
+        removalObservable.emit(map to (key to value))
+        return emitAnyChange(key, value)
     }
 
-    //private fun emitAddition(entry: Entry<K, V>) = additionObservable.emit(map to entry)
-    private fun emitAddition(entry: Entry<K, V>) = additionObservable.emit(map.toMap() to entry)
-
-    //private fun emitRemoval(entry: Entry<K, V>) = removalObservable.emit(map to entry)
-    private fun emitRemoval(entry: Entry<K, V>) = removalObservable.emit(map.toMap() to entry)
-
-    override operator fun iterator(): MutableIterator<Entry<K, V>> {
+    override operator fun iterator(): MutableObservableMapIterator<K, V> {
         return MutableObservableMapIterator(this)
     }
 
     operator fun set(key: K, value: V): V? = put(key, value)
 
+    fun put(pair: Pair<K, V>): V? = put(pair.first, pair.second)
+
+    fun put(entry: Entry<K, V>): V? = put(entry.key, entry.value)
+
     override fun put(key: K, value: V): V? {
         val previous = map.put(key, value)
+        emitAddition(key, value)
         if (previous != null) {
-            unregister(ObservableEntry(key, value))
+            emitRemoval(key, previous)
         }
         return previous
     }
 
-    fun remove(key: K, value: V) = if (map[key] == value) (remove(key) != null) else false
+    fun remove(key: K, value: V): Boolean {
+        return if (map[key] == value) (remove(key) != null) else false
+    }
 
     override fun remove(key: K): V? {
         val value = map.remove(key) ?: return null
-        unregister(ObservableEntry(key, value))
+        emitRemoval(key, value)
         return value
     }
 
-    override fun putAll(from: Map<out K, V>) {
-        from.forEach { put(it.key, it.value) }
-    }
+    override fun putAll(from: Map<out K, V>) = from.forEach { put(it.key, it.value) }
 
     fun getOrDefault(key: K, defaultValue: V): V = map[key] ?: defaultValue
 
-    fun getOrPut(key: K, newValue: V) = map[key] ?: newValue.also { map[key] = it }
+    fun getOrPut(key: K, newValue: V) = map[key] ?: newValue.also { put(key, it) }
 
     override fun clear() {
         if (map.isNotEmpty()) {
-            val removedEntries = map.entries
-            map.clear()
-            removedEntries.forEach { unregister(it) }
+            keys.toSet().forEach { remove(it) }
         }
     }
 }
