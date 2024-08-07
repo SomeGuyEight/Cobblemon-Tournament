@@ -9,6 +9,8 @@ import com.mojang.brigadier.*
 import com.mojang.brigadier.arguments.*
 import com.sg8.api.command.*
 import com.sg8.api.command.node.ExecutionNode
+import com.sg8.api.command.node.RecursiveNodeGenerator
+import com.sg8.api.command.node.nested.*
 import com.sg8.util.*
 import net.minecraft.commands.*
 
@@ -22,78 +24,103 @@ object UpdateBuilderCommand {
     val executionNode = ExecutionNode { updateBuilderProperties(ctx = it) }
 
     fun register(dispatcher: CommandDispatcher<CommandSourceStack>) {
-        dispatcher.register(ActiveBuilderNameNode
-            .nest(Commands
-                .literal(UPDATE)
-                .then(Commands
-                    .literal(NAME)
-                    .then(Commands
-                        .argument("$NEW$BUILDER_NAME", StringArgumentType.string())
-                        .executes(this.executionNode.handler)
-                    )
-                )
-//                .then(Commands
-//                    .literal(TOURNAMENT_TYPE)
-//                    .then(Commands
-//                        .argument("$NEW$TOURNAMENT_TYPE", StringArgumentType.string())
-//                        .suggests(TournamentTypeSuggestionProvider())
-//                        .executes(this.executionNode.action)
-//                    )
-//                )
-//                .then( Commands
-//                    .literal(CHALLENGE_FORMAT)
-//                    .then(Commands
-//                        .argument("$NEW$CHALLENGE_FORMAT", StringArgumentType.string() )
-//                        .suggests(ChallengeFormatSuggestionProvider())
-//                        .executes(this.executionNode.action)
-//                    )
-//                )
-                .then(Commands
-                    .literal(MAX_PARTICIPANTS)
-                    .then(Commands
-                        .argument("$NEW$MAX_PARTICIPANTS", IntegerArgumentType.integer())
-                        .executes(this.executionNode.handler)
-                    )
-                )
-//                .then(Commands
-//                    .literal(TEAM_SIZE)
-//                    .then(Commands
-//                        .argument("$NEW$TEAM_SIZE", IntegerArgumentType.integer())
-//                        .executes(this.executionNode.action)
-//                    )
-//                )
-//                .then(Commands
-//                    .literal(GROUP_SIZE)
-//                    .then(Commands
-//                        .argument("$NEW$GROUP_SIZE", IntegerArgumentType.integer())
-//                        .executes(this.executionNode.action)
-//                    )
-//                )
-                .then(Commands
-                    .literal(LEVEL)
-                    .then(Commands
-                        .argument("$NEW$LEVEL", IntegerArgumentType.integer())
-                        .executes(this.executionNode.handler)
-                    )
-                )
-//                .then(Commands
-//                    .literal(LEVEL_RANGE)
-//                    .then(Commands
-//                        .argument("$NEW$MIN_LEVEL", IntegerArgumentType.integer())
-//                        .then(Commands
-//                            .argument("$NEW$MAX_LEVEL", IntegerArgumentType.integer())
-//                            .executes(this.executionNode.action)
-//                        )
-//                    )
-//                )
-                .then(Commands
-                    .literal(SHOW_PREVIEW)
-                    .then(Commands
-                        .argument("$NEW$SHOW_PREVIEW", BoolArgumentType.bool())
-                        .executes(this.executionNode.handler)
-                    )
-                )
+
+        val rootNode = LiteralNestedNode(UPDATE, ActiveBuilderNameNode)
+        val nodeLists = mutableListOf<List<NestedNode>>()
+
+        nodeLists.add(listOf(
+            LiteralNestedNode(NAME, rootNode),
+            RequiredNestedNode(
+                nodeKey = "$NEW$BUILDER_NAME",
+                parentNode = rootNode,
+                argumentType = StringArgumentType.string(),
             )
+        ))
+
+        nodeLists.add(listOf(
+            LiteralNestedNode(SHOW_PREVIEW, rootNode),
+            RequiredNestedNode(
+                nodeKey = "$NEW$SHOW_PREVIEW",
+                parentNode = rootNode,
+                argumentType = BoolArgumentType.bool(),
+            )
+        ))
+
+        nodeLists.add(listOf(
+            LiteralNestedNode(MAX_PARTICIPANTS, rootNode),
+            RequiredNestedNode(
+                nodeKey = "$NEW$MAX_PARTICIPANTS",
+                parentNode = rootNode,
+                argumentType = IntegerArgumentType.integer(),
+            )
+        ))
+
+        nodeLists.add(listOf(
+            LiteralNestedNode(LEVEL, rootNode),
+            RequiredNestedNode(
+                nodeKey = "$NEW$LEVEL",
+                parentNode = rootNode,
+                argumentType = IntegerArgumentType.integer(),
+            )
+        ))
+
+//        nodeLists.add(listOf(
+//            LiteralNestedNode(TOURNAMENT_TYPE, rootNode),
+//            RequiredNestedNode(
+//                nodeKey = "$NEW$TOURNAMENT_TYPE",
+//                parentNode = rootNode,
+//                argumentType = StringArgumentType.string(),
+//                suggestionProvider = TournamentTypeSuggestionProvider
+//            )
+//        ))
+
+//        nodeLists.add(listOf(
+//            LiteralNestedNode(CHALLENGE_FORMAT, rootNode),
+//            RequiredNestedNode(
+//                nodeKey = "$NEW$CHALLENGE_FORMAT",
+//                parentNode = rootNode,
+//                argumentType = StringArgumentType.string(),
+//                suggestionProvider = ChallengeFormatSuggestionProvider
+//            )
+//        ))
+
+        nodeLists.add(listOf(
+            LiteralNestedNode(TEAM_SIZE, rootNode),
+            RequiredNestedNode(
+                nodeKey = "$NEW$TEAM_SIZE",
+                parentNode = rootNode,
+                argumentType = IntegerArgumentType.integer(),
+            )
+        ))
+
+        nodeLists.add(listOf(
+            LiteralNestedNode(GROUP_SIZE, rootNode),
+            RequiredNestedNode(
+                nodeKey = "$NEW$GROUP_SIZE",
+                parentNode = rootNode,
+                argumentType = IntegerArgumentType.integer(),
+            )
+        ))
+
+        nodeLists.add(listOf(
+            LiteralNestedNode(LEVEL_RANGE, rootNode),
+            RequiredNestedNode(
+                nodeKey = "$NEW$MIN_LEVEL",
+                parentNode = rootNode,
+                argumentType = IntegerArgumentType.integer(),
+            ),
+            RequiredNestedNode(
+                nodeKey = "$NEW$MAX_LEVEL",
+                parentNode = rootNode,
+                argumentType = IntegerArgumentType.integer(),
+            )
+        ))
+
+        RecursiveNodeGenerator.registerAllPermutations(
+            dispatcher = dispatcher,
+            rootNode = rootNode,
+            executionNode = executionNode,
+            nodeLists = nodeLists,
         )
     }
 
@@ -150,3 +177,7 @@ object UpdateBuilderCommand {
         return Command.SINGLE_SUCCESS
     }
 }
+
+// example of what a full command looks like
+// they can be put in any order
+// /tournament builder active testBuilder update group-size 8 level 8 level-range 8 8 max-participants 8 name NewBuilderName show-preview false team-size 8

@@ -6,22 +6,25 @@ import com.mojang.brigadier.builder.ArgumentBuilder
 import com.sg8.util.displayNoArgument
 import net.minecraft.commands.CommandSourceStack
 
+abstract class NestedNode (val nodeKey: String, val parentNode: NestedNode?) {
 
-abstract class NestedNode (val nodeKey: String) {
+    private val nodePath: String = parentNode?.nodePath?.plus(" $nodeKey") ?: nodeKey
 
-    private val nodePath: String by lazy {
-        tryGetParentNode()?.nodePath?.plus(" $nodeKey") ?: nodeKey
-    }
-
-    val executionNode: ExecutionNode by lazy {
-        ExecutionNode { it.source.player.displayNoArgument(nodePath) }
-    }
-
-    abstract fun tryGetParentNode(): NestedNode?
+    val executionNode: ExecutionNode = ExecutionNode { it.source.player.displayNoArgument(nodePath) }
 
     abstract fun nest(
         builder: ArgumentBuilder<CommandSourceStack, *>,
         execution: ExecutionNode? = null,
     ): LiteralArgumentBuilder
 
+    abstract fun nest(
+        newParent: NestedNode,
+        builder: ArgumentBuilder<CommandSourceStack, *>,
+        parentExecution: ExecutionNode,
+        execution: ExecutionNode,
+    ): LiteralArgumentBuilder
+
+    abstract fun getAsFinalNode(execution: ExecutionNode?): LiteralArgumentBuilder
+
+    abstract fun copyWithParent(newParent: NestedNode): NestedNode
 }

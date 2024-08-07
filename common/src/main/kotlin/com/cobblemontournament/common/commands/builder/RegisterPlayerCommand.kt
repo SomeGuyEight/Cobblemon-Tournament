@@ -24,7 +24,7 @@ object RegisterPlayerCommand {
             .nest(Commands
                 .literal(REGISTER)
                 .then(Commands
-                    .argument(PLAYER_ENTITY, EntityArgument.player())
+                    .argument(NodeKeys.PLAYER_ENTITY, EntityArgument.player())
                     .executes(this.executionNode.handler)
                     .then(Commands
                         .literal(SEED)

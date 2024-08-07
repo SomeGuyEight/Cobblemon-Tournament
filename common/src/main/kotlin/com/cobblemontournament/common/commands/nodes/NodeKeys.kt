@@ -32,6 +32,7 @@ const val TEAM_SIZE = "team-size"
 const val GROUP_SIZE = "group-size"
 const val SHOW_PREVIEW = "show-preview"
 const val LEVEL = "level"
+const val LEVEL_RANGE = "level-range"
 const val MIN_LEVEL = "min-level"
 const val MAX_LEVEL = "max-level"
 
