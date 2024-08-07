@@ -27,7 +27,7 @@ object UpdatePlayerCommand {
             .nest(Commands
                 .literal(UPDATE)
                 .then(Commands
-                    .argument(PLAYER_NAME, StringArgumentType.string())
+                    .argument(NodeKeys.PLAYER_NAME, StringArgumentType.string())
                     .suggests(PlayerNameSuggestionProvider())
 //                    .then(Commands
 //                        .literal(ACTOR_TYPE)
@@ -55,7 +55,7 @@ object UpdatePlayerCommand {
         ) ?: return 0
 
         val playerProperties = ctx
-            .getNodeInputRange(PLAYER_NAME)
+            .getNodeInputRange(NodeKeys.PLAYER_NAME)
             ?.let { tournamentBuilder.getPlayer(it) }
             ?: run {
                 ctx.source.player.displayCommandFail(reason = "Player properties were null")

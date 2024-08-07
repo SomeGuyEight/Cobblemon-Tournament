@@ -32,6 +32,7 @@ object TournamentCommands : CommandImplementation {
         ActiveTournamentCurrentMatchCommand.register(dispatcher)
         TournamentInfoCommand.register(dispatcher)
 
+        //RecursiveTestCommand.register(dispatcher)
         //TestCommands.register(dispatcher)
         //TestChatFormating.register(dispatcher)
         //RegisterFakePlayerCommand.register(dispatcher)

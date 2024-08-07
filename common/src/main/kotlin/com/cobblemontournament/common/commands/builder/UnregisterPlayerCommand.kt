@@ -24,7 +24,7 @@ object UnregisterPlayerCommand {
             .nest(Commands
                 .literal(UNREGISTER)
                 .then(Commands
-                    .argument(PLAYER_NAME, StringArgumentType.string())
+                    .argument(NodeKeys.PLAYER_NAME, StringArgumentType.string())
                     .suggests(PlayerNameSuggestionProvider())
                     .executes(this.executionNode.handler)
                 )
@@ -40,7 +40,7 @@ object UnregisterPlayerCommand {
         ) ?: return 0
 
         val properties = ctx
-            .getNodeInputRange(PLAYER_NAME)
+            .getNodeInputRange(NodeKeys.PLAYER_NAME)
             ?.let { tournamentBuilder.getPlayer(it) }
             ?: run {
                 player.displayCommandFail(reason = "No valid player found.")
